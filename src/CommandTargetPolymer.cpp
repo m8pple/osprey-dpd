@@ -22,6 +22,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Bead.h"
 #include "IGlobalSimBox.h"
 
+#include <algorithm>
+
 
 //////////////////////////////////////////////////////////////////////
 // Global members

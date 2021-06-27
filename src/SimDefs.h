@@ -110,7 +110,9 @@
 // Parallel implementation using MPI. We put the include statement here so that it
 // is included in every compilation unit if needed.
 
-#define SimMPS          SimulationDisabled
+#ifndef SimMPS
+#define SimMPS          SimulationDisable
+#endif
 #define SimStubMPS      SimulationDisabled
 
 #if SimMPS == SimulationEnabled

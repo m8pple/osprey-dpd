@@ -25,8 +25,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "LogTextMessage.h"
 
 	using std::transform;
-	using std::slice;
-	using std::gslice;
 	using std::find;
 	using std::find_if;
 

@@ -30,6 +30,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "LogctTranslateTargetToC2Point.h"
 #include "LogctEmptyTarget.h"
 
+#include <cmath>
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////

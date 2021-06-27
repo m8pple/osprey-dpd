@@ -26,8 +26,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 
 	using std::transform;
-	using std::slice;
-	using std::gslice;
 	using std::find;
 	using std::find_if;
 

@@ -26,6 +26,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Polymer.h"
 #include "PolymerCrossLink.h"
 
+#include <algorithm>
+
 
 //////////////////////////////////////////////////////////////////////
 // Global members

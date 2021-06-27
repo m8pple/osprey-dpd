@@ -16,6 +16,8 @@
 
 #include "SimACNFlags.h"
 
+#include <stddef.h>
+
 // Forward declarations
 
 #if EnableShadowSimBox == SimACNEnabled
@@ -134,8 +136,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
-	#include <valarray>
-
+	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
 	// and other standard libraries using std or not as required.
@@ -180,12 +181,12 @@ class xxProcessObject;
 	{
 	public:
 		xxBasevector() : std::vector<T>(){}
-		xxBasevector(size_type num, const T& val=T()) : std::vector<T>(num,val){}
+		xxBasevector(size_t num, const T& val=T()) : std::vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
 
-//		inline T& at(size_type i)             {return (*(begin() + i)); }
-//		inline const T& at(size_type i) const {return (*(begin() + i)); }
+//		inline T& at(size_t i)             {return (*(begin() + i)); }
+//		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
 
 	// The following pair functions have to take different forms on the Cray platform
@@ -237,11 +238,6 @@ class xxProcessObject;
 	typedef xxEvent*				  (*CreateEventCallback)();
 	typedef xxProcess*				(*CreateProcessCallback)();
 
-	// The following typedef uses valarrays where available or vectors where not
-
-	typedef std::valarray<size_t>				zLongValArray;
-	typedef std::valarray<double>				zDoubleValArray;
-
 // ****************************************
 #elif xxBasePlatform == xxBaseXCMAC	// Mac OS X/XCode compiler console app
 
@@ -255,8 +251,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
-	#include <valarray>
-
+	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
 	// and other standard libraries using std or not as required.
@@ -283,10 +278,6 @@ class xxProcessObject;
 	#define xxBasemultimap				std::multimap
 	#define xxBasestring				std::basic_string<char>
 
-	// Macros needed for STL types
-
-	#define size_type						long
-
 	// **********************************************************************
 	// class xxBasevector
 	// ******************
@@ -305,12 +296,12 @@ class xxProcessObject;
 	{
 	public:
 		xxBasevector() : std::vector<T>(){}
-		xxBasevector(size_type num, const T& val=T()) : std::vector<T>(num,val){}
+		xxBasevector(size_t num, const T& val=T()) : std::vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
 
-//		inline T& at(size_type i)             {return (*(begin() + i)); }
-//		inline const T& at(size_type i) const {return (*(begin() + i)); }
+//		inline T& at(size_t i)             {return (*(begin() + i)); }
+//		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
 
 	// The following pair functions have to take different forms on the Cray platform
@@ -361,11 +352,6 @@ class xxProcessObject;
 	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
 	typedef xxEvent*				  (*CreateEventCallback)();
 	typedef xxProcess*				(*CreateProcessCallback)();
-
-	// The following typedef uses valarrays where available or vectors where not
-
-	typedef std::valarray<size_t>				zLongValArray;
-	typedef std::valarray<double>				zDoubleValArray;
 
 // ****************************************
 #elif xxBasePlatform == xxBaseCRAYHERMIT	// hermit1.hww.de Cray
@@ -378,8 +364,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
-	#include <valarray>
-
+	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
 	// and other standard libraries using std or not as required.
@@ -406,10 +391,6 @@ class xxProcessObject;
 	#define xxBasemultimap				std::multimap
 	#define xxBasestring				std::basic_string<char>
 
-	// Macros needed for STL types
-
-	#define size_type						long
-
 	// **********************************************************************
 	// class xxBasevector
 	// ******************
@@ -428,12 +409,12 @@ class xxProcessObject;
 	{
 	public:
 		xxBasevector() : std::vector<T>(){}
-		xxBasevector(size_type num, const T& val=T()) : std::vector<T>(num,val){}
+		xxBasevector(size_t num, const T& val=T()) : std::vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
 
-//		inline T& at(size_type i)             {return (*(begin() + i)); }
-//		inline const T& at(size_type i) const {return (*(begin() + i)); }
+//		inline T& at(size_t i)             {return (*(begin() + i)); }
+//		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
 
 	// The following pair functions have to take different forms on the Cray platform
@@ -484,11 +465,6 @@ class xxProcessObject;
 	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
 	typedef xxEvent*				  (*CreateEventCallback)();
 	typedef xxProcess*				(*CreateProcessCallback)();
-
-	// The following typedef uses valarrays where available or vectors where not
-
-	typedef std::valarray<size_t>				zLongValArray;
-	typedef std::valarray<double>				zDoubleValArray;
 
 // ****************************************
 #elif xxBasePlatform == xxBaseCW55MAC	// Mac OS X/Code Warrior compiler
@@ -501,8 +477,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
-	#include <valarray>
-
+	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
 	// and other standard libraries using std or not as required.
@@ -529,10 +504,6 @@ class xxProcessObject;
 	#define xxBasemultimap				std::multimap
 	#define xxBasestring				std::basic_string<char>
 
-	// Macros needed for STL types
-
-	#define size_type						long
-
 	// **********************************************************************
 	// class xxBasevector
 	// ******************
@@ -551,12 +522,12 @@ class xxProcessObject;
 	{
 	public:
 		xxBasevector() : std::vector<T>(){}
-		xxBasevector(size_type num, const T& val=T()) : std::vector<T>(num,val){}
+		xxBasevector(size_t num, const T& val=T()) : std::vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
 
-//		inline T& at(size_type i)             {return (*(begin() + i)); }
-//		inline const T& at(size_type i) const {return (*(begin() + i)); }
+//		inline T& at(size_t i)             {return (*(begin() + i)); }
+//		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
 
 	// The following pair functions have to take different forms on the Cray platform
@@ -608,11 +579,6 @@ class xxProcessObject;
 	typedef xxEvent*				  (*CreateEventCallback)();
 	typedef xxProcess*				(*CreateProcessCallback)();
 
-	// The following typedef uses valarrays where available or vectors where not
-
-	typedef std::valarray<size_t>				zLongValArray;
-	typedef std::valarray<double>				zDoubleValArray;
-
 // ****************************************
 #elif xxBasePlatform == xxBaseDECALPHA	// Dec alpha machines
 
@@ -624,8 +590,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
-	#include <valarray>
-
+	
 	typedef std::istream				zInStream;
 	typedef std::ostream				zOutStream;
 	typedef std::ifstream				zInFileStream;
@@ -647,7 +612,7 @@ class xxProcessObject;
 	{
 	public:
 		xxBasevector() : std::vector<T>(){}
-		xxBasevector(size_type num, const T& val=T()) : std::vector<T>(num,val){}
+		xxBasevector(size_t num, const T& val=T()) : std::vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
 	};
@@ -713,12 +678,6 @@ class xxProcessObject;
 	typedef xxProcess*				(*CreateProcessCallback)();
 
 
-	// The following typedef uses valarrays where available or vectors where not
-
-	typedef std::valarray<size_t>			zLongValArray;
-	typedef std::valarray<double>			zDoubleValArray;
-
-
 // ****************************************
 #elif xxBasePlatform == xxBaseSGICC	// SGI platform with CC compiler
 
@@ -755,12 +714,12 @@ class xxProcessObject;
 	{
 	public:
 		xxBasevector() : vector<T>(){}
-		xxBasevector(size_type num, const T& val=T()) : vector<T>(num,val){}
+		xxBasevector(size_t num, const T& val=T()) : vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : vector<T>(oldVec){}
 		~xxBasevector(){}
 
-		inline T& at(size_type i)             {return (*(begin() + i)); }
-		inline const T& at(size_type i) const {return (*(begin() + i)); }
+		inline T& at(size_t i)             {return (*(begin() + i)); }
+		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
 
 	// The basic_string<> class is in the std namespace, so we use the prefix std::
@@ -829,11 +788,6 @@ class xxProcessObject;
 	typedef xxEvent*				  (*CreateEventCallback)();
 	typedef xxProcess*				(*CreateProcessCallback)();
 
-	// The following typedef uses valarrays where available or vectors where not
-
-	typedef std::vector<long>					zLongValArray;
-	typedef std::vector<double>					zDoubleValArray;
-
 
 // ****************************************
 #elif xxBasePlatform == xxBaseCRAYJ90		// Cray platform with CC compiler
@@ -872,12 +826,12 @@ class xxProcessObject;
 	{
 	public:
 		xxBasevector() : vector<T>(){}
-		xxBasevector(size_type num, const T& val=T()) : vector<T>(num,val){}
+		xxBasevector(size_t num, const T& val=T()) : vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : vector<T>(oldVec){}
 		~xxBasevector(){}
 
-		inline T& at(size_type i)             {return (*(begin() + i)); }
-		inline const T& at(size_type i) const {return (*(begin() + i)); }
+		inline T& at(size_t i)             {return (*(begin() + i)); }
+		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
 
 
@@ -890,7 +844,7 @@ class xxProcessObject;
 		xxBasestring(const xxBasestring& oldStr) : basic_string<char>(oldStr){}
 		~xxBasestring(){}
 
-		inline const char& at(size_type i) const {return (*(begin()+i));}
+		inline const char& at(size_t i) const {return (*(begin()+i));}
 
 //		friend inline bool operator!=(const xxBasestring& L, const xxBasestring& R) {return (!(L == R));}
 //		friend inline bool operator!=(const char *L, const xxBasestring& R)		    {return (!(L == R));}
@@ -949,12 +903,6 @@ class xxProcessObject;
 	typedef xxEvent*				  (*CreateEventCallback)();
 	typedef xxProcess*				(*CreateProcessCallback)();
 
-
-	// The following typedef uses valarrays where available or vectors where not
-
-	typedef vector<long>						zLongValArray;
-	typedef vector<double>						zDoubleValArray;
-
 // ****************************************
 #elif xxBasePlatform == xxBaseBORLAND6	// Borland 6 compiler in Windows application
 
@@ -966,8 +914,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
-	#include <valarray>
-
+	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
 	// and other standard libraries using std or not as required.
@@ -983,11 +930,6 @@ class xxProcessObject;
 	typedef std::istringstream			zInStringStream;
 	typedef std::ostringstream			zOutStringStream;
 	typedef std::ios					zIos;
-
-	// The following typedef uses valarrays where available or vectors where not
-
-	typedef std::valarray<size_t>				zLongValArray;
-	typedef std::valarray<double>				zDoubleValArray;
 
 	// Define macros to wrap the std namespace names for different platforms
 

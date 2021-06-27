@@ -8,6 +8,8 @@
 
 #include "FourierTransform.h"
 
+#include "xxBaseValArray.h"
+
 // Rename the valarray to a local name for use in the Fourier transform routines
 
 typedef zDoubleValArray		array1d;

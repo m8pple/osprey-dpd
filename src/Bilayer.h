@@ -18,6 +18,8 @@ class aaStressTensor1d;
 #include "Polymer.h"
 #include "Analysis.h"
 
+#include "xxBaseValArray.h"
+
 class CBilayer : public CAnalysis
 {
 	// ****************************************

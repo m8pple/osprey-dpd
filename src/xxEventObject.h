@@ -40,4 +40,7 @@ private:
 
 };
 
+typedef xxBasevector<const xxEventObject*>::iterator			EventObjectIterator;
+typedef xxBasevector<const xxEventObject*>::const_iterator		cEventObjectIterator;
+
 #endif // !defined(AFX_XXEVENTOBJECT_H__9757059E_B699_4DA3_AF85_95D8EE36CAB5__INCLUDED_)

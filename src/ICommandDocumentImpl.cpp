@@ -22,6 +22,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Experiment.h"
 #include "ISetProcessData.h"
 
+#include "xxCommand.h"
+
 #if EnableCommandDocumentProcess == SimProcessEnabled
   #include "prCommandContainer.h"
 #endif

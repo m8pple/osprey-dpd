@@ -26,6 +26,8 @@ private:
 
 };
 
+typedef xxBasevector<CCellProfile*>::iterator			CellProfileVectorIterator;
+
 #endif // !defined(AFX_CELLPROFILE_H__C2278A19_AC86_11D3_BF15_004095086186__INCLUDED_)
 
 

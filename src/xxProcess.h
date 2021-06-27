@@ -191,4 +191,10 @@ private:
 
 };
 
+typedef xxBasevector<xxProcess*>::iterator						ProcessIterator;
+typedef xxBasevector<xxProcess*>::const_iterator				cProcessIterator;
+typedef xxBasevector<xxProcess*>::reverse_iterator				rProcessIterator;
+typedef xxBasevector<xxProcess*>::const_reverse_iterator		crProcessIterator;
+
+
 #endif // !defined(AFX_XXPROCESS_H__34CD2269_1B08_4E00_9DD7_8C924EF6850D__INCLUDED_)

@@ -27,7 +27,7 @@ class CBead;
 #include "mpuExtendedBond.h"
 #include "mpuExtendedPolymer.h"
 #include "mpuExtendedNanoparticle.h"
-
+#include "Nanoparticle.h"
 
 #include "xxParallelBase.h"
 

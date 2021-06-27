@@ -258,4 +258,7 @@ private:
     CCNTCell* m_aIntNNCells[13];
 };
 
+typedef xxBasevector<CCNTCell*>::iterator				        CNTCellIterator;
+typedef xxBasevector<CCNTCell*>::const_iterator			        cCNTCellIterator;
+
 #endif // !defined(AFX_CNTCELL_H__E36E3E80_32EC_11D3_820E_0060088AD300__INCLUDED_)

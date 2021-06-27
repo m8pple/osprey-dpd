@@ -19,6 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "SimDefs.h"
 #include "acfEventFactory.h"
 #include "xxEvent.h"
+#include "xxBaseCallbacks.h"
 
 // **********************************************************************
 // Global Functions.

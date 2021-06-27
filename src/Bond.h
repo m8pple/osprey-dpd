@@ -114,4 +114,19 @@ private:
 
 };
 
+typedef xxBaselist<CBond*>::iterator							BondListIterator;
+typedef xxBaselist<CBond*>::const_iterator						cBondListIterator;
+typedef xxBaselist<CBond*>::reverse_iterator					rBondListIterator;
+typedef xxBaselist<CBond*>::const_reverse_iterator				crBondListIterator;
+
+typedef xxBasevector<CBond*>::iterator					        BondVectorIterator;
+typedef xxBasevector<CBond*>::const_iterator			        cBondVectorIterator;
+
+typedef xxBasemap<long,CBond*>::iterator                LongBondIterator;
+typedef xxBasemap<long,CBond*>::const_iterator          cLongBondIterator;
+
+typedef xxBasemultimap<long,CBond*>::iterator					             LongBondMMIterator;
+typedef xxBasemultimap<long,CBond*>::const_iterator			                 cLongBondMMIterator;
+
+
 #endif // !defined(AFX_BOND_H__47E30900_37A1_11D3_820E_0060088AD300__INCLUDED_)

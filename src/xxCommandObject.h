@@ -36,4 +36,7 @@ private:
 
 };
 
+typedef xxBasevector<const xxCommandObject*>::iterator			CommandObjectIterator;
+typedef xxBasevector<const xxCommandObject*>::const_iterator	cCommandObjectIterator;
+
 #endif // !defined(AFX_XXCOMMANDOBJECT_H__EBF46FFA_F98F_11D3_BF2D_004095086186__INCLUDED_)

@@ -32,4 +32,7 @@ protected:
 
 };
 
+typedef xxBasevector<CAnalysisTool*>::iterator					ToolIterator;
+typedef xxBasevector<CAnalysisTool*>::const_iterator			cToolIterator;
+
 #endif // !defined(AFX_ANALYSISTOOL_H__04F412D0_1A8E_4DA1_9969_0F88F2E57B41__INCLUDED_)

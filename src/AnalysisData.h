@@ -90,4 +90,7 @@ private:
 	long m_End;						//     "       "      end      "
 };
 
+typedef xxBasevector<CAnalysisData*>::iterator					AggregateDataIterator;
+typedef xxBasevector<CAnalysisData*>::const_iterator			cAggregateDataIterator;
+
 #endif // !defined(AFX_ANALYSISDATA_H__A4AEA915_9D0D_11D3_BF15_004095086186__INCLUDED_)

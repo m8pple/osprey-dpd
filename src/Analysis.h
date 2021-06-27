@@ -152,4 +152,9 @@ protected:
 
 };
 
+typedef xxBasevector<CAnalysis*>::iterator						AggregateIterator;
+typedef xxBasevector<CAnalysis*>::const_iterator				cAggregateIterator;
+typedef xxBasevector<CAnalysis*>::reverse_iterator				rAggregateIterator;
+typedef xxBasevector<CAnalysis*>::const_reverse_iterator		crAggregateIterator;
+
 #endif // !defined(AFX_ANALYSIS_H__A4AEA916_9D0D_11D3_BF15_004095086186__INCLUDED_)

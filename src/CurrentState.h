@@ -134,4 +134,6 @@ private:
 
 };
 
+typedef xxBasevector<CCurrentState*>::iterator			        CurrentStateIterator;
+
 #endif // !defined(AFX_CURRENTSTATE_H__D70C3D02_3D5E_11D3_820E_0060088AD300__INCLUDED_)

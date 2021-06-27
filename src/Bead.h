@@ -14,6 +14,8 @@
 
 #include "AbstractBead.h"
 
+#include "xxBase.h"
+
 class CBead : public CAbstractBead
 {
 	// friend classes need access to bead coordinates in order to
@@ -44,5 +46,12 @@ public:
 private:
 
 };
+
+typedef xxBasevector<CBead*>::iterator					        BeadVectorIterator;
+typedef xxBasevector<CBead*>::const_iterator			        cBeadVectorIterator;
+
+typedef xxBasemap<long,CAbstractBead*>                  LongBeadMap;
+typedef xxBasemap<long,CAbstractBead*>::iterator        LongBeadIterator;
+typedef xxBasemap<long,CAbstractBead*>::const_iterator  cLongBeadIterator;
 
 #endif // !defined(AFX_BEAD_H__45E558C0_DA21_11D2_B61A_0060088AD300__INCLUDED_)

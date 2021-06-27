@@ -12,6 +12,9 @@
 #include "SimMPSFlags.h"
 #include "SimProcessFlags.h"
 
+// Needed for BeadChargeList
+#include "BeadChargeWrapper.h"
+
 // Forward declarations
 
 class CNanoparticle;

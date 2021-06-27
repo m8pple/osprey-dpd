@@ -142,4 +142,19 @@ private:
 
 };
 
+typedef xxBaselist<mpuExtendedBond*>::iterator					ExtendedBondListIterator;
+typedef xxBaselist<mpuExtendedBond*>::const_iterator			cExtendedBondListIterator;
+typedef xxBaselist<mpuExtendedBond*>::reverse_iterator			rExtendedBondListIterator;
+typedef xxBaselist<mpuExtendedBond*>::const_reverse_iterator	crExtendedBondListIterator;
+
+typedef xxBasevector<mpuExtendedBond*>::iterator			    ExtendedBondVectorIterator;
+typedef xxBasevector<mpuExtendedBond*>::const_iterator		    cExtendedBondVectorIterator;
+
+typedef xxBasemap<long,mpuExtendedBond*>::iterator			                LongExtendedBondIterator;
+typedef xxBasemap<long,mpuExtendedBond*>::const_iterator	                cLongExtendedBondIterator;
+
+typedef xxBasemultimap<long,mpuExtendedBond*>::iterator			             LongExtendedBondMMIterator;
+typedef xxBasemultimap<long,mpuExtendedBond*>::const_iterator	             cLongExtendedBondMMIterator;
+
+
 #endif // !defined(AFX_MPUEXTENDEDBOND_H__82B979B3_9632_4387_80A2_19F186DADCC3__INCLUDED_)

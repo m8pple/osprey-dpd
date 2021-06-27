@@ -31,4 +31,7 @@ public:
 
 };
 
+typedef xxBasevector<aaScalarProfile*>::iterator		ScalarProfileIterator;
+typedef xxBasevector<aaScalarProfile*>::const_iterator	cScalarProfileIterator;
+
 #endif // !defined(AFX_AASCALARPROFILE_H__7F4A21B7_B13C_11D3_BF19_004095086186__INCLUDED_)

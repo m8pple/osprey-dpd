@@ -21,6 +21,8 @@ class CPolymer;
 #include "ExperimentDefs.h"
 #include "SimMPSFlags.h"
 
+#include "xxBase.h"
+
 class CAbstractBead  
 {
 	// friend classes need access to bead coordinates in order to
@@ -262,5 +264,20 @@ protected:
 #endif
 
 };
+
+typedef xxBaselist<CAbstractBead*>::iterator					BeadListIterator;
+typedef xxBaselist<CAbstractBead*>::const_iterator				cBeadListIterator;
+typedef xxBaselist<CAbstractBead*>::reverse_iterator			rBeadListIterator;
+typedef xxBaselist<CAbstractBead*>::const_reverse_iterator		crBeadListIterator;
+
+typedef xxBasevector<CAbstractBead*>::iterator			AbstractBeadVectorIterator;
+typedef xxBasevector<CAbstractBead*>::const_iterator	cAbstractBeadVectorIterator;
+
+typedef xxBasemap<long,CAbstractBead*>::iterator        LongBeadIterator;
+typedef xxBasemap<long,CAbstractBead*>::const_iterator  cLongBeadIterator;
+
+typedef xxBasemultimap<long,CAbstractBead*>::iterator					     LongBeadMMIterator;
+typedef xxBasemultimap<long,CAbstractBead*>::const_iterator			         cLongBeadMMIterator;
+
 
 #endif // !defined(AFX_ABSTRACTBEAD_H__12767EC0_3849_11D3_820E_0060088AD300__INCLUDED_)

@@ -187,4 +187,18 @@ private:
 	BondPairVector	m_vBondPairs;
 };
 
+typedef xxBaselist<CPolymer*>::iterator							PolymerListIterator;
+typedef xxBaselist<CPolymer*>::const_iterator					cPolymerListIterator;
+typedef xxBaselist<CPolymer*>::reverse_iterator					rPolymerListIterator;
+typedef xxBaselist<CPolymer*>::const_reverse_iterator			crPolymerListIterator;
+
+typedef xxBasevector<CPolymer*>::iterator				        PolymerVectorIterator;
+typedef xxBasevector<CPolymer*>::const_iterator		            cPolymerVectorIterator;
+
+typedef xxBasemap<long,CPolymer*>::iterator			     LongPolymerIterator;
+typedef xxBasemap<long,CPolymer*>::const_iterator	     cLongPolymerIterator;
+
+typedef xxBasemultimap<long,CPolymer*>::iterator					         LongPolymerMMIterator;
+typedef xxBasemultimap<long,CPolymer*>::const_iterator			             cLongPolymerMMIterator;
+
 #endif // !defined(AFX_POLYMER_H__A2FACF41_3F61_11D3_820E_0060088AD300__INCLUDED_)

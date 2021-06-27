@@ -144,4 +144,19 @@ private:
 
 };
 
+typedef xxBaselist<mpuExtendedNPBond*>::iterator					ExtendedNPBondListIterator;
+typedef xxBaselist<mpuExtendedNPBond*>::const_iterator			    cExtendedNPBondListIterator;
+typedef xxBaselist<mpuExtendedNPBond*>::reverse_iterator			rExtendedNPBondListIterator;
+typedef xxBaselist<mpuExtendedNPBond*>::const_reverse_iterator	    crExtendedNPBondListIterator;
+
+typedef xxBasevector<mpuExtendedNPBond*>::iterator			    ExtendedNPBondVectorIterator;
+typedef xxBasevector<mpuExtendedNPBond*>::const_iterator	    cExtendedNPBondVectorIterator;
+
+typedef xxBasemap<long,mpuExtendedNPBond*>::iterator			            LongExtendedNPBondIterator;
+typedef xxBasemap<long,mpuExtendedNPBond*>::const_iterator	                cLongExtendedNPBondIterator;
+
+typedef xxBasemultimap<long,mpuExtendedNPBond*>::iterator			         LongExtendedNPBondMMIterator;
+typedef xxBasemultimap<long,mpuExtendedNPBond*>::const_iterator	             cLongExtendedNPBondMMIterator;
+
+
 #endif // !defined(AFX_MPUEXTENDEDNPBOND_H__71d05bc2_677f_44fe_a7f3_0e0bdc6fed0c__INCLUDED_)

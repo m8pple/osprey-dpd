@@ -12,6 +12,7 @@ class CBond;
 class CBondPair;
 class mpuExtendedBond;
 
+#include "xxBase.h"
 
 class mpuExtendedBondPair  
 {
@@ -84,5 +85,15 @@ private:
 
 
 };
+
+// Not used anywhere in code
+//typedef xxBaselist<mpuExtendedBondPair*>::iterator				    ExtendedBondPairListIterator;
+//typedef xxBaselist<mpuExtendedBondPair*>::const_iterator			cExtendedBondPairListIterator;
+//typedef xxBaselist<mpuExtendedBondPair*>::reverse_iterator			rExtendedBondPairListIterator;
+//typedef xxBaselist<mpuExtendedBondPair*>::const_reverse_iterator    crExtendedBondPairListIterator;
+
+typedef xxBasevector<mpuExtendedBondPair*>::iterator		    ExtendedBondPairVectorIterator;
+typedef xxBasevector<mpuExtendedBondPair*>::const_iterator	    cExtendedBondPairVectorIterator;
+
 
 #endif // !defined(AFX_MPUEXTENDEDBONDPAIR_H__5FB9A277_336E_4DD5_A6BF_8EF36A755773__INCLUDED_)

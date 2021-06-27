@@ -34,4 +34,7 @@ private:
 	long m_Z;
 };
 
+typedef xxBasevector<CRow*>::iterator					RowVectorIterator;
+typedef xxBasevector<CRow*>::const_iterator				cRowVectorIterator;
+
 #endif // !defined(AFX_ROW_H__C2278A1C_AC86_11D3_BF15_004095086186__INCLUDED_)

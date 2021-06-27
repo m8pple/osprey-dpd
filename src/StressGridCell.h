@@ -89,4 +89,7 @@ private:
 
 };
 
+typedef xxBasevector<CStressGridCell*>::iterator			    StressCellIterator;
+typedef xxBasevector<CStressGridCell*>::const_iterator			cStressCellIterator;
+
 #endif // !defined(AFX_STRESSGRIDCELL_H__4698109D_4D07_4860_8FED_E6AB37ECC3DF__INCLUDED_)

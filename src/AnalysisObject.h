@@ -44,4 +44,7 @@ private:
 	bool m_bpADValid;			// Flag showing if analysis data is valid
 };
 
+typedef xxBasevector<const CAnalysisObject*>::iterator			AnalysisObjectIterator;
+typedef xxBasevector<const CAnalysisObject*>::const_iterator	cAnalysisObjectIterator;
+
 #endif // !defined(AFX_ANALYSISOBJECT_H__A4AEA914_9D0D_11D3_BF15_004095086186__INCLUDED_)

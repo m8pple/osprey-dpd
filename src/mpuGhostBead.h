@@ -12,6 +12,7 @@ class CAbstractBead;
 
 #include "SimMPSFlags.h"
 
+#include "xxBase.h"
 class mpuGhostBead
 {
 	// friend classes need access to bead coordinates in order to
@@ -135,5 +136,20 @@ private:
 	
 
 };
+
+typedef xxBaselist<mpuGhostBead*>::iterator					    GhostBeadListIterator;
+typedef xxBaselist<mpuGhostBead*>::const_iterator				cGhostBeadListIterator;
+typedef xxBaselist<mpuGhostBead*>::reverse_iterator			    rGhostBeadListIterator;
+typedef xxBaselist<mpuGhostBead*>::const_reverse_iterator		crGhostBeadListIterator;
+
+typedef xxBasevector<mpuGhostBead*>::iterator			        GhostBeadVectorIterator;
+typedef xxBasevector<mpuGhostBead*>::const_iterator	            cGhostBeadVectorIterator;
+
+typedef xxBasemap<long,mpuGhostBead*>::iterator			                    LongGhostBeadIterator;
+typedef xxBasemap<long,mpuGhostBead*>::const_iterator	                    cLongGhostBeadIterator;
+
+typedef xxBasemultimap<long,mpuGhostBead*>::iterator			             LongGhostBeadMMIterator;
+typedef xxBasemultimap<long,mpuGhostBead*>::const_iterator	                 cLongGhostBeadMMIterator;
+
 
 #endif // !defined(AFX_MPUGHOSTBEAD_H__6F0733AA_9350_4383_AB52_E33AC62242C9__INCLUDED_)

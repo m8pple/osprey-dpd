@@ -88,4 +88,9 @@ private:
 
 };
 
+typedef xxBasevector<IRegionAnalysis*>::iterator				RegionIterator;
+typedef xxBasevector<IRegionAnalysis*>::const_iterator			cRegionIterator;
+typedef xxBasevector<IRegionAnalysis*>::reverse_iterator		rRegionIterator;
+typedef xxBasevector<IRegionAnalysis*>::const_reverse_iterator	crRegionIterator;
+
 #endif // !defined(AFX_IREGIONANALYSIS_H__C0CC8984_9EBF_4D13_8E5B_33F235B572AF__INCLUDED_)

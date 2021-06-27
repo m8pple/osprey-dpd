@@ -11,10 +11,11 @@
 class ISimBox;
 class aaStressTensorPoint;
 
-
 // Include files
 
 #include "xxBase.h"
+
+#include "aaStressTensorPoint.h"
 
 class aaStressTensor  : public xxBase
 {

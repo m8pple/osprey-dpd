@@ -40,4 +40,10 @@ private:
 
 };
 
+typedef xxBaselist<CForceTarget*>::iterator						ForceTargetIterator;
+typedef xxBaselist<CForceTarget*>::const_iterator				cForceTargetIterator;
+typedef xxBaselist<CForceTarget*>::reverse_iterator		        rForceTargetIterator;
+typedef xxBaselist<CForceTarget*>::const_reverse_iterator	    crForceTargetIterator;
+
+
 #endif // !defined(AFX_FORCETARGET_H__488D9844_0C5C_11D4_BF30_004095086186__INCLUDED_)

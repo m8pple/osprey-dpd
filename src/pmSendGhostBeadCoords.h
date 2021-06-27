@@ -145,4 +145,13 @@ private:
 
 };
 
+typedef xxBaselist<pmSendGhostBeadCoords*>::iterator                GhostBeadCoordsMsgListIterator;
+typedef xxBaselist<pmSendGhostBeadCoords*>::const_iterator          cGhostBeadCoordsMsgListIterator;
+typedef xxBaselist<pmSendGhostBeadCoords*>::reverse_iterator        rGhostBeadCoordsMsgListIterator;
+typedef xxBaselist<pmSendGhostBeadCoords*>::const_reverse_iterator	crGhostBeadCoordsMsgListIterator;
+
+typedef xxBasevector<pmSendGhostBeadCoords*>::iterator			GhostBeadCoordsMsgVectorIterator;
+typedef xxBasevector<pmSendGhostBeadCoords*>::const_iterator	cGhostBeadCoordsMsgVectorIterator;
+
+
 #endif // !defined(AFX_PMSENDGHOSTBEADCOORDS_H__0707697B_6C98_4CE5_B442_B287D6B47248__INCLUDED_)

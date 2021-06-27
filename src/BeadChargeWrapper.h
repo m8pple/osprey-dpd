@@ -10,6 +10,7 @@
 
 #include "AbstractBead.h"
 
+#include "xxBase.h"
 
 class CBeadChargeWrapper  
 {
@@ -54,5 +55,16 @@ private:
 	double m_Kappa;						// Inverse range of force
 
 };
+
+typedef xxBaselist<CBeadChargeWrapper*>::iterator				ChargedBeadListIterator;
+typedef xxBaselist<CBeadChargeWrapper*>::const_iterator			cChargedBeadListIterator;
+typedef xxBaselist<CBeadChargeWrapper*>::reverse_iterator		rChargedBeadListIterator;
+typedef xxBaselist<CBeadChargeWrapper*>::const_reverse_iterator	crChargedBeadListIterator;
+
+typedef xxBasevector<CBeadChargeWrapper*>::iterator					ChargedBeadVectorIterator;
+typedef xxBasevector<CBeadChargeWrapper*>::const_iterator			cChargedBeadVectorIterator;
+typedef xxBasevector<CBeadChargeWrapper*>::reverse_iterator			rChargedBeadVectorIterator;
+typedef xxBasevector<CBeadChargeWrapper*>::const_reverse_iterator	crChargedBeadVectorIterator;
+
 
 #endif // !defined(AFX_BEADCHARGEWRAPPER_H__9662103E_8034_4119_8CB7_21488FA8D8C2__INCLUDED_)

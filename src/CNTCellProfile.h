@@ -12,7 +12,7 @@ class CCNTCell;
 
 #include "xxBase.h"
 
-
+#include "CNTCell.h"
 
 class CCNTCellProfile  
 {

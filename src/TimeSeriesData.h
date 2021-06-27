@@ -72,4 +72,7 @@ private:
 
 };
 
+typedef xxBasevector<CTimeSeriesData*>::iterator				TimeSeriesIterator;
+typedef xxBasevector<CTimeSeriesData*>::const_iterator			cTimeSeriesIterator;
+
 #endif // !defined(AFX_TIMESERIESDATA_H__F63160F3_7D50_11D3_BF06_004095086186__INCLUDED_)

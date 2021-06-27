@@ -109,4 +109,17 @@ private:
 
 };
 
+typedef xxBaselist<CNanoparticle*>::iterator					NanoparticleListIterator;
+typedef xxBaselist<CNanoparticle*>::const_iterator				cNanoparticleListIterator;
+typedef xxBaselist<CNanoparticle*>::reverse_iterator			rNanoparticleListIterator;
+typedef xxBaselist<CNanoparticle*>::const_reverse_iterator		crNanoparticleListIterator;
+
+typedef xxBasevector<CNanoparticle*>::iterator				    NanoparticleIterator;
+typedef xxBasevector<CNanoparticle*>::const_iterator			cNanoparticleIterator;
+typedef xxBasevector<CNanoparticle*>::reverse_iterator		    rNanoparticleIterator;
+typedef xxBasevector<CNanoparticle*>::const_reverse_iterator	crNanoparticleIterator;
+
+typedef xxBasemap<long,CNanoparticle*>::iterator	     LongNanoparticleIterator;
+typedef xxBasemap<long,CNanoparticle*>::const_iterator	 cLongNanoparticleIterator;
+
 #endif // !defined(AFX_NANOPARTICLE_H__aecc5fe1_4539_4e64_a482_4a1b9353dd94__INCLUDED_)

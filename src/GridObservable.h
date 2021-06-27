@@ -90,4 +90,6 @@ private:
 
 };
 
+typedef xxBasevector<CGridObservable*>::iterator		        GridObservableIterator;
+
 #endif // !defined(AFX_GRIDOBSERVABLE_H__5652BEC5_5495_11D3_820E_0060088AD300__INCLUDED_)

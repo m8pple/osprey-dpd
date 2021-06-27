@@ -192,4 +192,10 @@ private:
 
 };
 
+typedef xxBaselist<tguCommandGroup*>::iterator					CommandGroupIterator;
+typedef xxBaselist<tguCommandGroup*>::const_iterator			cCommandGroupIterator;
+typedef xxBaselist<tguCommandGroup*>::reverse_iterator		    rCommandGroupIterator;
+typedef xxBaselist<tguCommandGroup*>::const_reverse_iterator	crCommandGroupIterator;
+
+
 #endif // !defined(AFX_TGUCOMMANDGROUP_H__6AEB8958_DFCF_44D1_8A3C_4850A04F9BFB__INCLUDED_)

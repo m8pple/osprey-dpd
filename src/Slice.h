@@ -50,4 +50,7 @@ private:
 	long m_CNTRowsInSlice;	// Number of CNT cells in the depth of the slice
 };
 
+typedef xxBasevector<CSlice*>::iterator					SliceVectorIterator;
+typedef xxBasevector<CSlice*>::const_iterator			cSliceVectorIterator;
+
 #endif // !defined(AFX_SLICE_H__C2278A1B_AC86_11D3_BF15_004095086186__INCLUDED_)

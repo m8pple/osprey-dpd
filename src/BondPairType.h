@@ -48,4 +48,8 @@ private:
 
 };
 
+typedef xxBasemap<long,CBondPairType*>::iterator		LongBondPairTypeIterator;
+typedef xxBasemap<long,CBondPairType*>::const_iterator	cLongBondPairTypeIterator;
+
+
 #endif // !defined(AFX_BONDPAIRTYPE_H__1A731794_8ECC_11D4_BF4B_004095086186__INCLUDED_)

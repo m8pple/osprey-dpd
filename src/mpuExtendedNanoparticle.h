@@ -18,7 +18,7 @@ class mpuGhostBead;
 #include "xxBase.h"
 #include "aaVector.h"
 
-
+#include "mpuExtendedNPBond.h"
 
 class mpuExtendedNanoparticle  
 {
@@ -110,5 +110,18 @@ private:
     ExtendedNPBondList    m_lConcreteNPBonds;    // Extended bonds with both concrete beads in owning proc space
     ExtendedNPBondList    m_lExtNPBonds;         // Extended bonds missing one or both beads
 };
+
+
+typedef xxBaselist<mpuExtendedNanoparticle*>::iterator					ExtendedNanoparticleListIterator;
+typedef xxBaselist<mpuExtendedNanoparticle*>::const_iterator		    cExtendedNanoparticleListIterator;
+typedef xxBaselist<mpuExtendedNanoparticle*>::reverse_iterator			rExtendedNanoparticleListIterator;
+typedef xxBaselist<mpuExtendedNanoparticle*>::const_reverse_iterator	crExtendedNanoparticleListIterator;
+
+typedef xxBasevector<mpuExtendedNanoparticle*>::iterator        ExtendedNanoparticleVectorIterator;
+typedef xxBasevector<mpuExtendedNanoparticle*>::const_iterator  cExtendedNanoparticleVectorIterator;
+
+
+typedef xxBasemap<long,mpuExtendedNanoparticle*>::iterator			        LongExtendedNanoparticleIterator;
+typedef xxBasemap<long,mpuExtendedNanoparticle*>::const_iterator	        cLongExtendedNanoparticleIterator;
 
 #endif // !defined(AFX_MPUEXTENDEDNANOPARTICLE_H__e952ef18_da28_455a_8f70_7722035b163c__INCLUDED_)

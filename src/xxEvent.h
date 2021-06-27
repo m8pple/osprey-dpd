@@ -134,5 +134,11 @@ private:
 	bool m_bInitialise;				// Flag indicating whether to initialise event
 };
 
+typedef xxBasevector<xxEvent*>::iterator						EventIterator;
+typedef xxBasevector<xxEvent*>::const_iterator					cEventIterator;
+typedef xxBasevector<xxEvent*>::reverse_iterator				rEventIterator;
+typedef xxBasevector<xxEvent*>::const_reverse_iterator			crEventIterator;
+
+
 #endif // !defined(AFX_XXEVENT_H__B1524EDB_A8AA_49EA_9A73_1AAE58A98FBB__INCLUDED_)
 

@@ -78,4 +78,9 @@ private:
 
 };
 
+typedef xxBasevector<CDensityState*>::iterator			        DensityStateIterator;
+typedef xxBasevector<CDensityState*>::const_iterator	        cDensityStateIterator;
+typedef xxBasevector<CDensityState*>::reverse_iterator          rDensityStateIterator;
+typedef xxBasevector<CDensityState*>::const_reverse_iterator    crDensityStateIterator;
+
 #endif // !defined(AFX_DENSITYSTATE_H__E03CC0A0_607E_11D3_820E_0060088AD300__INCLUDED_)

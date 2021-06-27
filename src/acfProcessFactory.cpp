@@ -19,6 +19,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "SimDefs.h"
 #include "acfProcessFactory.h"
 #include "xxProcess.h"
+#include "xxBase.h"
+#include "xxBaseCallbacks.h"
 
 // **********************************************************************
 // Global Functions.

@@ -64,5 +64,9 @@ private:
 
 };
 
+typedef xxBasemap<zString, IModifyProcess*>::iterator						StringModifiableProcessIterator;
+typedef xxBasemap<zString, IModifyProcess*>::const_iterator					cStringModifiableProcessIterator;
+
+
 #endif // !defined(AFX_IMODIFYPROCESS_H__99E9C609_27F9_466B_86F1_4E4DE30BCB51__INCLUDED_)
 

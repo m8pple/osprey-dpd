@@ -19,6 +19,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "SimDefs.h"
 #include "acfAnalysisFactory.h"
 #include "AnalysisData.h"
+#include "xxBaseCallbacks.h"
 
 // **********************************************************************
 // Global Functions.

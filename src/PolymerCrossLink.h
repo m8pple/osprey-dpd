@@ -48,4 +48,8 @@ private:
 
 };
 
+typedef xxBasevector<CPolymerCrossLink*>::iterator			    PolymerCrossLinkIterator;
+typedef xxBasevector<CPolymerCrossLink*>::const_iterator        cPolymerCrossLinkIterator;
+
+
 #endif // !defined(AFX_POLYMERCROSSLINK_H__362D55BE_EAA5_42B5_883B_D7AFEA08F967__INCLUDED_)

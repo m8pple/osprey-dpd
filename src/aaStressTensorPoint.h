@@ -132,4 +132,7 @@ private:
 	double m_Config[9];				// Total configurational stress tensor (bead-bead + bond + bondpair)
 };
 
+typedef xxBasevector<aaStressTensorPoint*>::iterator	StressVectorIterator;
+typedef xxBasevector<aaStressTensorPoint*>::const_iterator	cStressVectorIterator;
+
 #endif // !defined(AFX_AASTRESSTENSORPOINT_H__EBEC6162_A80F_11D4_910C_0060088AD300__INCLUDED_)

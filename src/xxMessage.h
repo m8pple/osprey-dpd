@@ -98,4 +98,10 @@ private:
 
 };
 
+typedef xxBasevector<xxMessage*>::iterator						MessageIterator;
+typedef xxBasevector<xxMessage*>::const_iterator				cMessageIterator;
+typedef xxBasevector<xxMessage*>::reverse_iterator				rMessageIterator;
+typedef xxBasevector<xxMessage*>::const_reverse_iterator		crMessageIterator;
+
+
 #endif // !defined(AFX_XXMESSAGE_H__F6CFB3AD_78F2_4D77_9350_9C0D4C5C924F__INCLUDED_)

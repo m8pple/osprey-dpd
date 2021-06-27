@@ -84,4 +84,19 @@ private:
 	double m_BeadZForce[4];
 };
 
+typedef xxBaselist<CBondPair*>::iterator						BondPairListIterator;
+typedef xxBaselist<CBondPair*>::const_iterator					cBondPairListIterator;
+typedef xxBaselist<CBondPair*>::reverse_iterator				rBondPairListIterator;
+typedef xxBaselist<CBondPair*>::const_reverse_iterator			crBondPairListIterator;
+
+typedef xxBasevector<CBondPair*>::iterator				        BondPairVectorIterator;
+typedef xxBasevector<CBondPair*>::const_iterator		        cBondPairVectorIterator;
+
+typedef xxBasemap<long,CBondPair*>::iterator            LongBondPairIterator;
+typedef xxBasemap<long,CBondPair*>::const_iterator      cLongBondPairIterator;
+
+typedef xxBasemultimap<long,CBondPair*>::iterator					         LongBondPairMMIterator;
+typedef xxBasemultimap<long,CBondPair*>::const_iterator			             cLongBondPairMMIterator;
+
+
 #endif // !defined(AFX_BONDPAIR_H__1A731793_8ECC_11D4_BF4B_004095086186__INCLUDED_)

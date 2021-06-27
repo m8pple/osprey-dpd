@@ -37,6 +37,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "aeActiveBond1dProfile.h"
 #include "taEventSourceDecorator.h"
 #include "LogTextMessage.h"
+#include "taEventAnalysisDecorator.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction

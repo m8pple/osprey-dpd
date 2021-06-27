@@ -79,4 +79,15 @@ private:
 
 };
 
+
+typedef xxBasevector<tguArgumentType*>::iterator			   tguArgumentIterator;
+typedef xxBasevector<tguArgumentType*>::const_iterator	       ctguArgumentIterator;
+typedef xxBasevector<tguArgumentType*>::reverse_iterator       rtguArgumentIterator;
+typedef xxBasevector<tguArgumentType*>::const_reverse_iterator crtguArgumentIterator;
+
+typedef xxBasemap<zString,tguArgumentType*>::iterator			            StringArgumentTypeIterator;
+typedef xxBasemap<zString,tguArgumentType*>::const_iterator	                cStringArgumentTypeIterator;
+
+
+
 #endif // !defined(AFX_TGUARGUMENTTYPE_H__E31200D9_1B5D_41FB_BF01_6AAA12285928__INCLUDED_)

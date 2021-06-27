@@ -46,4 +46,7 @@ private:
 
 };
 
+typedef xxBasevector<CRaft*>::iterator					RaftIterator;
+typedef xxBasevector<CRaft*>::const_iterator			cRaftIterator;
+
 #endif // !defined(AFX_RAFT_H__614B1F21_DBED_449E_AD6D_94DE5D165E0C__INCLUDED_)

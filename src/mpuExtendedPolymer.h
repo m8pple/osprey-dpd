@@ -164,4 +164,24 @@ private:
 	
 };
 
+typedef xxBaselist<mpuExtendedPolymer*>::iterator				    ExtendedPolymerListIterator;
+typedef xxBaselist<mpuExtendedPolymer*>::const_iterator			    cExtendedPolymerListIterator;
+typedef xxBaselist<mpuExtendedPolymer*>::reverse_iterator		    rExtendedPolymerListIterator;
+typedef xxBaselist<mpuExtendedPolymer*>::const_reverse_iterator	    crExtendedPolymerListIterator;
+
+typedef xxBasevector<mpuExtendedPolymer*>::iterator			    ExtendedPolymerVectorIterator;
+typedef xxBasevector<mpuExtendedPolymer*>::const_iterator	    cExtendedPolymerVectorIterator;
+
+
+typedef xxBasemap<long,mpuExtendedPolymer*>::iterator			            LongExtendedPolymerIterator;
+typedef xxBasemap<long,mpuExtendedPolymer*>::const_iterator	                cLongExtendedPolymerIterator;
+
+typedef xxBasemap<long,mpuExtendedPolymer*>::iterator			            LongExtendedPolymerIterator;
+typedef xxBasemap<long,mpuExtendedPolymer*>::const_iterator	                cLongExtendedPolymerIterator;
+
+
+typedef xxBasemultimap<long,mpuExtendedPolymer*>::iterator			         LongExtendedPolymerMMIterator;
+typedef xxBasemultimap<long,mpuExtendedPolymer*>::const_iterator	         cLongExtendedPolymerMMIterator;
+
+
 #endif // !defined(AFX_MPUEXTENDEDPOLYMER_H__35FBBDE2_71E7_4B90_B6B5_21B6F4063CD8__INCLUDED_)

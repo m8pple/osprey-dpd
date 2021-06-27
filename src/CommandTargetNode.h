@@ -240,4 +240,18 @@ private:
 
 };
 
+typedef xxBaselist<CCommandTargetNode*>::iterator				CommandTargetIterator;
+typedef xxBaselist<CCommandTargetNode*>::const_iterator			cCommandTargetIterator;
+typedef xxBaselist<CCommandTargetNode*>::reverse_iterator		rCommandTargetIterator;
+typedef xxBaselist<CCommandTargetNode*>::const_reverse_iterator	crCommandTargetIterator;
+
+
+typedef xxBasemap<zString,CCommandTargetNode*>::iterator					StringTargetIterator;
+typedef xxBasemap<zString,CCommandTargetNode*>::const_iterator				cStringTargetIterator;
+
+typedef xxBasemap<long,CCommandTargetNode*>::iterator						LongTargetIterator;
+typedef xxBasemap<long,CCommandTargetNode*>::const_iterator					cLongTargetIterator;
+
+
+
 #endif // !defined(AFX_COMMANDTARGETNODE_H__E2D177BA_19B6_4369_9AD8_0CF50E53B54A__INCLUDED_)

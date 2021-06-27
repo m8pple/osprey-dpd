@@ -81,4 +81,10 @@ private:
 
 };
 
+typedef xxBaselist<CDensityFieldState*>::iterator				DensityFieldIterator;
+typedef xxBaselist<CDensityFieldState*>::const_iterator			cDensityFieldIterator;
+typedef xxBaselist<CDensityFieldState*>::reverse_iterator		rDensityFieldIterator;
+typedef xxBaselist<CDensityFieldState*>::const_reverse_iterator	crDensityFieldIterator;
+
+
 #endif // !defined(AFX_DENSITYFIELDSTATE_H__BFD34FE7_1FD1_4FCF_8E64_F9425ABC18C9__INCLUDED_)

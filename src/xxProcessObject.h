@@ -39,4 +39,7 @@ private:
 
 };
 
+typedef xxBasevector<const xxProcessObject*>::iterator			ProcessObjectIterator;
+typedef xxBasevector<const xxProcessObject*>::const_iterator	cProcessObjectIterator;
+
 #endif // !defined(AFX_XXPROCESSOBJECT_H__3E58920E_4F8F_4857_8B8E_38359B0735FA__INCLUDED_)

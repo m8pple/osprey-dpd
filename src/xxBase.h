@@ -227,16 +227,6 @@ class xxProcessObject;
 					                                  double xw, double yw, double zw);
 	typedef aevActiveEvent*		(*CreateActiveEventCallback)();
 #endif
-	// Typedef for the factory classes that are used to create the commands,
-	// events, processes, etc.
-	// These are called: acfCommandFactory, etc.
-
-	typedef CAnalysisData*		   (*CreateAnalysisCallback)();
-	typedef CInitialStateData* (*CreateInitialStateCallback)();
-	typedef mpmMessage*		(*CreateParallelMessageCallback)();
-	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
-	typedef xxEvent*				  (*CreateEventCallback)();
-	typedef xxProcess*				(*CreateProcessCallback)();
 
 // ****************************************
 #elif xxBasePlatform == xxBaseXCMAC	// Mac OS X/XCode compiler console app
@@ -342,17 +332,6 @@ class xxProcessObject;
 	typedef aevActiveEvent*		(*CreateActiveEventCallback)();
 #endif
 
-	// Typedef for the factory classes that are used to create the commands,
-	// events, processes, etc.
-	// These are called: acfCommandFactory, etc.
-
-	typedef CAnalysisData*		   (*CreateAnalysisCallback)();
-	typedef CInitialStateData* (*CreateInitialStateCallback)();
-	typedef mpmMessage*		(*CreateParallelMessageCallback)();
-	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
-	typedef xxEvent*				  (*CreateEventCallback)();
-	typedef xxProcess*				(*CreateProcessCallback)();
-
 // ****************************************
 #elif xxBasePlatform == xxBaseCRAYHERMIT	// hermit1.hww.de Cray
 
@@ -454,17 +433,6 @@ class xxProcessObject;
 					                                  double xw, double yw, double zw);
 	typedef aevActiveEvent*		(*CreateActiveEventCallback)();
 #endif
-
-	// Typedef for the factory classes that are used to create the commands,
-	// events, processes, etc.
-	// These are called: acfCommandFactory, etc.
-
-	typedef CAnalysisData*		   (*CreateAnalysisCallback)();
-	typedef CInitialStateData* (*CreateInitialStateCallback)();
-	typedef mpmMessage*		(*CreateParallelMessageCallback)();
-	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
-	typedef xxEvent*				  (*CreateEventCallback)();
-	typedef xxProcess*				(*CreateProcessCallback)();
 
 // ****************************************
 #elif xxBasePlatform == xxBaseCW55MAC	// Mac OS X/Code Warrior compiler
@@ -568,17 +536,6 @@ class xxProcessObject;
 	typedef aevActiveEvent*		(*CreateActiveEventCallback)();
 #endif
 
-	// Typedef for the factory classes that are used to create the commands,
-	// events, processes, etc.
-	// These are called: acfCommandFactory, etc.
-
-	typedef CAnalysisData*		   (*CreateAnalysisCallback)();
-	typedef CInitialStateData* (*CreateInitialStateCallback)();
-	typedef mpmMessage*		(*CreateParallelMessageCallback)();
-	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
-	typedef xxEvent*				  (*CreateEventCallback)();
-	typedef xxProcess*				(*CreateProcessCallback)();
-
 // ****************************************
 #elif xxBasePlatform == xxBaseDECALPHA	// Dec alpha machines
 
@@ -664,18 +621,6 @@ class xxProcessObject;
 					                                  double xw, double yw, double zw);
 	typedef aevActiveEvent*		(*CreateActiveEventCallback)();
 #endif
-
-	// Typedef for the factory classes that are used to create the commands,
-	// events, processes, etc.
-	// These are called: acfCommandFactory, acfAnalysisFactory, 
-	// acfEventFactory, acfProcessFactory  
-
-	typedef CAnalysisData*		   (*CreateAnalysisCallback)();
-	typedef CInitialStateData* (*CreateInitialStateCallback)();
-	typedef mpmMessage*		(*CreateParallelMessageCallback)();
-	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
-	typedef xxEvent*				  (*CreateEventCallback)();
-	typedef xxProcess*				(*CreateProcessCallback)();
 
 
 // ****************************************
@@ -775,18 +720,6 @@ class xxProcessObject;
 					                                  double xw, double yw, double zw);
 	typedef aevActiveEvent*		(*CreateActiveEventCallback)();
 #endif
-
-	// Typedef for the factory classes that are used to create the commands,
-	// events, processes, etc.
-	// These are called: acfCommandFactory, acfAnalysisFactory, 
-	// acfEventFactory, acfProcessFactory  
-
-	typedef CAnalysisData*		   (*CreateAnalysisCallback)();
-	typedef CInitialStateData* (*CreateInitialStateCallback)();
-	typedef mpmMessage*		(*CreateParallelMessageCallback)();
-	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
-	typedef xxEvent*				  (*CreateEventCallback)();
-	typedef xxProcess*				(*CreateProcessCallback)();
 
 
 // ****************************************
@@ -891,18 +824,6 @@ class xxProcessObject;
 	typedef aevActiveEvent*		(*CreateActiveEventCallback)();
 #endif
 
-	// Typedef for the factory classes that are used to create the commands,
-	// events, processes, etc.
-	// These are called: acfCommandFactory, acfAnalysisFactory, 
-	// acfEventFactory, acfProcessFactory  
-
-	typedef CAnalysisData*		   (*CreateAnalysisCallback)();
-	typedef CInitialStateData* (*CreateInitialStateCallback)();
-	typedef mpmMessage*		(*CreateParallelMessageCallback)();
-	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
-	typedef xxEvent*				  (*CreateEventCallback)();
-	typedef xxProcess*				(*CreateProcessCallback)();
-
 // ****************************************
 #elif xxBasePlatform == xxBaseBORLAND6	// Borland 6 compiler in Windows application
 
@@ -980,18 +901,19 @@ class xxProcessObject;
 	typedef aevActiveEvent*		(*CreateActiveEventCallback)();
 #endif
 
-	// Typedef for the factory classes that are used to create the commands,
-	// events, processes, etc.
-	// These are called: acfCommandFactory, etc.
-
-	typedef CAnalysisData*		   (*CreateAnalysisCallback)();
-	typedef CInitialStateData* (*CreateInitialStateCallback)();
-	typedef mpmMessage*		(*CreateParallelMessageCallback)();
-	typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
-	typedef xxEvent*				  (*CreateEventCallback)();
-	typedef xxProcess*				(*CreateProcessCallback)();
 
 #endif
+
+// Typedef for the factory classes that are used to create the commands,
+// events, processes, etc.
+// These are called: acfCommandFactory, etc.
+
+typedef CAnalysisData*		   (*CreateAnalysisCallback)();
+typedef CInitialStateData* (*CreateInitialStateCallback)();
+typedef mpmMessage*		(*CreateParallelMessageCallback)();
+typedef xxCommand*				(*CreateCommandCallback)(long executionTime);
+typedef xxEvent*				  (*CreateEventCallback)();
+typedef xxProcess*				(*CreateProcessCallback)();
 
 
 // **********************************************************************
@@ -1039,120 +961,36 @@ typedef xxBasevector<aeCNTCell*>::const_iterator		caeCNTCellIterator;
 #endif
 
 typedef xxBasevector<CBeadType*>						BeadTypeVector;
-typedef xxBasevector<CBeadType*>::iterator				BeadTypeVectorIterator;
-typedef xxBasevector<CBeadType*>::const_iterator		cBeadTypeVectorIterator;
-
 typedef xxBasevector<CAbstractBead*>					AbstractBeadVector;
-typedef xxBasevector<CAbstractBead*>::iterator			AbstractBeadVectorIterator;
-typedef xxBasevector<CAbstractBead*>::const_iterator	cAbstractBeadVectorIterator;
-
 typedef xxBasevector<CBead*>							        BeadVector;
-typedef xxBasevector<CBead*>::iterator					        BeadVectorIterator;
-typedef xxBasevector<CBead*>::const_iterator			        cBeadVectorIterator;
-
 typedef xxBasevector<CBeadChargeWrapper*>							ChargedBeadVector;
-typedef xxBasevector<CBeadChargeWrapper*>::iterator					ChargedBeadVectorIterator;
-typedef xxBasevector<CBeadChargeWrapper*>::const_iterator			cChargedBeadVectorIterator;
-typedef xxBasevector<CBeadChargeWrapper*>::reverse_iterator			rChargedBeadVectorIterator;
-typedef xxBasevector<CBeadChargeWrapper*>::const_reverse_iterator	crChargedBeadVectorIterator;
-
 typedef xxBasevector<CBond*>							        BondVector;
-typedef xxBasevector<CBond*>::iterator					        BondVectorIterator;
-typedef xxBasevector<CBond*>::const_iterator			        cBondVectorIterator;
-
 typedef xxBasevector<CBondPair*>						        BondPairVector;
-typedef xxBasevector<CBondPair*>::iterator				        BondPairVectorIterator;
-typedef xxBasevector<CBondPair*>::const_iterator		        cBondPairVectorIterator;
-
 typedef xxBasevector<CPolymer*>							        PolymerVector;
-typedef xxBasevector<CPolymer*>::iterator				        PolymerVectorIterator;
-typedef xxBasevector<CPolymer*>::const_iterator		            cPolymerVectorIterator;
-
 typedef xxBasevector<CPolymerCrossLink*>					    PolymerCrossLinkVector;
-typedef xxBasevector<CPolymerCrossLink*>::iterator			    PolymerCrossLinkIterator;
-typedef xxBasevector<CPolymerCrossLink*>::const_iterator        cPolymerCrossLinkIterator;
 
 typedef xxBasevector<mpuGhostBead*>					            GhostBeadVector;
-typedef xxBasevector<mpuGhostBead*>::iterator			        GhostBeadVectorIterator;
-typedef xxBasevector<mpuGhostBead*>::const_iterator	            cGhostBeadVectorIterator;
-
 typedef xxBasevector<mpuExtendedBond*>						    ExtendedBondVector;
-typedef xxBasevector<mpuExtendedBond*>::iterator			    ExtendedBondVectorIterator;
-typedef xxBasevector<mpuExtendedBond*>::const_iterator		    cExtendedBondVectorIterator;
-
 typedef xxBasevector<mpuExtendedBondPair*>					    ExtendedBondPairVector;
-typedef xxBasevector<mpuExtendedBondPair*>::iterator		    ExtendedBondPairVectorIterator;
-typedef xxBasevector<mpuExtendedBondPair*>::const_iterator	    cExtendedBondPairVectorIterator;
-
 typedef xxBasevector<mpuExtendedNPBond*>					    ExtendedNPBondVector;
-typedef xxBasevector<mpuExtendedNPBond*>::iterator			    ExtendedNPBondVectorIterator;
-typedef xxBasevector<mpuExtendedNPBond*>::const_iterator	    cExtendedNPBondVectorIterator;
-
 typedef xxBasevector<mpuExtendedNanoparticle*>					ExtendedNanoparticleVector;
-typedef xxBasevector<mpuExtendedNanoparticle*>::iterator        ExtendedNanoparticleVectorIterator;
-typedef xxBasevector<mpuExtendedNanoparticle*>::const_iterator  cExtendedNanoparticleVectorIterator;
 
 typedef xxBasevector<mpuExtendedPolymer*>					    ExtendedPolymerVector;
-typedef xxBasevector<mpuExtendedPolymer*>::iterator			    ExtendedPolymerVectorIterator;
-typedef xxBasevector<mpuExtendedPolymer*>::const_iterator	    cExtendedPolymerVectorIterator;
-
 typedef xxBasevector<pmSendGhostBeadCoords*>					GhostBeadCoordsMsgVector;
-typedef xxBasevector<pmSendGhostBeadCoords*>::iterator			GhostBeadCoordsMsgVectorIterator;
-typedef xxBasevector<pmSendGhostBeadCoords*>::const_iterator	cGhostBeadCoordsMsgVectorIterator;
-
 typedef xxBasevector<CNanoparticle*>							NanoparticleSequence;
-typedef xxBasevector<CNanoparticle*>::iterator				    NanoparticleIterator;
-typedef xxBasevector<CNanoparticle*>::const_iterator			cNanoparticleIterator;
-typedef xxBasevector<CNanoparticle*>::reverse_iterator		    rNanoparticleIterator;
-typedef xxBasevector<CNanoparticle*>::const_reverse_iterator	crNanoparticleIterator;
 
 typedef xxBasevector<CCNTCell*>							        CNTCellVector;
-typedef xxBasevector<CCNTCell*>::iterator				        CNTCellIterator;
-typedef xxBasevector<CCNTCell*>::const_iterator			        cCNTCellIterator;
-
 typedef xxBasevector<CStressGridCell*>						    StressCellVector;
-typedef xxBasevector<CStressGridCell*>::iterator			    StressCellIterator;
-typedef xxBasevector<CStressGridCell*>::const_iterator			cStressCellIterator;
-
 typedef xxBasevector<CObservable*>						        ObservableSequence;
-typedef xxBasevector<CObservable*>::iterator			        ObservableIterator;
 typedef xxBasevector<CObservable*>*						        ObservableSequencePointer;
-
 typedef xxBasevector<CGridObservable*>					        GridObservableSequence;
-typedef xxBasevector<CGridObservable*>::iterator		        GridObservableIterator;
-
 typedef xxBasevector<CCurrentState*>					        CurrentStateSequence;
-typedef xxBasevector<CCurrentState*>::iterator			        CurrentStateIterator;
-
 typedef xxBasevector<CDensityState*>					        DensityStateSequence;
-typedef xxBasevector<CDensityState*>::iterator			        DensityStateIterator;
-typedef xxBasevector<CDensityState*>::const_iterator	        cDensityStateIterator;
-typedef xxBasevector<CDensityState*>::reverse_iterator          rDensityStateIterator;
-typedef xxBasevector<CDensityState*>::const_reverse_iterator    crDensityStateIterator;
-
 typedef xxBasevector<CTimeSeriesData*>							TimeSeriesSequence;
-typedef xxBasevector<CTimeSeriesData*>::iterator				TimeSeriesIterator;
-typedef xxBasevector<CTimeSeriesData*>::const_iterator			cTimeSeriesIterator;
-
 typedef xxBasevector<CAnalysis*>								AggregateSequence;
-typedef xxBasevector<CAnalysis*>::iterator						AggregateIterator;
-typedef xxBasevector<CAnalysis*>::const_iterator				cAggregateIterator;
-typedef xxBasevector<CAnalysis*>::reverse_iterator				rAggregateIterator;
-typedef xxBasevector<CAnalysis*>::const_reverse_iterator		crAggregateIterator;
-
 typedef xxBasevector<CAnalysisData*>							AggregateDataSequence;
-typedef xxBasevector<CAnalysisData*>::iterator					AggregateDataIterator;
-typedef xxBasevector<CAnalysisData*>::const_iterator			cAggregateDataIterator;
-
 typedef xxBasevector<CAnalysisTool*>							ToolSequence;
-typedef xxBasevector<CAnalysisTool*>::iterator					ToolIterator;
-typedef xxBasevector<CAnalysisTool*>::const_iterator			cToolIterator;
-
 typedef xxBasevector<IRegionAnalysis*>							RegionSequence;
-typedef xxBasevector<IRegionAnalysis*>::iterator				RegionIterator;
-typedef xxBasevector<IRegionAnalysis*>::const_iterator			cRegionIterator;
-typedef xxBasevector<IRegionAnalysis*>::reverse_iterator		rRegionIterator;
-typedef xxBasevector<IRegionAnalysis*>::const_reverse_iterator	crRegionIterator;
 
 #if EnableShadowSimBox == SimACNEnabled
 typedef xxBasevector<aeActiveBond*>							    ActiveBondSequence;
@@ -1175,189 +1013,60 @@ typedef xxBasevector<aevActiveEvent*>::const_reverse_iterator	crActiveEventItera
 #endif
 
 typedef xxBasevector<xxProcess*>								ProcessSequence;
-typedef xxBasevector<xxProcess*>::iterator						ProcessIterator;
-typedef xxBasevector<xxProcess*>::const_iterator				cProcessIterator;
-typedef xxBasevector<xxProcess*>::reverse_iterator				rProcessIterator;
-typedef xxBasevector<xxProcess*>::const_reverse_iterator		crProcessIterator;
-
 typedef xxBasevector<xxEvent*>									EventSequence;
-typedef xxBasevector<xxEvent*>::iterator						EventIterator;
-typedef xxBasevector<xxEvent*>::const_iterator					cEventIterator;
-typedef xxBasevector<xxEvent*>::reverse_iterator				rEventIterator;
-typedef xxBasevector<xxEvent*>::const_reverse_iterator			crEventIterator;
-
 typedef xxBasevector<xxMessage*>								MessageSequence;
-typedef xxBasevector<xxMessage*>::iterator						MessageIterator;
-typedef xxBasevector<xxMessage*>::const_iterator				cMessageIterator;
-typedef xxBasevector<xxMessage*>::reverse_iterator				rMessageIterator;
-typedef xxBasevector<xxMessage*>::const_reverse_iterator		crMessageIterator;
-
 typedef xxBasevector<const CAnalysisObject*>					AnalysisObjectSequence;
-typedef xxBasevector<const CAnalysisObject*>::iterator			AnalysisObjectIterator;
-typedef xxBasevector<const CAnalysisObject*>::const_iterator	cAnalysisObjectIterator;
-
 typedef xxBasevector<const xxProcessObject*>					ProcessObjectSequence;
-typedef xxBasevector<const xxProcessObject*>::iterator			ProcessObjectIterator;
-typedef xxBasevector<const xxProcessObject*>::const_iterator	cProcessObjectIterator;
-
 typedef xxBasevector<const xxEventObject*>						EventObjectSequence;
-typedef xxBasevector<const xxEventObject*>::iterator			EventObjectIterator;
-typedef xxBasevector<const xxEventObject*>::const_iterator		cEventObjectIterator;
 
 typedef xxBasevector<const xxCommandObject*>					CommandObjectSequence;
 typedef xxBasevector<const xxCommandObject*>::iterator			CommandObjectIterator;
 typedef xxBasevector<const xxCommandObject*>::const_iterator	cCommandObjectIterator;
 
 typedef xxBasevector<CSlice*>							SliceVector;
-typedef xxBasevector<CSlice*>::iterator					SliceVectorIterator;
-typedef xxBasevector<CSlice*>::const_iterator			cSliceVectorIterator;
-
 typedef xxBasevector<CRow*>								RowVector;
-typedef xxBasevector<CRow*>::iterator					RowVectorIterator;
-typedef xxBasevector<CRow*>::const_iterator				cRowVectorIterator;
-
 typedef xxBasevector<CCell*>							CellVector;
-typedef xxBasevector<CCell*>::iterator					CellVectorIterator;
-typedef xxBasevector<CCell*>::const_iterator			cCellVectorIterator;
-
 typedef xxBasevector<CRowProfile*>						RowProfileVector;
-typedef xxBasevector<CRowProfile*>::iterator			RowProfileVectorIterator;
-
 typedef xxBasevector<CCellProfile*>						CellProfileVector;
-typedef xxBasevector<CCellProfile*>::iterator			CellProfileVectorIterator;
-
 typedef xxBasevector<CCellProfileSet*>					CellProfileSetVector;
-typedef xxBasevector<CCellProfileSet*>::iterator		CellProfileSetVectorIterator;
 
 typedef xxBasevector<aaScalarProfile*>					ScalarProfileSequence;
-typedef xxBasevector<aaScalarProfile*>::iterator		ScalarProfileIterator;
-typedef xxBasevector<aaScalarProfile*>::const_iterator	cScalarProfileIterator;
-
 typedef xxBasevector<aaStressTensorPoint*>				StressVector;
-typedef xxBasevector<aaStressTensorPoint*>::iterator	StressVectorIterator;
-typedef xxBasevector<aaStressTensorPoint*>::const_iterator	cStressVectorIterator;
 
 typedef xxBasevector<CRaft*>							RaftSequence;
-typedef xxBasevector<CRaft*>::iterator					RaftIterator;
-typedef xxBasevector<CRaft*>::const_iterator			cRaftIterator;
 
 typedef xxBasevector<tguArgumentType*>					       tguArgumentSequence;
-typedef xxBasevector<tguArgumentType*>::iterator			   tguArgumentIterator;
-typedef xxBasevector<tguArgumentType*>::const_iterator	       ctguArgumentIterator;
-typedef xxBasevector<tguArgumentType*>::reverse_iterator       rtguArgumentIterator;
-typedef xxBasevector<tguArgumentType*>::const_reverse_iterator crtguArgumentIterator;
+
+typedef xxBasemap<zString, CreateAnalysisCallback>							StringAnalysisMap;
+typedef xxBasemap<zString, CreateInitialStateCallback>						StringInitialStateMap;
+typedef xxBasemap<zString, CreateCommandCallback>							StringCommandMap;
+typedef xxBasemap<zString, CreateEventCallback>								StringEventMap;
+typedef xxBasemap<zString, CreateParallelMessageCallback>					StringParallelMessageMap;
+typedef xxBasemap<zString, CreateProcessCallback>							StringProcessMap;
 
 
 // STL list containers
 
 typedef xxBaselist<CAbstractBead*>								BeadList;
-typedef xxBaselist<CAbstractBead*>::iterator					BeadListIterator;
-typedef xxBaselist<CAbstractBead*>::const_iterator				cBeadListIterator;
-typedef xxBaselist<CAbstractBead*>::reverse_iterator			rBeadListIterator;
-typedef xxBaselist<CAbstractBead*>::const_reverse_iterator		crBeadListIterator;
-
 typedef xxBaselist<CBond*>										BondList;
-typedef xxBaselist<CBond*>::iterator							BondListIterator;
-typedef xxBaselist<CBond*>::const_iterator						cBondListIterator;
-typedef xxBaselist<CBond*>::reverse_iterator					rBondListIterator;
-typedef xxBaselist<CBond*>::const_reverse_iterator				crBondListIterator;
-
 typedef xxBaselist<CBondPair*>									BondPairList;
-typedef xxBaselist<CBondPair*>::iterator						BondPairListIterator;
-typedef xxBaselist<CBondPair*>::const_iterator					cBondPairListIterator;
-typedef xxBaselist<CBondPair*>::reverse_iterator				rBondPairListIterator;
-typedef xxBaselist<CBondPair*>::const_reverse_iterator			crBondPairListIterator;
-
 typedef xxBaselist<CPolymer*>									PolymerList;
-typedef xxBaselist<CPolymer*>::iterator							PolymerListIterator;
-typedef xxBaselist<CPolymer*>::const_iterator					cPolymerListIterator;
-typedef xxBaselist<CPolymer*>::reverse_iterator					rPolymerListIterator;
-typedef xxBaselist<CPolymer*>::const_reverse_iterator			crPolymerListIterator;
-
 typedef xxBaselist<CNanoparticle*>								NanoparticleList;
-typedef xxBaselist<CNanoparticle*>::iterator					NanoparticleListIterator;
-typedef xxBaselist<CNanoparticle*>::const_iterator				cNanoparticleListIterator;
-typedef xxBaselist<CNanoparticle*>::reverse_iterator			rNanoparticleListIterator;
-typedef xxBaselist<CNanoparticle*>::const_reverse_iterator		crNanoparticleListIterator;
-
 typedef xxBaselist<mpuGhostBead*>								GhostBeadList;
-typedef xxBaselist<mpuGhostBead*>::iterator					    GhostBeadListIterator;
-typedef xxBaselist<mpuGhostBead*>::const_iterator				cGhostBeadListIterator;
-typedef xxBaselist<mpuGhostBead*>::reverse_iterator			    rGhostBeadListIterator;
-typedef xxBaselist<mpuGhostBead*>::const_reverse_iterator		crGhostBeadListIterator;
-
 typedef xxBaselist<mpuExtendedBond*>							ExtendedBondList;
-typedef xxBaselist<mpuExtendedBond*>::iterator					ExtendedBondListIterator;
-typedef xxBaselist<mpuExtendedBond*>::const_iterator			cExtendedBondListIterator;
-typedef xxBaselist<mpuExtendedBond*>::reverse_iterator			rExtendedBondListIterator;
-typedef xxBaselist<mpuExtendedBond*>::const_reverse_iterator	crExtendedBondListIterator;
-
 typedef xxBaselist<mpuExtendedBondPair*>						    ExtendedBondPairList;
-typedef xxBaselist<mpuExtendedBondPair*>::iterator				    ExtendedBondPairListIterator;
-typedef xxBaselist<mpuExtendedBondPair*>::const_iterator			cExtendedBondPairListIterator;
-typedef xxBaselist<mpuExtendedBondPair*>::reverse_iterator			rExtendedBondPairListIterator;
-typedef xxBaselist<mpuExtendedBondPair*>::const_reverse_iterator    crExtendedBondPairListIterator;
-
 typedef xxBaselist<mpuExtendedNanoparticle*>							ExtendedNanoparticleList;
-typedef xxBaselist<mpuExtendedNanoparticle*>::iterator					ExtendedNanoparticleListIterator;
-typedef xxBaselist<mpuExtendedNanoparticle*>::const_iterator		    cExtendedNanoparticleListIterator;
-typedef xxBaselist<mpuExtendedNanoparticle*>::reverse_iterator			rExtendedNanoparticleListIterator;
-typedef xxBaselist<mpuExtendedNanoparticle*>::const_reverse_iterator	crExtendedNanoparticleListIterator;
-
 typedef xxBaselist<mpuExtendedNPBond*>							    ExtendedNPBondList;
-typedef xxBaselist<mpuExtendedNPBond*>::iterator					ExtendedNPBondListIterator;
-typedef xxBaselist<mpuExtendedNPBond*>::const_iterator			    cExtendedNPBondListIterator;
-typedef xxBaselist<mpuExtendedNPBond*>::reverse_iterator			rExtendedNPBondListIterator;
-typedef xxBaselist<mpuExtendedNPBond*>::const_reverse_iterator	    crExtendedNPBondListIterator;
-
 typedef xxBaselist<mpuExtendedPolymer*>							    ExtendedPolymerList;
-typedef xxBaselist<mpuExtendedPolymer*>::iterator				    ExtendedPolymerListIterator;
-typedef xxBaselist<mpuExtendedPolymer*>::const_iterator			    cExtendedPolymerListIterator;
-typedef xxBaselist<mpuExtendedPolymer*>::reverse_iterator		    rExtendedPolymerListIterator;
-typedef xxBaselist<mpuExtendedPolymer*>::const_reverse_iterator	    crExtendedPolymerListIterator;
-
 typedef xxBaselist<pmSendGhostBeadCoords*>                          GhostBeadCoordsMsgList;
-typedef xxBaselist<pmSendGhostBeadCoords*>::iterator                GhostBeadCoordsMsgListIterator;
-typedef xxBaselist<pmSendGhostBeadCoords*>::const_iterator          cGhostBeadCoordsMsgListIterator;
-typedef xxBaselist<pmSendGhostBeadCoords*>::reverse_iterator        rGhostBeadCoordsMsgListIterator;
-typedef xxBaselist<pmSendGhostBeadCoords*>::const_reverse_iterator	crGhostBeadCoordsMsgListIterator;
-
 typedef xxBaselist<CBeadChargeWrapper*>							ChargedBeadList;
-typedef xxBaselist<CBeadChargeWrapper*>::iterator				ChargedBeadListIterator;
-typedef xxBaselist<CBeadChargeWrapper*>::const_iterator			cChargedBeadListIterator;
-typedef xxBaselist<CBeadChargeWrapper*>::reverse_iterator		rChargedBeadListIterator;
-typedef xxBaselist<CBeadChargeWrapper*>::const_reverse_iterator	crChargedBeadListIterator;
-
 typedef xxBaselist<CCommandTargetNode*>							CommandTargetSequence;
-typedef xxBaselist<CCommandTargetNode*>::iterator				CommandTargetIterator;
-typedef xxBaselist<CCommandTargetNode*>::const_iterator			cCommandTargetIterator;
-typedef xxBaselist<CCommandTargetNode*>::reverse_iterator		rCommandTargetIterator;
-typedef xxBaselist<CCommandTargetNode*>::const_reverse_iterator	crCommandTargetIterator;
-
 typedef xxBaselist<CDensityFieldState*>							DensityFieldSequence;
-typedef xxBaselist<CDensityFieldState*>::iterator				DensityFieldIterator;
-typedef xxBaselist<CDensityFieldState*>::const_iterator			cDensityFieldIterator;
-typedef xxBaselist<CDensityFieldState*>::reverse_iterator		rDensityFieldIterator;
-typedef xxBaselist<CDensityFieldState*>::const_reverse_iterator	crDensityFieldIterator;
 
 
 typedef xxBaselist<CForceTarget*>								ForceTargetSequence;
-typedef xxBaselist<CForceTarget*>::iterator						ForceTargetIterator;
-typedef xxBaselist<CForceTarget*>::const_iterator				cForceTargetIterator;
-typedef xxBaselist<CForceTarget*>::reverse_iterator		        rForceTargetIterator;
-typedef xxBaselist<CForceTarget*>::const_reverse_iterator	    crForceTargetIterator;
-
 typedef xxBaselist<const xxCommand*>							CommandSequence;
-typedef xxBaselist<const xxCommand*>::iterator					CommandIterator;
-typedef xxBaselist<const xxCommand*>::const_iterator			cCommandIterator;
-typedef xxBaselist<const xxCommand*>::reverse_iterator		    rCommandIterator;
-typedef xxBaselist<const xxCommand*>::const_reverse_iterator	crCommandIterator;
-
 typedef xxBaselist<tguCommandGroup*>						    CommandGroupSequence;
-typedef xxBaselist<tguCommandGroup*>::iterator					CommandGroupIterator;
-typedef xxBaselist<tguCommandGroup*>::const_iterator			cCommandGroupIterator;
-typedef xxBaselist<tguCommandGroup*>::reverse_iterator		    rCommandGroupIterator;
-typedef xxBaselist<tguCommandGroup*>::const_reverse_iterator	crCommandGroupIterator;
 
 #if EnableShadowSimBox == SimACNEnabled
 typedef xxBaselist<aeActiveBond*>								ActiveBondList;
@@ -1404,75 +1113,25 @@ typedef xxBasemap<zString,double>::const_iterator		cStringDoubleIterator;
 typedef xxBasemap<zString,zString>						StringStringMap;
 typedef xxBasemap<zString,zString>::iterator			StringStringIterator;
 typedef xxBasemap<zString,zString>::const_iterator		cStringStringIterator;
-
 typedef xxBasemap<long,CBeadType*>						LongBeadTypeMap;
-typedef xxBasemap<long,CBeadType*>::iterator			LongBeadTypeIterator;
-typedef xxBasemap<long,CBeadType*>::const_iterator		cLongBeadTypeIterator;
-
 typedef xxBasemap<long,CBondType*>						LongBondTypeMap;
-typedef xxBasemap<long,CBondType*>::iterator			LongBondTypeIterator;
-typedef xxBasemap<long,CBondType*>::const_iterator		cLongBondTypeIterator;
-
 typedef xxBasemap<long,CBondPairType*>					LongBondPairTypeMap;
-typedef xxBasemap<long,CBondPairType*>::iterator		LongBondPairTypeIterator;
-typedef xxBasemap<long,CBondPairType*>::const_iterator	cLongBondPairTypeIterator;
-
 typedef xxBasemap<long,CPolymerType*>					LongPolymerTypeMap;
-typedef xxBasemap<long,CPolymerType*>::iterator			LongPolymerTypeIterator;
-typedef xxBasemap<long,CPolymerType*>::const_iterator	cLongPolymerTypeIterator;
-
 typedef xxBasemap<long,CAbstractBead*>                  LongBeadMap;
-typedef xxBasemap<long,CAbstractBead*>::iterator        LongBeadIterator;
-typedef xxBasemap<long,CAbstractBead*>::const_iterator  cLongBeadIterator;
-
 typedef xxBasemap<long,CBond*>					        LongBondMap;
-typedef xxBasemap<long,CBond*>::iterator                LongBondIterator;
-typedef xxBasemap<long,CBond*>::const_iterator          cLongBondIterator;
-
 typedef xxBasemap<long,CBondPair*>					    LongBondPairMap;
-typedef xxBasemap<long,CBondPair*>::iterator            LongBondPairIterator;
-typedef xxBasemap<long,CBondPair*>::const_iterator      cLongBondPairIterator;
-
 typedef xxBasemap<long,CPolymer*>					     LongPolymerMap;
-typedef xxBasemap<long,CPolymer*>::iterator			     LongPolymerIterator;
-typedef xxBasemap<long,CPolymer*>::const_iterator	     cLongPolymerIterator;
-
 typedef xxBasemap<long,CNanoparticle*>					 LongNanoparticleMap;
-typedef xxBasemap<long,CNanoparticle*>::iterator	     LongNanoparticleIterator;
-typedef xxBasemap<long,CNanoparticle*>::const_iterator	 cLongNanoparticleIterator;
 
 
 typedef xxBasemap<long,mpuGhostBead*>				                        LongGhostBeadMap;
-typedef xxBasemap<long,mpuGhostBead*>::iterator			                    LongGhostBeadIterator;
-typedef xxBasemap<long,mpuGhostBead*>::const_iterator	                    cLongGhostBeadIterator;
-
 typedef xxBasemap<long,mpuExtendedBond*>				                    LongExtendedBondMap;
-typedef xxBasemap<long,mpuExtendedBond*>::iterator			                LongExtendedBondIterator;
-typedef xxBasemap<long,mpuExtendedBond*>::const_iterator	                cLongExtendedBondIterator;
-
 typedef xxBasemap<long,mpuExtendedNPBond*>				                    LongExtendedNPBondMap;
-typedef xxBasemap<long,mpuExtendedNPBond*>::iterator			            LongExtendedNPBondIterator;
-typedef xxBasemap<long,mpuExtendedNPBond*>::const_iterator	                cLongExtendedNPBondIterator;
-
 typedef xxBasemap<long,mpuExtendedNanoparticle*>				            LongExtendedNanoparticleMap;
-typedef xxBasemap<long,mpuExtendedNanoparticle*>::iterator			        LongExtendedNanoparticleIterator;
-typedef xxBasemap<long,mpuExtendedNanoparticle*>::const_iterator	        cLongExtendedNanoparticleIterator;
-
 typedef xxBasemap<long,mpuExtendedPolymer*>				                    LongExtendedPolymerMap;
-typedef xxBasemap<long,mpuExtendedPolymer*>::iterator			            LongExtendedPolymerIterator;
-typedef xxBasemap<long,mpuExtendedPolymer*>::const_iterator	                cLongExtendedPolymerIterator;
-
 typedef xxBasemap<long,CCommandTargetNode*>									LongTargetMap;
-typedef xxBasemap<long,CCommandTargetNode*>::iterator						LongTargetIterator;
-typedef xxBasemap<long,CCommandTargetNode*>::const_iterator					cLongTargetIterator;
-
 typedef xxBasemap<zString,CCommandTargetNode*>								StringTargetMap;
-typedef xxBasemap<zString,CCommandTargetNode*>::iterator					StringTargetIterator;
-typedef xxBasemap<zString,CCommandTargetNode*>::const_iterator				cStringTargetIterator;
-
 typedef xxBasemap<zString,tguArgumentType*>		                            StringArgumentTypeMap;
-typedef xxBasemap<zString,tguArgumentType*>::iterator			            StringArgumentTypeIterator;
-typedef xxBasemap<zString,tguArgumentType*>::const_iterator	                cStringArgumentTypeIterator;
 
 
 
@@ -1486,33 +1145,7 @@ typedef xxBasemap<zString, CreateActiveEventCallback>::iterator				StringActiveE
 typedef xxBasemap<zString, CreateActiveEventCallback>::const_iterator		cStringActiveEventIterator;
 #endif
 
-typedef xxBasemap<zString, CreateAnalysisCallback>							StringAnalysisMap;
-typedef xxBasemap<zString, CreateAnalysisCallback>::iterator				StringAnalysisIterator;
-typedef xxBasemap<zString, CreateAnalysisCallback>::const_iterator			cStringAnalysisIterator;
-
-typedef xxBasemap<zString, CreateInitialStateCallback>						StringInitialStateMap;
-typedef xxBasemap<zString, CreateInitialStateCallback>::iterator			StringInitialStateIterator;
-typedef xxBasemap<zString, CreateInitialStateCallback>::const_iterator		cStringInitialStateIterator;
-
-typedef xxBasemap<zString, CreateCommandCallback>							StringCommandMap;
-typedef xxBasemap<zString, CreateCommandCallback>::iterator					StringCommandIterator;
-typedef xxBasemap<zString, CreateCommandCallback>::const_iterator			cStringCommandIterator;
-
-typedef xxBasemap<zString, CreateEventCallback>								StringEventMap;
-typedef xxBasemap<zString, CreateEventCallback>::iterator					StringEventIterator;
-typedef xxBasemap<zString, CreateEventCallback>::const_iterator				cStringEventIterator;
-
-typedef xxBasemap<zString, CreateParallelMessageCallback>					StringParallelMessageMap;
-typedef xxBasemap<zString, CreateParallelMessageCallback>::iterator			StringParallelMessageIterator;
-typedef xxBasemap<zString, CreateParallelMessageCallback>::const_iterator	cStringParallelMessageIterator;
-
-typedef xxBasemap<zString, CreateProcessCallback>							StringProcessMap;
-typedef xxBasemap<zString, CreateProcessCallback>::iterator					StringProcessIterator;
-typedef xxBasemap<zString, CreateProcessCallback>::const_iterator			cStringProcessIterator;
-
 typedef xxBasemap<zString, IModifyProcess*>									StringModifiableProcessMap;
-typedef xxBasemap<zString, IModifyProcess*>::iterator						StringModifiableProcessIterator;
-typedef xxBasemap<zString, IModifyProcess*>::const_iterator					cStringModifiableProcessIterator;
 
 #if EnableShadowSimBox == SimACNEnabled
 typedef xxBasemap<zString, aeActiveCellNetwork*>							StringActiveACNMap;
@@ -1531,11 +1164,11 @@ typedef xxBasemap<zString, IACNAccessControl*>::const_iterator			    cStringAcce
 // STL multimap containers
 
 typedef xxBasemultimap<zString,long>			                             StringLongMMap;
-typedef xxBasemultimap<zString,long>::iterator					             StringLongMMIterator;
-typedef xxBasemultimap<zString,long>::const_iterator			             cStringLongMMIterator;
+//typedef xxBasemultimap<zString,long>::iterator					         StringLongMMIterator;
+//typedef xxBasemultimap<zString,long>::const_iterator			             cStringLongMMIterator;
 typedef xxBasemultimap<zString,double>			                             StringDoubleMMap;
-typedef xxBasemultimap<zString,double>::iterator					         StringDoubleMMIterator;
-typedef xxBasemultimap<zString,double>::const_iterator			             cStringDoubleMMIterator;
+//typedef xxBasemultimap<zString,double>::iterator					         StringDoubleMMIterator;
+//typedef xxBasemultimap<zString,double>::const_iterator			         cStringDoubleMMIterator;
 typedef xxBasemultimap<zString,zString>			                             StringStringMMap;
 typedef xxBasemultimap<zString,zString>::iterator					         StringStringMMIterator;
 typedef xxBasemultimap<zString,zString>::const_iterator			             cStringStringMMIterator;
@@ -1544,47 +1177,24 @@ typedef xxBasemultimap<long,long>			                                 LongLongMMa
 typedef xxBasemultimap<long,long>::iterator					                 LongLongMMIterator;
 typedef xxBasemultimap<long,long>::const_iterator			                 cLongLongMMIterator;
 typedef xxBasemultimap<long,double>			                                 LongDoubleMMap;
-typedef xxBasemultimap<long,double>::iterator					             LongDoubleMMIterator;
-typedef xxBasemultimap<long,double>::const_iterator			                 cLongDoubleMMIterator;
+//typedef xxBasemultimap<long,double>::iterator					             LongDoubleMMIterator;
+//typedef xxBasemultimap<long,double>::const_iterator			             cLongDoubleMMIterator;
 typedef xxBasemultimap<long,zString>			                             LongStringMMap;
 typedef xxBasemultimap<long,zString>::iterator					             LongStringMMIterator;
 typedef xxBasemultimap<long,zString>::const_iterator			             cLongStringMMIterator;
 
 
 typedef xxBasemultimap<long,CAbstractBead*>			                         LongBeadMMap;
-typedef xxBasemultimap<long,CAbstractBead*>::iterator					     LongBeadMMIterator;
-typedef xxBasemultimap<long,CAbstractBead*>::const_iterator			         cLongBeadMMIterator;
 typedef xxBasemultimap<long,CBond*>					                         LongBondMMap;
-typedef xxBasemultimap<long,CBond*>::iterator					             LongBondMMIterator;
-typedef xxBasemultimap<long,CBond*>::const_iterator			                 cLongBondMMIterator;
 typedef xxBasemultimap<long,CBondPair*>				                         LongBondPairMMap;
-typedef xxBasemultimap<long,CBondPair*>::iterator					         LongBondPairMMIterator;
-typedef xxBasemultimap<long,CBondPair*>::const_iterator			             cLongBondPairMMIterator;
 typedef xxBasemultimap<long,CPolymer*>				                         LongPolymerMMap;
-typedef xxBasemultimap<long,CPolymer*>::iterator					         LongPolymerMMIterator;
-typedef xxBasemultimap<long,CPolymer*>::const_iterator			             cLongPolymerMMIterator;
 typedef xxBasemultimap<zString,taEventSourceDecorator*>	                     StringEventSourceMMap;
-typedef xxBasemultimap<zString,taEventSourceDecorator*>::iterator			 StringEventSourceIterator;
-typedef xxBasemultimap<zString,taEventSourceDecorator*>::const_iterator      cStringEventSourceIterator;
 typedef xxBasemultimap<zString,taEventAnalysisDecorator*>	                 StringEventAnalysisMMap;
-typedef xxBasemultimap<zString,taEventAnalysisDecorator*>::iterator			 StringEventAnalysisIterator;
-typedef xxBasemultimap<zString,taEventAnalysisDecorator*>::const_iterator    cStringEventAnalysisIterator;
 
 typedef xxBasemultimap<long,mpuGhostBead*>				                     LongGhostBeadMMap;
-typedef xxBasemultimap<long,mpuGhostBead*>::iterator			             LongGhostBeadMMIterator;
-typedef xxBasemultimap<long,mpuGhostBead*>::const_iterator	                 cLongGhostBeadMMIterator;
-
 typedef xxBasemultimap<long,mpuExtendedBond*>				                 LongExtendedBondMMap;
-typedef xxBasemultimap<long,mpuExtendedBond*>::iterator			             LongExtendedBondMMIterator;
-typedef xxBasemultimap<long,mpuExtendedBond*>::const_iterator	             cLongExtendedBondMMIterator;
-
 typedef xxBasemultimap<long,mpuExtendedNPBond*>				                 LongExtendedNPBondMMap;
-typedef xxBasemultimap<long,mpuExtendedNPBond*>::iterator			         LongExtendedNPBondMMIterator;
-typedef xxBasemultimap<long,mpuExtendedNPBond*>::const_iterator	             cLongExtendedNPBondMMIterator;
 
-typedef xxBasemultimap<long,mpuExtendedPolymer*>				             LongExtendedPolymerMMap;
-typedef xxBasemultimap<long,mpuExtendedPolymer*>::iterator			         LongExtendedPolymerMMIterator;
-typedef xxBasemultimap<long,mpuExtendedPolymer*>::const_iterator	         cLongExtendedPolymerMMIterator;
 
 
 

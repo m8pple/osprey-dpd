@@ -66,4 +66,6 @@ private:
 
 };
 
+typedef xxBasevector<CObservable*>::iterator			        ObservableIterator;
+
 #endif // !defined(AFX_OBSERVABLE_H__5652BEC1_5495_11D3_820E_0060088AD300__INCLUDED_)

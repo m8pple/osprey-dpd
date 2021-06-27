@@ -123,4 +123,12 @@ private:
 
 };
 
+typedef xxBasemultimap<zString,taEventAnalysisDecorator*>::iterator			 StringEventAnalysisIterator;
+typedef xxBasemultimap<zString,taEventAnalysisDecorator*>::const_iterator    cStringEventAnalysisIterator;
+
+typedef xxBasemultimap<zString,taEventSourceDecorator*>::iterator			 StringEventSourceIterator;
+typedef xxBasemultimap<zString,taEventSourceDecorator*>::const_iterator      cStringEventSourceIterator;
+
+
+
 #endif // !defined(AFX_TAEVENTANALYSISDECORATOR_H__C1B414DD_BB59_449A_B62E_BABC2F708DE3__INCLUDED_)

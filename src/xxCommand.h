@@ -132,4 +132,10 @@ private:
 
 };
 
+typedef xxBaselist<const xxCommand*>::iterator					CommandIterator;
+typedef xxBaselist<const xxCommand*>::const_iterator			cCommandIterator;
+typedef xxBaselist<const xxCommand*>::reverse_iterator		    rCommandIterator;
+typedef xxBaselist<const xxCommand*>::const_reverse_iterator	crCommandIterator;
+
+
 #endif // !defined(AFX_XXCOMMAND_H__B75BC543_E47F_11D3_BF23_004095086186__INCLUDED_)

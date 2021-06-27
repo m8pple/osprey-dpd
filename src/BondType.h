@@ -43,4 +43,8 @@ private:
 	double m_UnStrLen;
 };
 
+typedef xxBasemap<long,CBondType*>::iterator			LongBondTypeIterator;
+typedef xxBasemap<long,CBondType*>::const_iterator		cLongBondTypeIterator;
+
+
 #endif // !defined(AFX_BONDTYPE_H__8EFC5A61_5594_11D3_820E_0060088AD300__INCLUDED_)

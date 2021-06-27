@@ -30,4 +30,6 @@ private:
 	CSlice* const m_pSlice;		// Pointer is const not the CSlice
 };
 
+typedef xxBasevector<CRowProfile*>::iterator			RowProfileVectorIterator;
+
 #endif // !defined(AFX_ROWPROFILE_H__C2278A18_AC86_11D3_BF15_004095086186__INCLUDED_)

@@ -94,4 +94,11 @@ private:
 	CBeadStructure* const m_pStructure;
 };
 
+typedef xxBasevector<CBeadType*>::iterator				BeadTypeVectorIterator;
+typedef xxBasevector<CBeadType*>::const_iterator		cBeadTypeVectorIterator;
+
+typedef xxBasemap<long,CBeadType*>::iterator			LongBeadTypeIterator;
+typedef xxBasemap<long,CBeadType*>::const_iterator		cLongBeadTypeIterator;
+
+
 #endif // !defined(AFX_BEADTYPE_H__8EFC5A60_5594_11D3_820E_0060088AD300__INCLUDED_)

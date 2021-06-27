@@ -17,4 +17,7 @@ public:
 
 };
 
+typedef xxBasevector<CCell*>::iterator					CellVectorIterator;
+typedef xxBasevector<CCell*>::const_iterator			cCellVectorIterator;
+
 #endif // !defined(AFX_CELL_H__C2278A1D_AC86_11D3_BF15_004095086186__INCLUDED_)

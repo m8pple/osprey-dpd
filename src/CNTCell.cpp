@@ -1339,11 +1339,13 @@ void CCNTCell::UpdateForce()
 		const auto &vvConsIntBead1 = m_vvConsInt[(*iterBead1)->GetType()];
 		const auto &vvDissIntBead1 = m_vvDissInt[(*iterBead1)->GetType()];
 
+
 #if SimDimension == 2
-		for( int i=0; i<4; i++ )
+		const int i_loop_bound=4;
 #elif SimDimension == 3
-		for( int i=0; i<13; i++ )
+		const int i_loop_bound=13;
 #endif
+		for( int i=0; i<i_loop_bound; i++ )
 		{
 /*		
 		    if(xxParallelBase::GlobalGetRank() == 0)
@@ -1360,8 +1362,18 @@ void CCNTCell::UpdateForce()
 */			
 			localCellCellCounter++;  // Increment the local cell-cell inteaction counter
 			
-			for(auto iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
+			for(auto iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++)
 			{
+				auto it_next=std::next(iterBead2);
+				if(it_next!= m_aIntNNCells[i]->m_lBeads.end()){
+					__builtin_prefetch((*it_next)->m_Pos);
+				}else if(i<i_loop_bound-1){
+					const auto &beads=m_aIntNNCells[i+1]->m_lBeads;
+					if(!beads.empty()){
+						__builtin_prefetch(beads[0]->m_Pos);
+					}
+				}
+
 				dx[0] = (current_x[0] - (*iterBead2)->m_Pos[0]);
 				dx[1] = (current_x[1] - (*iterBead2)->m_Pos[1]);
 #if SimDimension == 2
@@ -1388,9 +1400,8 @@ void CCNTCell::UpdateForce()
 					else if( dx[2] < -CCNTCell::m_HalfSimBoxZLength )
 						dx[2] = dx[2] + CCNTCell::m_SimBoxZLength;
 #endif
-
 				}
-
+				
 				dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
 
 // Calculate the interactions between the two beads for each simulation type.

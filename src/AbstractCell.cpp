@@ -56,3 +56,9 @@ CAbstractCell::CAbstractCell(const CAbstractCell& oldCell) : xxBase(oldCell), m_
 CAbstractCell::~CAbstractCell()
 {
 }
+
+
+BeadList CAbstractCell::GetBeads() const
+{
+	return {m_lBeads.begin(),m_lBeads.end()};
+}

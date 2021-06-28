@@ -29,7 +29,10 @@ public:
 	inline double   GetTRYCoord()   const {return m_TRCoord[1];}
 	inline double   GetTRZCoord()   const {return m_TRCoord[2];}
 	
-	inline BeadList GetBeads()		const {return m_lBeads;}
+	// Note: the original returns by copy, so no disadvantage to converting from
+	// vector to list rather than copying list to list.
+	//inline BeadList GetBeads()		const {return m_lBeads;}
+	BeadList GetBeads() const;
 
 	inline void SetId(long id) {m_id = id;}
 
@@ -40,7 +43,7 @@ protected:
 	long m_BLIndex[3];
 	double m_BLCoord[3];
 	double m_TRCoord[3];
-	BeadList m_lBeads;
+	AbstractBeadVector m_lBeads;
 
 };
 

@@ -884,10 +884,6 @@ void CCNTCell::UpdateForce()
 
 #if SimIdentifier == BD
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
-
 	double dx[3];
 	double dr, dr2, drmax;
 
@@ -895,7 +891,7 @@ void CCNTCell::UpdateForce()
 	double conForce;
     double newForce1[3], newForce2[3];	
 
-	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	for(auto iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
 		// First add interactions between beads in the current cell. Note that
 		// we don't have to check the PBCs here and we perform a reverse loop
@@ -915,7 +911,7 @@ void CCNTCell::UpdateForce()
 			(*iterBead1)->m_Stress[j] = 0.0;
 		}
 
-		for( riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=(*iterBead1)->m_id; ++riterBead2 )
+		for(auto riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=(*iterBead1)->m_id; ++riterBead2 )
 		{
 			dx[0] = ((*iterBead1)->m_Pos[0] - (*riterBead2)->m_Pos[0]);
 			dx[1] = ((*iterBead1)->m_Pos[1] - (*riterBead2)->m_Pos[1]);
@@ -1102,10 +1098,6 @@ void CCNTCell::UpdateForce()
 #else
     // DPD and MD equations of motion
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
-
 	double dx[3], dv[3], newForce[3];
 	double localStress[9];
 	double dr, dr2;
@@ -1140,7 +1132,7 @@ void CCNTCell::UpdateForce()
 //		Trace("");
 //	}
 
-	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	for(auto iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
 		// First add interactions between beads in the current cell. Note that
 		// we don't have to check the PBCs here and we perform a reverse loop
@@ -1160,7 +1152,7 @@ void CCNTCell::UpdateForce()
 			(*iterBead1)->m_Stress[j] = 0.0;
 		}
 
-		for( riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=(*iterBead1)->m_id; ++riterBead2 )
+		for(auto riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=(*iterBead1)->m_id; ++riterBead2 )
 		{
 			dx[0] = ((*iterBead1)->m_Pos[0] - (*riterBead2)->m_Pos[0]);
 			dv[0] = ((*iterBead1)->m_Mom[0] - (*riterBead2)->m_Mom[0]);
@@ -1368,7 +1360,7 @@ void CCNTCell::UpdateForce()
 */			
 			localCellCellCounter++;  // Increment the local cell-cell inteaction counter
 			
-			for( iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
+			for(auto iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
 			{
 				dx[0] = (current_x[0] - (*iterBead2)->m_Pos[0]);
 				dx[1] = (current_x[1] - (*iterBead2)->m_Pos[1]);
@@ -1651,7 +1643,7 @@ void CCNTCell::UpdatePos()
 
 	double dx[3];
 
-	for(BeadListIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); )
+	for(auto iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); )
 	{
 		// Only allow bead to move if its IsMovable flag is true. This allows
 		// us to indicate when a bead has already crossed a cell boundary and
@@ -2299,7 +2291,7 @@ void CCNTCell::UpdatePos()
 
 void CCNTCell::UpdateMom()
 {
-	for( BeadListIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++ )
+	for( auto iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++ )
 	{
 // Conditionally compile out the update of the momenta for those simulation types
 // that do not use them; but make sure the beads' SetMovable() function is called.
@@ -2651,7 +2643,7 @@ bool CCNTCell::CheckBeadsinCell()
 
 	long index1, ix, iy, iz;
 
-	for(BeadListIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++)
+	for(auto iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++)
 	{
 		ix = static_cast<long>((*iterBead)->GetXPos()/m_CNTXCellWidth);
 		iy = static_cast<long>((*iterBead)->GetYPos()/m_CNTYCellWidth);
@@ -2687,7 +2679,7 @@ bool CCNTCell::CheckBeadsinCell()
 			TraceVector("  Cell TR coords", m_TRCoord[0], m_TRCoord[1], m_TRCoord[2]);
 			TraceVector("  Bead coords", (*iterBead)->GetXPos(), (*iterBead)->GetYPos(), (*iterBead)->GetZPos());
 
-			for(BeadListIterator iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
+			for(auto iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
 			{
 				TraceInt("Bead", (*iterBead2)->GetId());
 				TraceVector("  Pos",      (*iterBead2)->GetXPos(), (*iterBead2)->GetYPos(), (*iterBead2)->GetZPos());
@@ -2739,7 +2731,7 @@ double CCNTCell::GetPotentialEnergy(CAbstractBead *pBead) const
 	double magSC;						// SC potential variables
 	double eSC, sSCOverR, sSCR3;
 
-	for(cBeadListIterator iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
+	for(auto iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
 	{
 		dx[0] = pBead->m_Pos[0] - (*iterBead2)->m_Pos[0];
 		dx[1] = pBead->m_Pos[1] - (*iterBead2)->m_Pos[1];
@@ -2818,7 +2810,7 @@ double CCNTCell::GetPotentialEnergy(CAbstractBead *pBead) const
 	for( int i=0; i<13; i++ )
 #endif
 	{
-		for(cBeadListIterator iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++)
+		for(auto iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++)
 		{
 			dx[0] = pBead->m_Pos[0] - (*iterBead2)->m_Pos[0];
 			dx[1] = pBead->m_Pos[1] - (*iterBead2)->m_Pos[1];
@@ -2964,7 +2956,7 @@ void CCNTCell::UpdateTotalEnergy(double* const pKinetic, double* const pPotentia
 	kinetic	  = 0.0;	// Zero running totals
 	potential = 0.0;
 
-	for(cBeadListIterator iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	for(auto iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
 		CAbstractBead* pBead1 = *iterBead1;
 		const long beadType1 = pBead1->GetType();
@@ -2984,7 +2976,7 @@ void CCNTCell::UpdateTotalEnergy(double* const pKinetic, double* const pPotentia
 		// compare a forward and reverse iterator we compare the bead ids for
 		// the terminating condition.
 
-		for(crBeadListIterator riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=pBead1->m_id; ++riterBead2 )
+		for(auto riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=pBead1->m_id; ++riterBead2 )
 		{
 			CAbstractBead* const pBead2 = *riterBead2;
 			const long beadType2 = pBead2->GetType();
@@ -3097,7 +3089,7 @@ void CCNTCell::UpdateTotalEnergy(double* const pKinetic, double* const pPotentia
 		for( int i=0; i<13; i++ )
 #endif
 		{
-			for(BeadListIterator iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
+			for(auto iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
 			{
 				if((*iterBead2)->GetId() > pBead1->GetId())
 				{
@@ -3250,10 +3242,6 @@ void CCNTCell::UpdateLGForce()
 {
 #if EnableDPDLG == ExperimentEnabled
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
-
 	double dx[3], dv[3], newForce[3];
 	double dr, dr2;
 	double gammap, rdotv, wr, wr2;
@@ -3263,7 +3251,7 @@ void CCNTCell::UpdateLGForce()
     double lgForce, lgPrefactor;
     double wrd, drdmax;  // Parameters needed for DPDLG force
 
-	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	for( auto iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
 		// First add interactions between beads in the current cell. Note that
 		// we don't have to check the PBCs here and we perform a reverse loop
@@ -3283,7 +3271,7 @@ void CCNTCell::UpdateLGForce()
 			(*iterBead1)->m_Stress[j] = 0.0;
 		}
 
-		for( riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=(*iterBead1)->m_id; ++riterBead2 )
+		for( auto riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=(*iterBead1)->m_id; ++riterBead2 )
 		{
 			dx[0] = ((*iterBead1)->m_Pos[0] - (*riterBead2)->m_Pos[0]);
 			dv[0] = ((*iterBead1)->m_Mom[0] - (*riterBead2)->m_Mom[0]);
@@ -3395,7 +3383,7 @@ void CCNTCell::UpdateLGForce()
 		for( int i=0; i<13; i++ )
 #endif
 		{
-			for( iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
+			for( auto iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
 			{
 				dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
 				dv[0] = ((*iterBead1)->m_Mom[0] - (*iterBead2)->m_Mom[0]);
@@ -3547,11 +3535,11 @@ void CCNTCell::UpdateLGDensity()
 
     double density;
 
-	for(BeadListIterator iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++)
+	for(auto iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++)
 	{
         density = 0.0;
 
-		for(BeadListIterator iterBead2=localBeads.begin(); iterBead2!=localBeads.end(); iterBead2++)
+		for(auto iterBead2=localBeads.begin(); iterBead2!=localBeads.end(); iterBead2++)
 		{
 			dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
 			dx[1] = ((*iterBead1)->m_Pos[1] - (*iterBead2)->m_Pos[1]);
@@ -3627,9 +3615,6 @@ void CCNTCell::UpdateForceP()
 #if SimIdentifier == BD
 
     CAbstractBead*   pBead1;
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
 
 	double dx[3];
 	double dr, dr2, drmax;
@@ -3639,7 +3624,7 @@ void CCNTCell::UpdateForceP()
     double newForce1[3], newForce2[3];
 		
 
-	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	for(auto iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
         pBead1 = *iterBead1;
 
@@ -3661,7 +3646,7 @@ void CCNTCell::UpdateForceP()
 			pBead1->m_Stress[j] = 0.0;
 		}
 
-		for( riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=pBead1->m_id; ++riterBead2 )
+		for(auto riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=pBead1->m_id; ++riterBead2 )
 		{
 			dx[0] = (pBead1->m_Pos[0] - (*riterBead2)->m_Pos[0]);
 			dx[1] = (pBead1->m_Pos[1] - (*riterBead2)->m_Pos[1]);
@@ -3758,9 +3743,6 @@ void CCNTCell::UpdateForceP()
     // DPD and MD equations of motion
 
     CAbstractBead*   pBead1;
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
 
 	double dx[3], dv[3], newForce[3];
 	double dr, dr2;
@@ -3784,7 +3766,7 @@ void CCNTCell::UpdateForceP()
 
 #endif
 
-	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	for(auto iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
         pBead1 = *iterBead1;
 
@@ -3806,7 +3788,7 @@ void CCNTCell::UpdateForceP()
 			pBead1->m_Stress[j] = 0.0;
 		}
 
-		for( riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=pBead1->m_id; ++riterBead2 )
+		for(auto riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=pBead1->m_id; ++riterBead2 )
 		{
 			dx[0] = (pBead1->m_Pos[0] - (*riterBead2)->m_Pos[0]);
 			dv[0] = (pBead1->m_Mom[0] - (*riterBead2)->m_Mom[0]);
@@ -4022,10 +4004,6 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 
 #if SimIdentifier == BD
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
-
 	double dx[3];
 	double dr, dr2, drmax;
 
@@ -4033,7 +4011,7 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 	double conForce;
     double newForce1[3], newForce2[3];
 
-	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	for(auto iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
 
 		// Next add in interactions with beads in neighbouring cells taking the
@@ -4046,7 +4024,7 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 		for( int i=0; i<13; i++ )
 #endif
 		{
-			for( iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
+			for(auto iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
 			{
 				dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
 				dx[1] = ((*iterBead1)->m_Pos[1] - (*iterBead2)->m_Pos[1]);
@@ -4149,8 +4127,6 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 #else
     // DPD and MD equations of motion
 
-	BeadListIterator iterBead2;
-
 	double dx[3], dv[3], newForce[3];
 	double dr, dr2;
 
@@ -4177,7 +4153,7 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
         // cell taking the PBCs into account. The PBCs are only applied
 		// if both the current CNT cell and the neighbouring one are external.
 
-			for( iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++ )
+			for(auto iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++ )
 			{
 				dx[0] = (pBead->m_Pos[0] - (*iterBead2)->m_Pos[0]);
 				dv[0] = (pBead->m_Mom[0] - (*iterBead2)->m_Mom[0]);

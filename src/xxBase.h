@@ -185,6 +185,16 @@ class xxProcessObject;
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
 
+		// TODO : This is clearly a recipe for terrible performance. Just experimenting,
+		// as there is a fairly big win for using vectors rather than lists in ForceUpdate
+		template<class TT>
+		void push_front(const TT &x)
+		{ this->insert(this->begin(), x); }
+
+		template<class TT>
+		void remove(const TT &x)
+		{ std::remove(this->begin(), this->end(), x); }
+
 //		inline T& at(size_t i)             {return (*(begin() + i)); }
 //		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
@@ -290,6 +300,16 @@ class xxProcessObject;
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
 
+		// TODO : This is clearly a recipe for terrible performance. Just experimenting,
+		// as there is a fairly big win for using vectors rather than lists in ForceUpdate
+		template<class TT>
+		void push_front(const TT &x)
+		{ this->insert(this->begin(), x); }
+
+		template<class TT>
+		void remove(const TT &x)
+		{ std::remove(this->begin(), this->end(), x); }
+
 //		inline T& at(size_t i)             {return (*(begin() + i)); }
 //		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
@@ -391,6 +411,16 @@ class xxProcessObject;
 		xxBasevector(size_t num, const T& val=T()) : std::vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
+
+		// TODO : This is clearly a recipe for terrible performance. Just experimenting,
+		// as there is a fairly big win for using vectors rather than lists in ForceUpdate
+		template<class TT>
+		void push_front(const TT &x)
+		{ this->insert(this->begin(), x); }
+
+		template<class TT>
+		void remove(const TT &x)
+		{ std::remove(this->begin(), this->end(), x); }
 
 //		inline T& at(size_t i)             {return (*(begin() + i)); }
 //		inline const T& at(size_t i) const {return (*(begin() + i)); }
@@ -494,6 +524,16 @@ class xxProcessObject;
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
 
+		// TODO : This is clearly a recipe for terrible performance. Just experimenting,
+		// as there is a fairly big win for using vectors rather than lists in ForceUpdate
+		template<class TT>
+		void push_front(const TT &x)
+		{ this->insert(this->begin(), x); }
+
+		template<class TT>
+		void remove(const TT &x)
+		{ std::remove(this->begin(), this->end(), x); }
+
 //		inline T& at(size_t i)             {return (*(begin() + i)); }
 //		inline const T& at(size_t i) const {return (*(begin() + i)); }
 	};
@@ -572,6 +612,16 @@ class xxProcessObject;
 		xxBasevector(size_t num, const T& val=T()) : std::vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
+
+		// TODO : This is clearly a recipe for terrible performance. Just experimenting,
+		// as there is a fairly big win for using vectors rather than lists in ForceUpdate
+		template<class TT>
+		void push_front(const TT &x)
+		{ this->insert(this->begin(), x); }
+
+		template<class TT>
+		void remove(const TT &x)
+		{ std::remove(this->begin(), this->end(), x); }
 	};
 
 	class xxBasestring : public std::basic_string<char>
@@ -662,6 +712,16 @@ class xxProcessObject;
 		xxBasevector(size_t num, const T& val=T()) : vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : vector<T>(oldVec){}
 		~xxBasevector(){}
+
+		// TODO : This is clearly a recipe for terrible performance. Just experimenting,
+		// as there is a fairly big win for using vectors rather than lists in ForceUpdate
+		template<class TT>
+		void push_front(const TT &x)
+		{ this->insert(this->begin(), x); }
+
+		template<class TT>
+		void remove(const TT &x)
+		{ std::remove(this->begin(), this->end(), x); }
 
 		inline T& at(size_t i)             {return (*(begin() + i)); }
 		inline const T& at(size_t i) const {return (*(begin() + i)); }
@@ -762,6 +822,16 @@ class xxProcessObject;
 		xxBasevector(size_t num, const T& val=T()) : vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : vector<T>(oldVec){}
 		~xxBasevector(){}
+
+		// TODO : This is clearly a recipe for terrible performance. Just experimenting,
+		// as there is a fairly big win for using vectors rather than lists in ForceUpdate
+		template<class TT>
+		void push_front(const TT &x)
+		{ this->insert(this->begin(), x); }
+
+		template<class TT>
+		void remove(const TT &x)
+		{ std::remove(this->begin(), this->end(), x); }
 
 		inline T& at(size_t i)             {return (*(begin() + i)); }
 		inline const T& at(size_t i) const {return (*(begin() + i)); }

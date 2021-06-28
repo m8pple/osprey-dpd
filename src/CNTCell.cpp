@@ -893,8 +893,7 @@ void CCNTCell::UpdateForce()
 
 	double wr, wr2;
 	double conForce;
-    double newForce1[3], newForce2[3];
-	
+    double newForce1[3], newForce2[3];	
 
 	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
@@ -1339,6 +1338,12 @@ void CCNTCell::UpdateForce()
 		// PBCs into account and the presence of a wall. The PBCs are only applied
 		// if both the current CNT cell and the neighbouring one are external.
 
+		// Local copy of location to speed up distance rejection check
+		double current_x[3];
+		for(int ii=0; ii<3; ii++){
+			current_x[ii] = (*iterBead1)->m_Pos[ii];
+		}
+
 #if SimDimension == 2
 		for( int i=0; i<4; i++ )
 #elif SimDimension == 3
@@ -1362,18 +1367,12 @@ void CCNTCell::UpdateForce()
 			
 			for( iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
 			{
-				dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
-				dv[0] = ((*iterBead1)->m_Mom[0] - (*iterBead2)->m_Mom[0]);
-
-				dx[1] = ((*iterBead1)->m_Pos[1] - (*iterBead2)->m_Pos[1]);
-				dv[1] = ((*iterBead1)->m_Mom[1] - (*iterBead2)->m_Mom[1]);
-
+				dx[0] = (current_x[0] - (*iterBead2)->m_Pos[0]);
+				dx[1] = (current_x[1] - (*iterBead2)->m_Pos[1]);
 #if SimDimension == 2
 				dx[2] = 0.0;
-				dv[2] = 0.0;
 #elif SimDimension == 3
-				dx[2] = ((*iterBead1)->m_Pos[2] - (*iterBead2)->m_Pos[2]);
-				dv[2] = ((*iterBead1)->m_Mom[2] - (*iterBead2)->m_Mom[2]);
+				dx[2] = (current_x[2] - (*iterBead2)->m_Pos[2]);
 #endif
 
 				if( m_bExternal && m_aIntNNCells[i]->IsExternal() )
@@ -1423,6 +1422,14 @@ void CCNTCell::UpdateForce()
 						wr = (1.0 - dr/drmax);
 						wr2 = wr*wr;
 #endif
+						dv[0] = ((*iterBead1)->m_Mom[0] - (*iterBead2)->m_Mom[0]);
+						dv[1] = ((*iterBead1)->m_Mom[1] - (*iterBead2)->m_Mom[1]);
+#if SimDimension == 2
+						dv[2] = 0.0;
+#else
+						dv[2] = ((*iterBead1)->m_Mom[2] - (*iterBead2)->m_Mom[2]);
+#endif
+
 						conForce	= m_vvConsInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr;				
 //                        conForce = 0.0;
 

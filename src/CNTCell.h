@@ -153,6 +153,26 @@ public:
 	void SetIntNNCellIndex(long index, CCNTCell* pCell);
 	bool CheckBeadsinCell();
 
+	// Returns the flat cache of each bead position
+	const double *GetPosCache()
+	{
+		if( __builtin_expect(m_posCacheDirty,false) ){
+			return GetPosCacheRebuild();
+		}
+		return &m_posCache[0];
+	}
+
+	const double *GetPosCacheNoCheck()
+	{
+		return &m_posCache[0];
+	}
+
+	// Mark the pos cache as out of date
+	void ClearPosCache()
+	{ m_posCacheDirty=true; }
+
+	
+
 	// ****************************************
 	// Protected local functions
 protected:
@@ -160,6 +180,8 @@ protected:
 
 	// ****************************************
 	// Implementation
+
+	const double *GetPosCacheRebuild();
 
 
 	// ****************************************
@@ -256,6 +278,9 @@ private:
 
     CCNTCell* m_aNNCells[27];		// Allow for both 2d and 3d
     CCNTCell* m_aIntNNCells[13];
+
+	bool m_posCacheDirty;
+	zDoubleVector m_posCache;
 };
 
 typedef xxBasevector<CCNTCell*>::iterator				        CNTCellIterator;

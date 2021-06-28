@@ -978,6 +978,11 @@ void CSimBox::Evolve()
 		(*iterCell)->UpdatePos();
 	} 
 
+	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
+	{
+		(*iterCell)->GetPosCache();
+	}
+
 	// Next calculate the forces between all pairs of beads in NN CNT cells
 	// that can potentially interact. First, we tell the CMonitor to zero the
 	// stress tensor arrays prior to generating new data. The function is

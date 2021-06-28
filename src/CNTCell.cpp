@@ -1430,19 +1430,29 @@ void CCNTCell::UpdateForce()
 						dv[2] = ((*iterBead1)->m_Mom[2] - (*iterBead2)->m_Mom[2]);
 #endif
 
-						conForce	= m_vvConsInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr;				
+						// Avoids using divsd in intel. In general avoids division, as compiler
+						// won't convert from x/dr to x/(1/dr) in general.
+						double inv_dr=1.0/dr;
+
+						//conForce	= m_vvConsInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr;				
+						conForce	= m_vvConsInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr;				
 //                        conForce = 0.0;
 
-						rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2])/dr;
-						gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr2;
+						rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2]) * inv_dr;
+						//gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr2;
+						gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
 
 						dissForce	= -gammap*rdotv;				
 						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
 // Gauss RNG		    randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
-						newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
-						newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
-						newForce[2] = (conForce + dissForce + randForce)*dx[2]/dr;
+						//newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
+						//newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
+						//newForce[2] = (conForce + dissForce + randForce)*dx[2]/dr;
+						double forceScale = (conForce + dissForce + randForce) * inv_dr;
+						newForce[0] = forceScale*dx[0];
+						newForce[1] = forceScale*dx[1];
+						newForce[2] = forceScale*dx[2];
 
 #elif SimIdentifier == MD
 

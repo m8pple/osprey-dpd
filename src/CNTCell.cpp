@@ -1343,6 +1343,9 @@ void CCNTCell::UpdateForce()
 		for(int ii=0; ii<3; ii++){
 			current_x[ii] = (*iterBead1)->m_Pos[ii];
 		}
+		// Cache based of the bead's conservative and 
+		const auto &vvConsIntBead1 = m_vvConsInt[(*iterBead1)->GetType()];
+		const auto &vvDissIntBead1 = m_vvDissInt[(*iterBead1)->GetType()];
 
 #if SimDimension == 2
 		for( int i=0; i<4; i++ )
@@ -1435,12 +1438,12 @@ void CCNTCell::UpdateForce()
 						double inv_dr=1.0/dr;
 
 						//conForce	= m_vvConsInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr;				
-						conForce	= m_vvConsInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr;				
+						conForce	= vvConsIntBead1[(*iterBead2)->GetType()]*wr;				
 //                        conForce = 0.0;
 
 						rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2]) * inv_dr;
 						//gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr2;
-						gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
+						gammap		= vvDissIntBead1[(*iterBead2)->GetType()]*wr2;
 
 						dissForce	= -gammap*rdotv;				
 						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());

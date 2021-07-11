@@ -40,6 +40,9 @@ public:
 	bool ToggleDPDBeadThermostat();
 
 
+	// HACK : get current time step size.
+	double GetTimeStep() const;
+
 	// ****************************************
 	// Protected local functions
 protected:

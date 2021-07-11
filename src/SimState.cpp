@@ -568,6 +568,11 @@ void CSimState::SetTimeStep(double dt)
 	}
 }
 
+double CSimState::GetTimeStep() const
+{
+	return m_rAnalysisState.GetIntegrationStep();
+}
+
 // Function used to set the simulation time to a new value as the result of
 // a ccExtendTotalTime command. The new time must be greater than or equal to 
 // the current time or the command is ignored.

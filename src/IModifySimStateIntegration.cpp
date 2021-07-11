@@ -42,6 +42,11 @@ void IModifySimStateIntegration::SetTimeStep(double dt)
 	m_rSimState.SetTimeStep(dt);
 }
 
+double IModifySimStateIntegration::GetTimeStep() const
+{
+	return m_rSimState.GetTimeStep();
+}
+
 // Function to extend the total simulation time in response to
 // a command. It passed the command on to the CSimState.
 //

@@ -253,6 +253,8 @@ private:
 	bool ToggleDPDBeadConservativeForces();
 	bool ToggleDPDBeadThermostat();
 
+	double GetTimeStep() const;			// Gets the integration time step
+
 
 	// IModifySimStatePolymers
 

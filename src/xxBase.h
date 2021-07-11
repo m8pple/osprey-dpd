@@ -136,6 +136,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
+	#include <algorithm>
 	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
@@ -251,6 +252,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
+	#include <algorithm>
 	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
@@ -363,6 +365,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
+	#include <algorithm>
 	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
@@ -475,6 +478,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
+	#include <algorithm>
 	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers
@@ -587,6 +591,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
+	#include <algorithm>
 	
 	typedef std::istream				zInStream;
 	typedef std::ostream				zOutStream;
@@ -905,6 +910,7 @@ class xxProcessObject;
 	#include <fstream>
 	#include <sstream>
 	#include <iomanip>
+	#include <algorithm>
 	
 	// **********************************************************************
 	// Define typedefs to allow each platform to access the STL containers

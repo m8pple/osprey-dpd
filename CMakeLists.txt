@@ -9,7 +9,6 @@ set(COMPILE_OPTIONS
     -g3
     -O3
     -fno-omit-frame-pointer
-
     -Wall
     -Wextra
     -pedantic
@@ -33,6 +32,21 @@ target_compile_options(dpd
 
 if(${CMAKE_VERSION} VERSION_GREATER "3.15.0") 
   target_precompile_headers(dpd PRIVATE src/StdAfx.h)
+endif()
+
+
+add_executable(dpd-poets ${SRC_FILES})
+
+target_compile_options(dpd-poets
+  PRIVATE ${COMPILE_OPTIONS} "-DHAVE_POETS_PDPD=1"
+)
+
+if(${CMAKE_VERSION} VERSION_GREATER "3.15.0") 
+  target_precompile_headers(dpd-poets PRIVATE src/StdAfx.h)
+endif()
+
+if(${CMAKE_VERSION} VERSION_GREATER "3.17.0") 
+#set_target_properties(dpd-poets PROPERTIES UNITY_BUILD TRUE )
 endif()
 
 

@@ -4245,6 +4245,11 @@ void CSimBox::SetTimeStepSize(const xxCommand* const pCommand)
 #endif
 }
 
+double CSimBox::GetTimeStepSize() const
+{
+	return IModifyIntegration()->GetTimeStep();
+}
+
 // Command handler function to allow a set of commands to be scheduled for
 // execution at a specified time in the future.
 

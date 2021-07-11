@@ -478,6 +478,9 @@ public:
 	inline double GetHalfYLength()			const {return m_HalfSimBoxYLength;}
 	inline double GetHalfZLength()			const {return m_HalfSimBoxZLength;}
 	inline double GetVolume()				const {return m_SimBoxVolume;}
+
+	// Helper to find out what the current sim step size is
+	double GetTimeStepSize() const;
     
     // Access functions to command groups.
 

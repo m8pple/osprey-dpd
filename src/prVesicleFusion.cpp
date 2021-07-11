@@ -70,7 +70,7 @@ const zString prVesicleFusion::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_prVesicleFusion
 {
 	xxProcess* Create() {return new prVesicleFusion();}
 

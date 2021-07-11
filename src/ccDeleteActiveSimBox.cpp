@@ -45,7 +45,7 @@ const zString ccDeleteActiveSimBox::GetType()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_ccDeleteActiveSimBox
 {
 	xxCommand* Create(long executionTime) {return new ccDeleteActiveSimBox(executionTime);}
 

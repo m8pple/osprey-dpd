@@ -46,7 +46,7 @@ const zString CInitialStateRandom::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_CInitialStateRandom
 {
 	CInitialStateData* Create() {return new CInitialStateRandom();}
 

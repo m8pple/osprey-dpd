@@ -61,7 +61,7 @@ const zString prBeadVelocityScalarProduct1dProfile::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_prBeadVelocityScalarProduct1dProfile
 {
 	xxProcess* Create() {return new prBeadVelocityScalarProduct1dProfile();}
 

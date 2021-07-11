@@ -71,7 +71,7 @@ const zString prBilayerFusion::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_prBilayerFusion
 {
 	xxProcess* Create() {return new prBilayerFusion();}
 

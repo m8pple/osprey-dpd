@@ -56,7 +56,7 @@ long ctCountBeadsInTarget::GetArgumentTotal()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_ctCountBeadsInTarget
 {
 	xxCommand* Create(long executionTime) {return new ctCountBeadsInTarget(executionTime);}
 

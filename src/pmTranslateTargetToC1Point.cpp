@@ -40,7 +40,7 @@ const zString pmTranslateTargetToC1Point::GetType()
 // Note that the Create() function is not a member function of the
 // message class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_pmTranslateTargetToC1Point
 {
 	mpmMessage* Create() {return new pmTranslateTargetToC1Point();}
 

@@ -44,7 +44,7 @@ const zString ccAddPolymersInRow::GetType()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_ccAddPolymersInRow
 {
 	xxCommand* Create(long executionTime) {return new ccAddPolymersInRow(executionTime);}
 

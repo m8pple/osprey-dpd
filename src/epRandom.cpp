@@ -44,7 +44,7 @@ const zString epRandom::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_epRandom
 {
 	xxProtocol* Create(const zString runId) {return new epRandom(runId);}
 

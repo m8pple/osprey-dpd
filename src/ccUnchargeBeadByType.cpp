@@ -45,7 +45,7 @@ const zString ccUnchargeBeadByType::GetType()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_ccUnchargeBeadByType
 {
 	xxCommand* Create(long executionTime) {return new ccUnchargeBeadByType(executionTime);}
 

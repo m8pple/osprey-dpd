@@ -52,7 +52,7 @@ const zString acSetFreeActiveBondsVisible::GetType()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_acSetFreeActiveBondsVisible
 {
 	xxCommand* Create(long executionTime) {return new acSetFreeActiveBondsVisible(executionTime);}
 

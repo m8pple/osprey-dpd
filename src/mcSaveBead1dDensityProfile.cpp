@@ -48,7 +48,7 @@ const zString mcSaveBead1dDensityProfile::GetType()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_mcSaveBead1dDensityProfile
 {
 	xxCommand* Create(long executionTime) {return new mcSaveBead1dDensityProfile(executionTime);}
 

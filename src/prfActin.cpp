@@ -83,7 +83,7 @@ const zString prfActin::GetType()
 // process map. This avoids a possible disconnection if the ACN and process
 // labels are not kept identical.
 
-namespace
+namespace private_ns_prfActin
 {
 	xxProcess* Create() {return new prfActin();}
 

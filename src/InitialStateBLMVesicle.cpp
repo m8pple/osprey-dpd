@@ -57,7 +57,7 @@ const zString CInitialStateBLMVesicle::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_CInitialStateBLMVesicle
 {
 	CInitialStateData* Create() {return new CInitialStateBLMVesicle();}
 

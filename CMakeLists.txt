@@ -46,7 +46,7 @@ if(${CMAKE_VERSION} VERSION_GREATER "3.15.0")
 endif()
 
 if(${CMAKE_VERSION} VERSION_GREATER "3.17.0") 
-#set_target_properties(dpd-poets PROPERTIES UNITY_BUILD TRUE )
+set_target_properties(dpd-poets PROPERTIES UNITY_BUILD TRUE )
 endif()
 
 

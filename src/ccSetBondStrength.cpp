@@ -46,7 +46,7 @@ const zString ccSetBondStrength::GetType()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_ccSetBondStrength
 {
 	xxCommand* Create(long executionTime) {return new ccSetBondStrength(executionTime);}
 

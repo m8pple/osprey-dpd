@@ -55,7 +55,7 @@ const zString evVesicleBindsWall::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_evVesicleBindsWall
 {
 	xxEvent* Create() {return new evVesicleBindsWall();}
 

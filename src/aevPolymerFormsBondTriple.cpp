@@ -55,7 +55,7 @@ const zString aevPolymerFormsBondTriple::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_aevPolymerFormsBondTriple
 {
 	aevActiveEvent* Create() {return new aevPolymerFormsBondTriple();}
 

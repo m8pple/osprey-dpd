@@ -46,7 +46,7 @@ const zString pmSendPlanarEdgeBeads::GetType()
 // Note that the Create() function is not a member function of the
 // message class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_pmSendPlanarEdgeBeads
 {
 	mpmMessage* Create() {return new pmSendPlanarEdgeBeads();}
 

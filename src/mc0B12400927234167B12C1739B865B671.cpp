@@ -45,7 +45,7 @@ const zString mc0B12400927234167B12C1739B865B671::GetType()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_mc0B12400927234167B12C1739B865B671
 {
 	xxCommand* Create(long executionTime) {return new mc0B12400927234167B12C1739B865B671(executionTime);}
 

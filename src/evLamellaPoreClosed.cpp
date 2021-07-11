@@ -57,7 +57,7 @@ const zString evLamellaPoreClosed::GetType()
 // Note that the Create() function is not a member function but a global 
 // function hidden in the namespace.
 
-namespace
+namespace private_ns_evLamellaPoreClosed
 {
 	xxEvent* Create() {return new evLamellaPoreClosed();}
 

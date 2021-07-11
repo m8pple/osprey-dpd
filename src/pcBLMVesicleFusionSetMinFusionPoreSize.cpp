@@ -49,7 +49,7 @@ const zString pcBLMVesicleFusionSetMinFusionPoreSize::GetType()
 // Note that the Create() function is not a member function of the
 // command class but a global function hidden in the namespace.
 
-namespace
+namespace private_ns_pcBLMVesicleFusionSetMinFusionPoreSize
 {
 	xxCommand* Create(long executionTime) {return new pcBLMVesicleFusionSetMinFusionPoreSize(executionTime);}
 

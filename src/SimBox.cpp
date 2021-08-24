@@ -246,6 +246,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "LogToggleDPDBeadThermostat.h"
 #endif
 
+#include "ForceLogging.h"
+
 
 	using std::cout;
 	using std::mem_fun;
@@ -971,6 +973,10 @@ CCNTCell* CSimBox::GetCNTCellFromCoords(double r[3]) const
 
 void CSimBox::Evolve()
 {
+	if(ForceLogging::logger){
+		ForceLogging::logger->SetTime(m_SimTime);
+	}
+
 	CNTCellIterator iterCell;  // used in all three loops below
 
 	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
@@ -1035,6 +1041,23 @@ void CSimBox::Evolve()
 
 	AddBondForces();
 	AddBondPairForces();
+
+	if(ForceLogging::logger){
+		for(PolymerVectorIterator iterPoly=m_vAllPolymers.begin(); iterPoly!=m_vAllPolymers.end(); iterPoly++)
+		{
+			for(const CBond *b : (*iterPoly)->GetBonds()){
+				double f[3]={b->GetXForce(), b->GetYForce(), b->GetZForce()};
+				LogBeadPairProperty(b->GetHead(), b->GetTail(), "hookean-f", ForceLoggingFlags::Asymmetric, 3, f);
+			}
+			for(const CBondPair *bp : (*iterPoly)->GetBondPairs()){
+				static const char *names[3]={"angle-f-head","angle-f-mid","angle-f-tail"};
+				for(int i=0; i<3; i++){
+					double f[3]={bp->GetXForce(i), bp->GetYForce(i), bp->GetZForce(i)};
+					LogBeadTripleProperty(bp->GetSecond()->GetHead(), bp->GetFirst()->GetHead(),bp->GetFirst()->GetTail(), names[i], 3, f);
+				}
+			}
+		}
+	}
 
 #if EnableShadowSimBox == SimACNEnabled
 	// Add in the forces due to active bonds and polymers if any exist.

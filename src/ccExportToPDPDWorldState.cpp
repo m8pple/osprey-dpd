@@ -268,9 +268,9 @@ bool ccExportToPDPDWorldState::Execute(long simTime, ISimCmd* const pISimCmd) co
 
 	dst<<"T "<<box->GetCurrentTime()<<" "<<box->GetTimeStepSize()<<"\n";
 	dst<<"Lambda "<<box->GetISimBox()->GetLambda()<<"\n";
-    dst<<"BoxLow "<<box->GetSimBoxXOrigin()<<" "<<box->GetSimBoxYOrigin()<<" "<<box->GetSimBoxZOrigin()<<"\n";
-	dst<<"BoxHigh "<<box->GetSimBoxXOrigin()+box->GetSimSpaceXLength()<<" "<<box->GetSimBoxYOrigin()+box->GetSimSpaceYLength()<<" "<<box->GetSimBoxZOrigin()+box->GetSimSpaceZLength()<<"\n";
-
+    dst<<"Origin "<<box->GetSimBoxXOrigin()<<" "<<box->GetSimBoxYOrigin()<<" "<<box->GetSimBoxZOrigin()<<"\n";
+	dst<<"Box "<<box->GetSimBoxXOrigin()+box->GetSimSpaceXLength()<<" "<<box->GetSimBoxYOrigin()+box->GetSimSpaceYLength()<<" "<<box->GetSimBoxZOrigin()+box->GetSimSpaceZLength()<<"\n";
+	dst<<"Seed 123456789\n"; // TODO
 	for(int i=0; i<bead_types.size(); i++){
 		dst<<"ConservativeStrength "<<i;
 		for(int j=0; j<bead_types.size(); j++){
@@ -293,7 +293,7 @@ bool ccExportToPDPDWorldState::Execute(long simTime, ISimCmd* const pISimCmd) co
 			fprintf(stderr, "Bead type order is incorrect : type %u at index %u.\n", bt->GetId(), i);
 			//exit(1);
 		}*/
-		dst<<"BeadType "<<bt->GetId()<<" "<<box->GetBeadNameFromType(i)<<" "<<bt->GetRadius()<<"\n";
+		dst<<"BeadType "<<i<<" "<<box->GetBeadNameFromType(i)<<" "<<bt->GetRadius()<<"\n";
 	}
 
 	std::vector<polymer_template_t> templates;
@@ -310,7 +310,7 @@ bool ccExportToPDPDWorldState::Execute(long simTime, ISimCmd* const pISimCmd) co
 			dst<<"  Bond "<<b.head_offset<<" "<<b.tail_offset<<" "<<b.kappa<<" "<<b.r0<<"\n";
 		}
 		for(const auto &bp : pt.bond_pairs){
-			dst<<"  BondPair "<<bp.head_offset<<" "<<bp.tail_offset<<" "<<bp.kappa<<" "<<bp.theta0<<"\n";
+			dst<<"  BondPair "<<bp.tail_offset<<" "<<bp.head_offset<<" "<<bp.kappa<<" "<<bp.theta0<<"\n";
 		}
 		dst<<"\n";
 	}
@@ -332,7 +332,7 @@ bool ccExportToPDPDWorldState::Execute(long simTime, ISimCmd* const pISimCmd) co
 		bead_ptr_to_offset.clear();
 		unsigned off=0;
 		for(const auto *b : p->GetBeads()){
-			dst<<"B "<<b->GetId()<<" "<<p->GetId()<<" "<<p->GetType()<<" "<<off;
+			dst<<"B "<<b->GetId()-1<<" "<<p->GetId()-1<<" "<<p->GetType()<<" "<<off;
 			dst<<" "<<b->GetXPos()<<" "<<b->GetYPos()<<" "<<b->GetZPos();
 			dst<<" "<<b->GetXMom()<<" "<<b->GetYMom()<<" "<<b->GetZMom();
 			dst<<" "<<b->GetXForce()<<" "<<b->GetYForce()<<" "<<b->GetZForce();

@@ -37,6 +37,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include <cassert>
 
+#include "ForceLogging.h"
+
 //////////////////////////////////////////////////////////////////////
 // Static member variable and function definitions
 //////////////////////////////////////////////////////////////////////
@@ -1210,7 +1212,8 @@ void CCNTCell::UpdateForce()
 					gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*riterBead2)->GetType())*wr2;
 
 					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					double rng=CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					randForce	= sqrt(gammap)*rng;
 // Gauss RNG		randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 					newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
@@ -1270,6 +1273,14 @@ void CCNTCell::UpdateForce()
 					(*riterBead2)->m_Force[0] -= newForce[0];
 					(*riterBead2)->m_Force[1] -= newForce[1];
 					(*riterBead2)->m_Force[2] -= newForce[2];
+
+					if(ForceLogging::logger){
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-rng",ForceLoggingFlags::Symmetric ,rng);
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-con",ForceLoggingFlags::Symmetric ,conForce);
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-diss",ForceLoggingFlags::Symmetric ,dissForce);
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-rand",ForceLoggingFlags::Symmetric ,randForce);
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-force",ForceLoggingFlags::SymmetricFlipped, 3,newForce);
+					}
 
 					// stress tensor summation
 
@@ -1465,7 +1476,8 @@ void CCNTCell::UpdateForce()
 						gammap		= vvDissIntBead1[(*iterBead2)->GetType()]*wr2;
 
 						dissForce	= -gammap*rdotv;				
-						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+						double rng=CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+						randForce	= sqrt(gammap)*rng;
 // Gauss RNG		    randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 						//newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
@@ -1534,6 +1546,14 @@ void CCNTCell::UpdateForce()
 						(*iterBead2)->m_Force[0] -= newForce[0];
 						(*iterBead2)->m_Force[1] -= newForce[1];
 						(*iterBead2)->m_Force[2] -= newForce[2];
+
+						if(ForceLogging::logger){
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-rng",ForceLoggingFlags::Symmetric ,rng);
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-con",ForceLoggingFlags::Symmetric ,conForce);
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-diss",ForceLoggingFlags::Symmetric ,dissForce);
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-rand",ForceLoggingFlags::Symmetric ,randForce);
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-force",ForceLoggingFlags::SymmetricFlipped, 3,newForce);
+						}
 
 						// stress tensor summation
 

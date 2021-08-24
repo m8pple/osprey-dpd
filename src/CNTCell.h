@@ -192,6 +192,9 @@ private:
 
     static uint32_t lcg(uint64_t &state);  // Internal helper function for RNG
 
+	void DumpBeadInteraction(const CAbstractBead *b1, const CAbstractBead *b2, const char *name, double strength) const;
+	void DumpBeadForce(const CAbstractBead *b1, const CAbstractBead *b2, const char *name, double strength[3]) const;
+
 	// ****************************************
 	// Data members
 private:
@@ -271,6 +274,8 @@ private:
 	static zArray2dDouble m_vvLJSlope;   // Slope of shifted LJ potential
 	static zArray2dDouble m_vvSCDelta;	// Ditto for SC potential
 	static zArray2dDouble m_vvSCSlope;
+
+	static bool m_DumpForces;
 
 	// Local data members
 

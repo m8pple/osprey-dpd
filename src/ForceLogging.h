@@ -14,6 +14,7 @@ class ForceLogging
 {
 public:
     void SetTime(long t);
+    void LogProperty(const char *name, int dims, const double *x);
     void LogBeadProperty(long bead_id, const char *name, int dims, const double *x);
     void LogBeadPairProperty(long bead_id0,long bead_id1, const char *name, ForceLoggingFlags flags, int dims, const double *x);
     void LogBeadTripleProperty(long bead_id0, long bead_id1, long bead_id2, const char *name, int dims, const double *x);

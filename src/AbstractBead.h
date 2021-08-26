@@ -258,6 +258,8 @@ protected:
 	double m_InitialPos[3];
 	double m_dPos[3];		// Differential position coordinates
 	double m_Stress[9];
+
+	uint32_t m_PDPDHash; // Used for determinstic hashing with PDPDHash
     
 #if EnableParallelSimBox == SimMPSEnabled
     CPolymer* m_pPolymer;   // Parent polymer needed for trans-processor messaging

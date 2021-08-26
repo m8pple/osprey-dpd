@@ -29,6 +29,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Bond.h"
 #include "BondPair.h"
 
+#include <cmath>
+
 #include <unordered_map>
 
 //////////////////////////////////////////////////////////////////////
@@ -263,6 +265,9 @@ bool ccExportToPDPDWorldState::Execute(long simTime, ISimCmd* const pISimCmd) co
 		exit(1);
 	}
 
+	// We print in very high precision. This is to avoid quantisation due to printing
+	// having a big effect (it is very noticeable for the default 6 figures). 
+	dst.precision(17);
 
 	dst<<"WorldState v0 "<<bead_types.size()<<" "<<polymer_types.size()<<" "<<beads.size()<<" "<<polymers.size()<<"\n";
 
@@ -270,7 +275,7 @@ bool ccExportToPDPDWorldState::Execute(long simTime, ISimCmd* const pISimCmd) co
 	dst<<"Lambda "<<box->GetISimBox()->GetLambda()<<"\n";
     dst<<"Origin "<<box->GetSimBoxXOrigin()<<" "<<box->GetSimBoxYOrigin()<<" "<<box->GetSimBoxZOrigin()<<"\n";
 	dst<<"Box "<<box->GetSimBoxXOrigin()+box->GetSimSpaceXLength()<<" "<<box->GetSimBoxYOrigin()+box->GetSimSpaceYLength()<<" "<<box->GetSimBoxZOrigin()+box->GetSimSpaceZLength()<<"\n";
-	dst<<"Seed 123456789\n"; // TODO
+	dst<<"Seed "<<std::abs(pISimCmd->GetISimBox()->GetRNGSeed())<<"\n"; // TODO
 	for(int i=0; i<bead_types.size(); i++){
 		dst<<"ConservativeStrength "<<i;
 		for(int j=0; j<bead_types.size(); j++){

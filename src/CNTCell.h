@@ -171,7 +171,14 @@ public:
 	void ClearPosCache()
 	{ m_posCacheDirty=true; }
 
-	
+	static bool GetPDPDHashEnable()
+	{ return m_UsePDPDHash; }
+
+	static void SetPDPDHashEnable(bool enable)
+	{ m_UsePDPDHash=enable; }
+
+	static void SetPDPDHashTimeConstant(uint64_t c)
+	{ m_PDPDTimeHash=c; }
 
 	// ****************************************
 	// Protected local functions
@@ -286,6 +293,9 @@ private:
 
 	bool m_posCacheDirty;
 	zDoubleVector m_posCache;
+
+	static bool m_UsePDPDHash;      // Turn on hash random numbers
+	static uint64_t m_PDPDTimeHash; // Used to create time-varying hashed numbers
 };
 
 typedef xxBasevector<CCNTCell*>::iterator				        CNTCellIterator;

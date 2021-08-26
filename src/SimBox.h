@@ -512,6 +512,11 @@ public:
     CNanoparticle* GetNanoparticle(long id);
     long GetNanoparticleTotal() const;
 
+	static bool GetPDPDHashEnable()
+	{ return m_UsePDPDHash; }
+
+	static void SetPDPDHashEnable(bool enable);
+
 	// Public Instance() function and protected constructor ensure that
 	// only a single CSimBox object can be created. We pass it the CSimState object
 	// to initialise it.
@@ -718,6 +723,8 @@ private:
 	double m_GravityXForce;			// Body force acting throughout SimBox on movable beads
 	double m_GravityYForce;
 	double m_GravityZForce;
+
+	static bool m_UsePDPDHash;
 	
 	
 	// ****************************************

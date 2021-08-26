@@ -247,6 +247,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #endif
 
 #include "ForceLogging.h"
+#include "PDPDHash.h"
 
 
 	using std::cout;
@@ -260,6 +261,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 // Note that it does not get assigned a value until the user creates the instance.
 
 CSimBox* CSimBox::m_pInstance = 0;
+
+bool CSimBox::m_UsePDPDHash=false;
 
 // Public member function to create a single instance of the CSimBox class.
 
@@ -873,6 +876,28 @@ void CSimBox::MakeCNTCells()
 
 }
 
+/* Tells the sim box to use (or not use) deterministic POETS-DPD style hashes */
+void CSimBox::SetPDPDHashEnable(bool enable)
+{
+	if(m_UsePDPDHash != enable){
+		if(enable){
+			unsigned poly_id=0;
+			for(auto &p : m_pInstance->GetAllPolymers()){
+				unsigned offset=0;
+				bool is_monomer=p->GetBeads().size()==1;
+				for(auto &b : p->GetBeads()){
+					b->m_PDPDHash = PDPDHashCalcBeadHash(b->GetType(), is_monomer, poly_id, offset);
+					offset++;
+				}
+				++poly_id;
+			}
+		}
+		CCNTCell::SetPDPDHashEnable(enable);
+
+		m_UsePDPDHash=enable;
+	}
+}
+
 // Function to map the 3D cell coordinates (i,j,k) into a 1D index function when
 // a bead moves from cell (i,j,k) to (i+alpha,j+beta,k+gamma). The index function
 // returns an integer that corresponds to the label of the cell in the direction
@@ -977,7 +1002,39 @@ void CSimBox::Evolve()
 		ForceLogging::logger->SetTime(m_SimTime);
 	}
 
+	if(m_UsePDPDHash){
+		double en=1;
+		uint64_t seed=std::abs(GetISimBox()->GetRNGSeed());
+		uint64_t t_hash=PDPDHashGetTimeStepConstant( seed, m_SimTime);
+		CCNTCell::SetPDPDHashTimeConstant( t_hash );
+		double seed_low=seed &0xFFFFFFFFul;
+		double seed_high=seed>>32;
+		ForceLogging::logger->LogProperty("seed_lo", 1, &seed_low);
+		ForceLogging::logger->LogProperty("seed_high", 1, &seed_high);
+		double t_hash_low=t_hash&0xFFFFFFFFul;
+		double t_hash_high=t_hash>>32;
+		ForceLogging::logger->LogProperty("t_hash_lo", 1, &t_hash_low);
+		ForceLogging::logger->LogProperty("t_hash_high", 1, &t_hash_high);
+	}
+
 	CNTCellIterator iterCell;  // used in all three loops below
+
+	if(ForceLogging::logger){
+		for(auto *c : m_vCNTCells){
+			for(auto *b : c->GetBeads()){
+				if(m_UsePDPDHash){
+					double h=b->m_PDPDHash;
+					LogBeadProperty(b,"b_hash",1, &h);
+				}
+				double x[3]={b->GetXPos(), b->GetYPos(), b->GetZPos()};
+				LogBeadProperty(b,"x",3,x);
+				double v[3]={b->GetXMom(), b->GetYMom(), b->GetZMom()};
+				LogBeadProperty(b,"v",3,v);
+				double f[3]={b->GetXForce(), b->GetYForce(), b->GetZForce()};
+				LogBeadProperty(b,"f",3,f);
+			}
+		}
+	}
 
 	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
 	{
@@ -1140,6 +1197,19 @@ void CSimBox::Evolve()
 		} 
 	}
 #endif
+
+	if(ForceLogging::logger){
+		for(auto *c : m_vCNTCells){
+			for(auto *b : c->GetBeads()){
+				double x[3]={b->GetXPos(), b->GetYPos(), b->GetZPos()};
+				LogBeadProperty(b,"x_next",3,x);
+				double v[3]={b->GetXMom(), b->GetYMom(), b->GetZMom()};
+				LogBeadProperty(b,"v_next",3,v);
+				double f[3]={b->GetXForce(), b->GetYForce(), b->GetZForce()};
+				LogBeadProperty(b,"f_next",3,f);
+			}
+		}
+	}
 }
 
 // Function to evolve the state of all beads in a parallel simulation forward 

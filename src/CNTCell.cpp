@@ -38,6 +38,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <cassert>
 
 #include "ForceLogging.h"
+#include "PDPDHash.h"
 
 //////////////////////////////////////////////////////////////////////
 // Static member variable and function definitions
@@ -107,6 +108,9 @@ zArray2dDouble	     CCNTCell::m_vvLJDelta;
 zArray2dDouble	     CCNTCell::m_vvLJSlope;
 zArray2dDouble	     CCNTCell::m_vvSCDelta;
 zArray2dDouble	     CCNTCell::m_vvSCSlope;
+
+bool 				CCNTCell::m_UsePDPDHash = false;
+uint64_t			CCNTCell::m_PDPDTimeHash = 0;
 
 
 // Function to set the static member variable that holds a pointer to the
@@ -1211,9 +1215,15 @@ void CCNTCell::UpdateForce()
 					rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2])/dr;
 					gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*riterBead2)->GetType())*wr2;
 
-					dissForce	= -gammap*rdotv;				
-					double rng=CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
-					randForce	= sqrt(gammap)*rng;
+					dissForce	= -gammap*rdotv;	
+					double rng;			
+					if(m_UsePDPDHash){
+						rng=PDPDHashUSym(m_PDPDTimeHash,(*iterBead1)->m_PDPDHash, (*riterBead2)->m_PDPDHash);
+					}else{
+						rng=(0.5 - CCNTCell::Randf());
+					}
+					double rngScale=CCNTCell::m_invrootdt * sqrt(gammap);
+					randForce	= rngScale*rng;
 // Gauss RNG		randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 					newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
@@ -1275,7 +1285,12 @@ void CCNTCell::UpdateForce()
 					(*riterBead2)->m_Force[2] -= newForce[2];
 
 					if(ForceLogging::logger){
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dx",ForceLoggingFlags::SymmetricFlipped ,3,dx);
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dr",ForceLoggingFlags::Symmetric ,dr);
+						LogBeadPairProperty(*iterBead1, *riterBead2,"dpd-invrootdt",ForceLoggingFlags::Symmetric, 1, &CCNTCell::m_invrootdt);
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-gammap",ForceLoggingFlags::Symmetric ,gammap);
 						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-rng",ForceLoggingFlags::Symmetric ,rng);
+						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-rng-scale",ForceLoggingFlags::Symmetric ,rngScale);
 						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-con",ForceLoggingFlags::Symmetric ,conForce);
 						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-diss",ForceLoggingFlags::Symmetric ,dissForce);
 						LogBeadPairProperty(*iterBead1,*riterBead2,"dpd-rand",ForceLoggingFlags::Symmetric ,randForce);
@@ -1398,15 +1413,15 @@ void CCNTCell::UpdateForce()
 				*/
 
 				//assert(remoteCellPosCache[0] == (*iterBead2)->m_Pos[0]);
-				//dx[0] = (current_x[0] - (*iterBead2)->m_Pos[0]);
-				dx[0] = (current_x[0] - currRemoteCellPosCache[0]);
-				//dx[1] = (current_x[1] - (*iterBead2)->m_Pos[1]);
-				dx[1] = (current_x[1] - currRemoteCellPosCache[1]);
+				dx[0] = (current_x[0] - (*iterBead2)->m_Pos[0]);
+				//dx[0] = (current_x[0] - currRemoteCellPosCache[0]);
+				dx[1] = (current_x[1] - (*iterBead2)->m_Pos[1]);
+				//dx[1] = (current_x[1] - currRemoteCellPosCache[1]);
 #if SimDimension == 2
 				dx[2] = 0.0;
 #elif SimDimension == 3
-				//dx[2] = (current_x[2] - (*iterBead2)->m_Pos[2]);
-				dx[2] = (current_x[2] - currRemoteCellPosCache[2]);
+				dx[2] = (current_x[2] - (*iterBead2)->m_Pos[2]);
+				//dx[2] = (current_x[2] - currRemoteCellPosCache[2]);
 #endif
 
 				if( m_bExternal && m_aIntNNCells[i]->IsExternal() )
@@ -1476,8 +1491,14 @@ void CCNTCell::UpdateForce()
 						gammap		= vvDissIntBead1[(*iterBead2)->GetType()]*wr2;
 
 						dissForce	= -gammap*rdotv;				
-						double rng=CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
-						randForce	= sqrt(gammap)*rng;
+						double rng;
+						if(m_UsePDPDHash){
+							rng=PDPDHashUSym(m_PDPDTimeHash,(*iterBead1)->m_PDPDHash, (*iterBead2)->m_PDPDHash);
+						}else{
+							rng=(0.5 - CCNTCell::Randf());
+						}
+						double rngScale=CCNTCell::m_invrootdt * sqrt(gammap);
+						randForce	= rngScale *rng;
 // Gauss RNG		    randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 						//newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
@@ -1548,6 +1569,12 @@ void CCNTCell::UpdateForce()
 						(*iterBead2)->m_Force[2] -= newForce[2];
 
 						if(ForceLogging::logger){
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dx",ForceLoggingFlags::SymmetricFlipped ,3,dx);
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dr",ForceLoggingFlags::Symmetric ,dr);
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-rng-scale",ForceLoggingFlags::Symmetric ,rngScale);
+							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-gammap",ForceLoggingFlags::Symmetric ,gammap);
+						
+							LogBeadPairProperty(*iterBead1, *iterBead2,"dpd-invrootdt",ForceLoggingFlags::Symmetric, 1, &CCNTCell::m_invrootdt);
 							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-rng",ForceLoggingFlags::Symmetric ,rng);
 							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-con",ForceLoggingFlags::Symmetric ,conForce);
 							LogBeadPairProperty(*iterBead1,*iterBead2,"dpd-diss",ForceLoggingFlags::Symmetric ,dissForce);

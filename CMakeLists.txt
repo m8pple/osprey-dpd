@@ -8,6 +8,8 @@ find_package(MPI)
 set(COMPILE_OPTIONS
     -g3
     -O3
+    -ffast-math
+    -march=native
     -fno-omit-frame-pointer
     -Wall
     -Wextra
@@ -51,21 +53,20 @@ endif()
 
 
 if ( MPI_FOUND )
+message("MPI found")
 include_directories(${MPI_INCLUDE_PATH})
 
 # cheating until source file count goes down
 file(GLOB SRC_FILES src/*.cpp)
 add_executable(dpd-mpi ${SRC_FILES}  ${MPI_LIBRARIES})
 
-if(MPI_COMPILE_FLAGS)
   set_target_properties(dpd-mpi PROPERTIES
-    COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DSimpMPS=2")
-endif()
+    COMPILE_FLAGS "${MPI_COMPILE_FLAGS} -DSimMPS=1")
 
-if(MPI_LINK_FLAGS)
   set_target_properties(dpd-mpi PROPERTIES
     LINK_FLAGS "${MPI_LINK_FLAGS}")
-endif()
+
+  target_link_libraries(dpd-mpi ${MPI_LIBRARIES})
 
 target_compile_options(dpd-mpi
   PRIVATE ${COMPILE_OPTIONS}

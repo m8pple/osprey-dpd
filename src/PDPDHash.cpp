@@ -18,8 +18,8 @@ static uint64_t riscv_mix64_m2(uint64_t x)
 uint32_t PDPDHashCalcBeadHash(uint32_t bead_type, bool is_monomer, uint32_t polymer_id, uint32_t polymer_offset)
 {
     assert( is_monomer ? (polymer_offset==0 && polymer_id<(1u<<27))
-                                    : (polymer_offset<128 && polymer_id<(1u<<20)));
-    uint32_t base=(uint32_t(polymer_offset)<<20) | polymer_id;
+                                    : (polymer_offset<64 && polymer_id<(1u<<21)));
+    uint32_t base=(uint32_t(polymer_offset)<<21) | polymer_id;
     base |= uint32_t(is_monomer)<<27;
     base |= bead_type << 28;
     return base;

@@ -1,2 +1,11 @@
 /build
 /dt10_inputs
+*.vtk
+dmpcas.*
+dmpcis.*
+dmpcrs.*
+dmpchs.*
+dmpcls.*
+*.pov
+*.state
+dt10_experiments/scaling/gen/*

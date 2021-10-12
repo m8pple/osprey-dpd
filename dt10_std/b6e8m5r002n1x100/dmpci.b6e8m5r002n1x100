@@ -1,0 +1,102 @@
+dpd
+
+Title	" LLPS at a membrane "
+Date    14/09/21
+Comment  " Two types of H3(T4)2 lipid with the polymers attracted to the head groups of type B only. 
+           Run to watch the droplet form and dissolve due to wetting of membrane. 
+           Large box run for POETS   "
+
+State	compositelamella
+        Polymers		Lipid CoLipid
+        Normal			0 0 1
+        Centre			0.75
+        Thickness		5.0
+        Linearise		1
+        UpperFraction	        0.6  0.0
+        Patches                0  0
+        Polymerise		0
+
+Bead  W
+      0.5
+      25
+      4.5
+
+Bead  E
+      0.5
+      25    8
+      4.5   4.5
+
+Bead  B
+      0.5
+      23    25    25
+      4.5   4.5   4.5
+
+Bead  HA
+      0.5
+      30    30   30   30
+      4.5   4.5  4.5  4.5
+
+Bead  TA
+      0.5
+      75    35   35   35   10
+      4.5   4.5  4.5  4.5  4.5
+
+Bead  HB
+      0.5
+      30    30    30   30   35   30
+      4.5   4.5  4.5  4.5  4.5  45
+
+Bead  TB
+      0.5
+      75   35   35   35   10   35   10
+      4.5  4.5  4.5  4.5  4.5  4.5  4.5
+
+
+
+Bond	E  E    128  0.5
+Bond	B  B    128  0.5
+Bond	E  B    128  0.5
+Bond    HA HA   128  0.5
+Bond    HA TA   128  0.5
+Bond    TA TA   128  0.5
+
+Bond    HB HB   128  0.5
+Bond    HB TB   128  0.5
+Bond    TB TB   128  0.5
+
+
+BondPair  B B B      5.0   0.0
+BondPair  HA TA TA  15.0   0.0
+BondPair  TA TA TA  15.0   0.0
+BondPair  HB TB TB  15.0   0.0
+BondPair  TB TB TB  15.0   0.0
+
+
+Polymer Water    0.986   " (W) "
+Polymer Lipid    0.008   " (HA HA HA (* (TA TA TA TA)) HA TA TA TA TA) "
+Polymer CoLipid  0.004   " (HB HB HB (* (TB TB TB TB)) HB TB TB TB TB) "
+Polymer Rod      0.002   " (E E (* E) (* E) (6 B) E (* E) (* E) E)  "
+
+Box       100 100  48       1  1  1
+Density     3
+Temp        1
+RNGSeed     -768999
+Lambda		0.5
+Step		0.005
+Time		  2000000
+SamplePeriod      10
+AnalysisPeriod    1000000
+DensityPeriod     2000000
+DisplayPeriod     10
+RestartPeriod     1000000
+Grid		1  1  1
+
+
+Command ToggleBeadDisplay             1    W
+Command SetCurrentStateCamera         1    0.5 -0.5 -0.5  0.5 0.5 0.5
+Command SetCurrentStateDefaultFormat 1 Paraview
+
+Command SetTimeStepSize     1000     0.02
+Command ExportToPDPDWorldState 1000 dmpci.b6e8m5r002n1x100.0.state
+
+

@@ -98,12 +98,12 @@ Temp        1
 RNGSeed     -87993
 Lambda		0.5
 Step		0.005
-Time		50000
-SamplePeriod      1000
-AnalysisPeriod    1000
-DensityPeriod     1000
-DisplayPeriod     50
-RestartPeriod     500
+Time		1000
+SamplePeriod      100
+AnalysisPeriod    100
+DensityPeriod     100
+DisplayPeriod     100
+RestartPeriod     100
 Grid		1  1  1
 
 
@@ -111,8 +111,6 @@ Command ToggleBeadDisplay             1    W
 Command SetCurrentStateCamera         1    0.5 -0.5 -0.5  0.5 0.5 0.5
 Command SetCurrentStateDefaultFormat 1 Paraview
 
-Command SetTimeStepSize     1000     0.02
+Command ExportToPDPDWorldState 1000 lm069.0.state
 
-Command SetDPDBeadConsInt		10000  E E  6.0
-Command SetDPDBeadConsInt		10000  E P  5.0
 

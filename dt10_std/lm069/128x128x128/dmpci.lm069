@@ -92,13 +92,13 @@ Polymer Lipid    0.0114  " (HA HA HA (* (TA TA TA TA)) HA TA TA TA TA) "
 Polymer CoLipid  0.0001  " (L L (4 (P P P P P P L L L L)) HB HB HB (* (TB TB TB TB)) HB TB TB TB TB) "
 Polymer Rod      0.001   " (E E (* E) (* E) (16 B) E (* E) (* E) E)  "
 
-Box       64 64 64       1  1  1
+Box       128 128 128        1  1  1
 Density     3
 Temp        1
 RNGSeed     -87993
 Lambda		0.5
 Step		0.005
-Time		1000
+Time		3000
 SamplePeriod      100
 AnalysisPeriod    100
 DensityPeriod     100

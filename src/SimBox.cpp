@@ -1007,14 +1007,17 @@ void CSimBox::Evolve()
 		uint64_t seed=std::abs(GetISimBox()->GetRNGSeed());
 		uint64_t t_hash=PDPDHashGetTimeStepConstant( seed, m_SimTime);
 		CCNTCell::SetPDPDHashTimeConstant( t_hash );
-		double seed_low=seed &0xFFFFFFFFul;
-		double seed_high=seed>>32;
-		ForceLogging::logger->LogProperty("seed_lo", 1, &seed_low);
-		ForceLogging::logger->LogProperty("seed_high", 1, &seed_high);
-		double t_hash_low=t_hash&0xFFFFFFFFul;
-		double t_hash_high=t_hash>>32;
-		ForceLogging::logger->LogProperty("t_hash_lo", 1, &t_hash_low);
-		ForceLogging::logger->LogProperty("t_hash_high", 1, &t_hash_high);
+
+		if(ForceLogging::logger){
+			double seed_low=seed &0xFFFFFFFFul;
+			double seed_high=seed>>32;
+			ForceLogging::logger->LogProperty("seed_lo", 1, &seed_low);
+			ForceLogging::logger->LogProperty("seed_high", 1, &seed_high);
+			double t_hash_low=t_hash&0xFFFFFFFFul;
+			double t_hash_high=t_hash>>32;
+			ForceLogging::logger->LogProperty("t_hash_lo", 1, &t_hash_low);
+			ForceLogging::logger->LogProperty("t_hash_high", 1, &t_hash_high);
+		}
 	}
 
 	CNTCellIterator iterCell;  // used in all three loops below

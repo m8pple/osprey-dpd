@@ -52,6 +52,8 @@ mpsCubicSimBox::mpsCubicSimBox(long px, long py, long pz, long lx, long ly, long
     // If the assembly function fails, we set a flag in the base class
     // indicating that the simulation must be aborted.
 
+    std::cerr<<"mpsCubicSumBox\n";
+
     if(px>1 && py>1 && pz>1 && ConnectNeighbours())
     {
         // Now partition the processor's Space into regions and store the pid of

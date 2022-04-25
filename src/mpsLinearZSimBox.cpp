@@ -21,6 +21,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "pmProcessorBeadCMVelocity.h"
 #include "pmProcessorBeadAngularMomentum.h"
 
+#include <cmath>
+
 long mpsLinearZSimBox::UFaceDifference = 0;
 long mpsLinearZSimBox::DFaceDifference = 0;
 long mpsLinearZSimBox::netTotal = 0;

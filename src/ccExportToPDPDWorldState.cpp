@@ -29,6 +29,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Bond.h"
 #include "BondPair.h"
 
+// TODO - make this portable. Turn it off for non-GNU
+#include <ext/stdio_filebuf.h>
+
 #include <cmath>
 
 #include <unordered_map>
@@ -241,8 +244,35 @@ polymer_template_t extract_polymer_template(const CSimBox *box, const CPolymer *
 	return res;
 }
 
-
 bool ccExportToPDPDWorldState::Execute(long simTime, ISimCmd* const pISimCmd) const
+{
+	bool res;
+	if(m_Path.size()>3 && m_Path.substr(m_Path.size()-3)==".gz"){
+		std::string cmd="gzip -9 -c > "+m_Path;
+        FILE *f=popen(cmd.c_str(), "w");
+        if(!f){
+            throw std::runtime_error("Error when spawning gunzip command '"+cmd+"'");
+        }
+        
+        __gnu_cxx::stdio_filebuf<char> buf(f, std::ios_base::out);
+        std::ostream fs(&buf);
+
+        res=ExecuteImpl(simTime, pISimCmd, fs);
+		fs.flush();
+
+        pclose(f);
+	}else{
+		std::ofstream dst(m_Path.c_str());
+		if(!dst.is_open()){
+			fprintf(stderr, "ccExportToPDPDWorldState::Execute - Couldn't open destination file '%s'", m_Path.c_str());
+			exit(1);
+		}
+		res=ExecuteImpl(simTime, pISimCmd, dst);
+	}
+	return res;
+}
+
+bool ccExportToPDPDWorldState::ExecuteImpl(long simTime, ISimCmd* const pISimCmd, std::ostream &dst) const
 {
 	if(simTime != GetExecutionTime()){
 		return false;
@@ -254,20 +284,21 @@ bool ccExportToPDPDWorldState::Execute(long simTime, ISimCmd* const pISimCmd) co
 		exit(1);
 	}
 
+	fprintf(stderr, "ccExportToPDPDWorldState to %s\n", m_Path.c_str());
+
 	auto bead_types=box->GetBeadTypes();
 	auto polymers=box->GetAllPolymers();
 	auto polymer_types=box->GetPolymerTypes();
 	auto beads=box->GetSimBoxBeads();
 
-	std::ofstream dst(m_Path.c_str());
-	if(!dst.is_open()){
-		fprintf(stderr, "ccExportToPDPDWorldState::Execute - Couldn't open destination file '%s'", m_Path.c_str());
-		exit(1);
-	}
+	
 
+	// TODO: Make this selectable?
 	// We print in very high precision. This is to avoid quantisation due to printing
 	// having a big effect (it is very noticeable for the default 6 figures). 
-	dst.precision(17);
+	// If you want to reduce precision, use ccRoundBeadProperties to round
+	// the velocities and forces off first.
+	dst.precision(14);
 
 	dst<<"WorldState v0 "<<bead_types.size()<<" "<<polymer_types.size()<<" "<<beads.size()<<" "<<polymers.size()<<"\n";
 

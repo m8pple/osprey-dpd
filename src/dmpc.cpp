@@ -74,6 +74,8 @@ int main(int argc, char* argv[])
     
 #if SimMPS == SimulationEnabled
 
+    std::cerr<<"SimMPS==SimulationEnabled\n";
+
     int my_world = 1;
 
     char stringRunId[1000];  // Maximum size of runId is 1000 chars including terminating space
@@ -85,6 +87,8 @@ int main(int argc, char* argv[])
 
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &my_world);
+
+    std::cerr<<"my_rank="<<my_rank<<", my_world="<<my_world<<"\n";
 	
 	// Select the error handler mechanism
 		

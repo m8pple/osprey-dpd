@@ -31,6 +31,22 @@
 #define SimMPSEnabled	1
 #define SimMPSDisabled	2
 
+#ifndef SimMPS
+#define SimMPS          SimMPSDisabled
+#endif
+
+#if SimMPS==SimMPSEnabled
+	#define EnableParallelACN           SimMPSEnabled
+	#define EnableParallelAggregates    SimMPSEnabled
+	#define EnableParallelCommands      SimMPSEnabled
+	#define EnableParallelEvents        SimMPSEnabled
+	#define EnableParallelExperiment    SimMPSEnabled
+	#define EnableParallelMonitor       SimMPSEnabled
+	#define EnableParallelProcesses     SimMPSEnabled
+	#define EnableParallelRestart       SimMPSEnabled
+	#define EnableParallelSimBox        SimMPSEnabled
+	#define EnableParallelTargets       SimMPSEnabled
+#else	
 	#define EnableParallelACN           SimMPSDisabled
 	#define EnableParallelAggregates    SimMPSDisabled
 	#define EnableParallelCommands      SimMPSDisabled
@@ -41,4 +57,5 @@
 	#define EnableParallelRestart       SimMPSDisabled
 	#define EnableParallelSimBox        SimMPSDisabled
 	#define EnableParallelTargets       SimMPSDisabled
+#endif
 

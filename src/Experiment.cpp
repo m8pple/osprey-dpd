@@ -70,6 +70,7 @@ IExperiment* CExperiment::Instance(const zString protocolName, const zString run
 
         MPI_Comm_size(MPI_COMM_WORLD, &experimentWorld);
         MPI_Comm_rank(MPI_COMM_WORLD, &experimentRank);
+		std::cerr<<"Rank="<<experimentRank<<", World="<<experimentWorld<<"\n";
 
         xxParallelBase::m_World = experimentWorld;
         xxParallelBase::m_Rank  = experimentRank;

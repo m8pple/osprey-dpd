@@ -37,6 +37,7 @@ private:
 	static const zString m_Type;	// Identifier used in control data file for command
 	zString m_Path; // Name of the file to export to
 
+	bool ExecuteImpl(long simTime, ISimCmd* const pISimCmd, std::ostream &dst) const;
 };
 
 #endif // !defined(AFX_ccExportToPDPDWorldState_H__B75BC544_E47F_11D3_BF23_004095086186__INCLUDED_)

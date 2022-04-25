@@ -111,7 +111,7 @@
 // is included in every compilation unit if needed.
 
 #ifndef SimMPS
-#define SimMPS          SimulationDisable
+#define SimMPS          SimulationDisabled
 #endif
 #define SimStubMPS      SimulationDisabled
 

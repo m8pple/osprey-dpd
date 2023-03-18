@@ -3074,7 +3074,11 @@ void CSimBox::MovePolymersToSlice(const xxCommand* const pCommand)
 		{
 			newX = (*iterBond)->GetHead()->GetXPos() + maxBondLength*xDist/bondLength;
 			newY = (*iterBond)->GetHead()->GetYPos() + maxBondLength*yDist/bondLength;
+			#if SimDimension==3
 			newZ = (*iterBond)->GetHead()->GetZPos() + maxBondLength*zDist/bondLength;
+			#else
+			newZ = 0;
+			#endif
 
 			(*iterBond)->GetTail()->SetXPos(newX);
 			(*iterBond)->GetTail()->SetYPos(newY);
@@ -5465,8 +5469,8 @@ void CSimBox::SetBondStrengthInTarget(const xxCommand* const pCommand)
 
 	const zString label			= pCmd->GetTargetLabel();
 	const zString bondName		= pCmd->GetName();
-	const double springConstant	= pCmd->GetSpringConstant();
-	const double unStrLength	= pCmd->GetUnstretchedLength();
+	double springConstant	= pCmd->GetSpringConstant();
+	double unStrLength	= pCmd->GetUnstretchedLength();
 
 	const long bondType	= GetBondTypeFromName(bondName);
 

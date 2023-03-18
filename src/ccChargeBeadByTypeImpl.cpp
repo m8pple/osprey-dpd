@@ -80,8 +80,9 @@ void ccChargeBeadByTypeImpl::ChargeBeadByType(const xxCommand* const pCommand)
 		// How do I normalize the MD parameters???
 
 #if SimIdentifier == MD
-		strength *= (GetLengthScale()*GetLengthScale()/GetEnergyScale());
-		range    /= GetLengthScale();
+
+		strength *= (pSimBox->GetLengthScale()*pSimBox->GetLengthScale()/pSimBox->GetEnergyScale());
+		range    /= pSimBox->GetLengthScale();
 #endif
 
 		// If the user has set the range to less than 10**-08, we treat this as 

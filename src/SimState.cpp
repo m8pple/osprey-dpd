@@ -118,7 +118,7 @@ CSimState::CSimState(ISimulation* pISim, const CInputData& rInputData) : m_pISim
         SetMDBeadIntArrays(rInputData.GetMDBeadLJDepthArray(), 
 						   rInputData.GetMDBeadLJRangeArray(),
 						   rInputData.GetMDBeadSCDepthArray(), 
-						   rInputData.GetMDBeadSCRangeArray())
+						   rInputData.GetMDBeadSCRangeArray());
 
 #endif
 
@@ -231,7 +231,7 @@ CSimState::CSimState(const CInputData& rInputData) : m_pISimulation(0),
         SetMDBeadIntArrays(rInputData.GetMDBeadLJDepthArray(), 
 						   rInputData.GetMDBeadLJRangeArray(),
 						   rInputData.GetMDBeadSCDepthArray(), 
-						   rInputData.GetMDBeadSCRangeArray())
+						   rInputData.GetMDBeadSCRangeArray());
 
 #endif
 

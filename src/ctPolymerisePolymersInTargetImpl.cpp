@@ -81,8 +81,8 @@ void ctPolymerisePolymersInTargetImpl::PolymerisePolymersInTarget(const xxComman
 	const long   maxBondsPerPolymer	= pCmd->GetMaxBondsPerPolymer();
 	const double range			    = pCmd->GetRange();
 	const double fraction			= pCmd->GetBondFraction();
-	const double springConstant		= pCmd->GetSpringConstant();
-	const double unStretchedLength  = pCmd->GetUnstretchedLength();
+	double springConstant		= pCmd->GetSpringConstant();
+	double unStretchedLength  = pCmd->GetUnstretchedLength();
 
 	// Derived data
 

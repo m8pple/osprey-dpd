@@ -251,7 +251,7 @@ CInputData::CInputData(const zString runid) : runId(runid),
 #if SimDimension == 2
 	CNTZCellNo		= 1;
 	CNTZCellWidth	= 0.0;
-	GridZCellNo		= 1
+	GridZCellNo		= 1;
 #elif SimDimension == 3
 	CNTZCellNo		= 32;
 	CNTZCellWidth	= 1.0;
@@ -1900,7 +1900,7 @@ void CInputData::SetCNTZCellNo(long zcells)
 {
 
 #if SimDimension == 2
-	CNTZCellNo = 1
+	CNTZCellNo = 1;
 #elif SimDimension == 3
 	CNTZCellNo = zcells;
 #endif

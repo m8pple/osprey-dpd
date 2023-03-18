@@ -65,8 +65,8 @@ void ctPolymerisePolymerTripleInTargetImpl::PolymerisePolymerTripleInTarget(cons
 	const zString polyName			= pCmd->GetPolymerName();
 	const zLongVector vHeadPos		= pCmd->GetHeadPositions();
 	const zLongVector vTailPos		= pCmd->GetTailPositions();
-	const double springConstant		= pCmd->GetSpringConstant();
-	const double unStretchedLength	= pCmd->GetUnstretchedLength();
+	double springConstant		= pCmd->GetSpringConstant();
+	double unStretchedLength	= pCmd->GetUnstretchedLength();
 
 	const long polyType	= pSimBox->GetPolymerTypeFromName(polyName);
 

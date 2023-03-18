@@ -94,8 +94,8 @@ void ccCreateNanoparticlePentagonImpl::CreateNanoparticlePentagon(const xxComman
 	const long   maxBondsPerPolymer	= pCmd->GetMaxBondsPerPolymer();
 	const double range			    = pCmd->GetRange();
 	const double fraction			= pCmd->GetBondFraction();
-	const double springConstant		= pCmd->GetSpringConstant();
-	const double unStretchedLength  = pCmd->GetUnstretchedLength();
+	double springConstant		= pCmd->GetSpringConstant();
+	double unStretchedLength  = pCmd->GetUnstretchedLength();
 //	const double numberType         = pCmd->GetNumberTypes();
 	const zLongVector vBeadTypes    = pCmd->GetBeadTypes();
 	const zDoubleVector vConsInt    = pCmd->GetConsInt();

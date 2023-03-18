@@ -28,3 +28,18 @@ add_executable(dpd ${SRC_FILES})
 target_compile_options(dpd
   PRIVATE ${COMPILE_OPTIONS}
 )
+
+add_executable(dpd-bd ${SRC_FILES})
+target_compile_options(dpd-bd
+  PRIVATE ${COMPILE_OPTIONS} -DSimIdentifier=BD
+)
+
+add_executable(dpd-md ${SRC_FILES})
+target_compile_options(dpd-md
+  PRIVATE ${COMPILE_OPTIONS} -DSimIdentifier=MD
+)
+
+add_executable(dpd-2d ${SRC_FILES})
+target_compile_options(dpd-2d
+  PRIVATE ${COMPILE_OPTIONS} -DSimDimension=2
+)

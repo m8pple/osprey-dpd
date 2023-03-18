@@ -30,6 +30,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Polymer.h"
 #include "acfTargetFactory.h"
 #include "CommandTargetNode.h"
+#include "CNTCell.h"
 
 #include "xxParallelBase.h"
 #include "pmInteger.h"
@@ -806,7 +807,7 @@ void CInitialState::WriteBeadTypeData() const
 			TraceDoubleNoEndl(m_vvConsInt.at((*iterBead)->GetType()).at(j));
 		}
 		TraceEndl();
-		for(j=0; j<vBeadTypes.size(); j++)
+		for(long unsigned j=0; j<vBeadTypes.size(); j++)
 		{
 			TraceDoubleNoEndl(m_vvDissInt.at((*iterBead)->GetType()).at(j));
 		}
@@ -1909,10 +1910,10 @@ zInStream& CInitialState::Read(zInStream& is)
         m_pIRS->SetDPDBeadIntArrays(&m_vvConsInt, &m_vvDissInt);
 
 #elif SimIdentifier == MD
-		CCNTCell::SetMDBeadStructure(rInputData.GetMDBeadLJDepthArray(), 
-									 rInputData.GetMDBeadLJRangeArray(),
-									 rInputData.GetMDBeadSCDepthArray(), 
-								     rInputData.GetMDBeadSCRangeArray());
+		//CCNTCell::SetMDBeadStructure(rInputData.GetMDBeadLJDepthArray(), 
+		//							 rInputData.GetMDBeadLJRangeArray(),
+		//							 rInputData.GetMDBeadSCDepthArray(), 
+		//						     rInputData.GetMDBeadSCRangeArray());
 #endif
 
 
@@ -2205,7 +2206,7 @@ zOutStream& CInitialState::Write(zOutStream& os) const
 			os << m_vvLJDepth.at((*iterBead)->GetType()).at(j) << " ";
 		}
 		os << zEndl;
-		for(j=0; j<vBeadTypes.size(); j++)
+		for(long unsigned j=0; j<vBeadTypes.size(); j++)
 		{
 			os << m_vvLJRange.at((*iterBead)->GetType()).at(j) << " ";
 		}

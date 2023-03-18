@@ -98,13 +98,17 @@
 #define MD  2
 #define BD  3
 
+#ifndef SimIdentifier
 #define SimIdentifier  DPD
+#endif
 
 
 // ***********************
 // Simulation dimension
 
+#ifndef SimDimension
 #define SimDimension	3
+#endif
 
 // ***********************
 // Parallel implementation using MPI. We put the include statement here so that it

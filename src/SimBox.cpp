@@ -1216,6 +1216,76 @@ void CSimBox::EvolveP()
 #endif
 }
 
+
+void CSimBox::EvolveFast()
+{
+	#if ( (SimDimension!=3)  \
+		|| (EnableStressTensorSphere == SimMiscEnabled) \
+		|| (EnableParallelSimBox != SimMPSDisabled) \
+		|| defined(UseDPDBeadRadii) )
+		ErrorTrace("Compile-time conditions for EvolveFast not met.");
+		exit(1);
+	#endif
+
+	if(!m_ActiveCommandTargets.empty()){
+		ErrorTrace("Attempt to call EvolveFast with ActiveCommandTargets\n");
+		exit(1);
+	}
+	if(!m_ActiveForceTargets.empty()){
+		ErrorTrace("Attempt to call EvolveFast with ActiveForceTargets\n");
+		exit(1);
+	}
+	if(IsEnergyOutputOn()){
+		ErrorTrace("Attempt to call EvolveFast with IsEnergyOutputOn\n");
+		exit(1);
+	}
+	if(IsActiveBondsOn() && m_pShadow && m_pShadow->IsAnyACNPresent()){
+		ErrorTrace("Attempt to call EvolveFast with IsActiveBondsOn and active ACNs\n");
+		exit(1);
+	}
+	if(IsBeadChargeOn()){
+		ErrorTrace("Attempt to call EvolveFast with IsBeadChargeOn\n");
+		exit(1);
+	}
+	if(IsGravityOn()){
+		ErrorTrace("Attempt to call EvolveFast with IsGravityOn\n");
+		exit(1);
+	}
+
+	CNTCellIterator iterCell;  // used in all three loops below
+
+	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
+	{
+		(*iterCell)->UpdatePos();
+	} 
+
+	// Next calculate the forces between all pairs of beads in NN CNT cells
+	// that can potentially interact. No monitor accumulations are performed.
+
+	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
+	{
+		(*iterCell)->UpdateForceFast();
+	} 
+
+	// Add in the forces between bonded beads and the stiff bond force. Note that
+	// AddBondPairForces() must be called after AddBondForces() because it relies
+	// on the bond lengths having already been calculated in CBond::AddForce().
+
+	AddBondForces();
+	AddBondPairForces();
+
+	// Finally update the velocities of the beads using the old and new values for
+	// the forces. Note that even simulation types (such as Brownian Dynamics) that
+    // do not use the bead velocities need to call this function as it calls the
+    // SetMovable() function for each bead when it moves from one cell to another.
+
+	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
+	{
+		(*iterCell)->UpdateMom();
+	} 
+}
+
+
 // Function to execute the simulation of the fluid system occupying the simulation
 // box. It handles both serial and parallel execution by calling distinct functions,
 // and devolving the parallel work to the nested class mpsSimBox.
@@ -1312,7 +1382,25 @@ void CSimBox::Run()
 		    }
 #endif
 
-		    Evolve();
+
+			bool is_non_fast_compile=false;
+			#if ( (SimDimension!=3)  \
+				|| (EnableStressTensorSphere == SimMiscEnabled) \
+				|| (EnableParallelSimBox != SimMPSDisabled) \
+				|| defined(UseDPDBeadRadii) )
+			is_non_fast_compile=true;
+			#endif
+			bool is_monitor_active = TimeToSample() || TimeToDisplay() || TimeToRestart();
+			bool are_features_active = IsEnergyOutputOn() || IsBeadChargeOn() || IsGravityOn();
+			are_features_active |= (IsActiveBondsOn() && m_pShadow && m_pShadow->IsAnyACNPresent());
+			bool are_targets_active = !m_ActiveCommandTargets.empty() || !m_ActiveForceTargets.empty();
+			bool something_slow_active = is_non_fast_compile || is_monitor_active || are_features_active || are_targets_active;
+
+			if(something_slow_active){
+				Evolve();
+			}else{
+				EvolveFast();
+			}
 
 		    CNTCellCheck();		// check beads are in correct CNT cells
 

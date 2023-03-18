@@ -134,6 +134,9 @@ public:
 
 	void UpdateForceP();
 
+	// Fast version of updating function that doesn't calculate stress
+	void UpdateForceFast();
+
     // Alternative force calculation to include the DPD density-dependent force.
 
 	void UpdateLGForce();

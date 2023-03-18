@@ -654,8 +654,10 @@ private:
 	long MCPolymerRelaxation(PolymerVector& rPolymers);	// Relaxes a set of polymers using MC
 
     // Functions to evolve a parallel simulation
-
     void EvolveP();
+
+	void EvolveFast();	// Fast evolution when there is no monitoring active
+
 
 private:
 

@@ -405,6 +405,11 @@ bool aeActiveSimBox::IsACNPresent(const zString acnType) const
 	return false;
 }
 
+bool aeActiveSimBox::IsAnyACNPresent() const
+{
+	return !m_mACN.empty();
+}
+
 // Function to return a base aeActiveCellNetwork pointer to an ACN that is
 // specified by its string identifier. If the ACN does not exist, we
 // return a null pointer.

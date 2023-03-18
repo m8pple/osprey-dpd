@@ -35,6 +35,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "mpsSimBox.h"
 
+#include <cassert>
+
 //////////////////////////////////////////////////////////////////////
 // Static member variable and function definitions
 //////////////////////////////////////////////////////////////////////
@@ -1569,6 +1571,211 @@ void CCNTCell::UpdateForce()
 
 
 #endif
+}
+
+void CCNTCell::UpdateForceFast()
+{
+	#if (SimDimension!=3)
+	ErrorTrace("Compile-time conditions for UpdateForceFast not met - dimensions.");
+	exit(1);
+	#elif (EnableStressTensorSphere == SimMiscEnabled)
+	ErrorTrace("Compile-time conditions for UpdateForceFast not met - EnableStressTensorSphere.");
+	exit(1);
+	#elif (EnableParallelSimBox != SimMPSDisabled)
+	ErrorTrace("Compile-time conditions for UpdateForceFast not met - parallel simb box.");
+	exit(1);
+	#elif defined(UseDPDBeadRadii)
+	ErrorTrace("Compile-time conditions for UpdateForceFast not met - bead radii.");
+	exit(1);
+	#endif
+
+	mpsSimBox::GlobalCellCounter++;  // increment the counter for intra-cell force calculations
+	
+	long  localCellCellCounter = 0;
+
+	if(m_lBeads.empty()){
+		localCellCellCounter = 13;
+		mpsSimBox::GlobalCellCellIntCounter += localCellCellCounter;
+		return;
+	}
+
+    // DPD and MD equations of motion
+
+	BeadListIterator iterBead1;
+	BeadListIterator iterBead2;
+
+	double dx[3], dv[3], newForce[3];
+	double dr, dr2;
+
+	double gammap, rdotv, wr, wr2;
+	double conForce, dissForce, randForce, normTotalForce;
+
+	const double min_r2 = 0.000000001 * 0.000000001;
+
+	/*
+	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	{
+		// First add interactions between beads in the current cell. Note that
+		// we don't have to check the PBCs here and we perform a reverse loop
+		// over the neighbouring beads until the iterators are equal. Because you can't
+		// compare a forward and reverse iterator we compare the bead ids for
+		// the terminating condition.
+		for( riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=(*iterBead1)->m_id; ++riterBead2 )
+		{
+	*/
+
+	// It's better to avoid the data-dependent loop termination as it leads to
+	// more branch mis-predicts. Better to loop based on size.
+	int numLocal=m_lBeads.size();
+	iterBead1=m_lBeads.begin();
+	for(int ii1=0; ii1 < numLocal-1; ii1++, iterBead1++){
+		iterBead2 = std::next(iterBead1);
+		for(int ii2=ii1+1; ii2 < m_lBeads.size(); ii2++, iterBead2++){
+
+			dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
+			dx[1] = ((*iterBead1)->m_Pos[1] - (*iterBead2)->m_Pos[1]);
+			dx[2] = ((*iterBead1)->m_Pos[2] - (*iterBead2)->m_Pos[2]);
+
+			dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
+
+// Calculate the interactions between the two beads for each simulation type.
+// For the DPD interactions we use the flag UseDPDBeadRadii to determine whether
+// the interaction radius is bead-specific or not. Note that when we use the
+// interaction radius we have to compare the actual distance between beads
+// not its square!
+
+			if( dr2 < 1.0 && dr2 > min_r2 )
+			{		
+				dv[0] = ((*iterBead1)->m_Mom[0] - (*iterBead2)->m_Mom[0]);
+				dv[1] = ((*iterBead1)->m_Mom[1] - (*iterBead2)->m_Mom[1]);
+				dv[2] = ((*iterBead1)->m_Mom[2] - (*iterBead2)->m_Mom[2]);
+
+				dr = sqrt(dr2);
+				wr = (1.0 - dr);
+				wr2 = wr*wr;
+				double inv_dr = 1.0/dr;
+
+// Conservative force magnitude
+
+				conForce  = m_vvConsInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr;
+
+// Dissipative and random force magnitudes. Note dr factor in newForce calculation
+
+				rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2]) * inv_dr;
+				gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
+
+				dissForce	= -gammap*rdotv;				
+				randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+				normTotalForce = (conForce + dissForce + randForce) * inv_dr;
+
+				newForce[0] = normTotalForce * dx[0];
+				newForce[1] = normTotalForce * dx[1];
+				newForce[2] = normTotalForce * dx[2];
+
+				(*iterBead1)->m_ForceCounter++;
+				(*iterBead2)->m_ForceCounter++;
+				
+				(*iterBead1)->m_Force[0] += newForce[0];
+				(*iterBead1)->m_Force[1] += newForce[1];
+				(*iterBead1)->m_Force[2] += newForce[2];
+
+				(*iterBead2)->m_Force[0] -= newForce[0];
+				(*iterBead2)->m_Force[1] -= newForce[1];
+				(*iterBead2)->m_Force[2] -= newForce[2];
+			}
+		}
+	}
+
+	// Next add in interactions with beads in neighbouring cells taking the
+	// PBCs into account and the presence of a wall. The PBCs are only applied
+	// if both the current CNT cell and the neighbouring one are external.
+
+	for( int i=0; i<13; i++ )
+	{	
+		bool both_external = m_bExternal && m_aIntNNCells[i]->IsExternal();
+
+		iterBead2=m_aIntNNCells[i]->m_lBeads.begin();
+		for(int jj1=0; jj1<m_aIntNNCells[i]->m_lBeads.size(); jj1++, iterBead2++){
+
+			iterBead1=m_lBeads.begin();
+			for(int jj2=0; jj2<numLocal; jj2++, iterBead1++){
+				localCellCellCounter++;  // Increment the local cell-cell inteaction counter
+
+				dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
+				dx[1] = ((*iterBead1)->m_Pos[1] - (*iterBead2)->m_Pos[1]);
+				dx[2] = ((*iterBead1)->m_Pos[2] - (*iterBead2)->m_Pos[2]);
+
+				if( both_external )
+				{
+					if( dx[0] > CCNTCell::m_HalfSimBoxXLength )
+						dx[0] = dx[0] - CCNTCell::m_SimBoxXLength;
+					else if( dx[0] < -CCNTCell::m_HalfSimBoxXLength )
+						dx[0] = dx[0] + CCNTCell::m_SimBoxXLength;
+
+					if( dx[1] > CCNTCell::m_HalfSimBoxYLength )
+						dx[1] = dx[1] - CCNTCell::m_SimBoxYLength;
+					else if( dx[1] < -CCNTCell::m_HalfSimBoxYLength )
+						dx[1] = dx[1] + CCNTCell::m_SimBoxYLength;
+
+					if( dx[2] > CCNTCell::m_HalfSimBoxZLength )
+						dx[2] = dx[2] - CCNTCell::m_SimBoxZLength;
+					else if( dx[2] < -CCNTCell::m_HalfSimBoxZLength )
+						dx[2] = dx[2] + CCNTCell::m_SimBoxZLength;
+
+				}
+
+				dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
+
+// Calculate the interactions between the two beads for each simulation type.
+// For the DPD interactions we have to change the distance-dependence according
+// to the bead interaction radii.
+
+				if( dr2 < 1.0 && dr2 > min_r2)
+				{		
+					dv[0] = ((*iterBead1)->m_Mom[0] - (*iterBead2)->m_Mom[0]);
+					dv[1] = ((*iterBead1)->m_Mom[1] - (*iterBead2)->m_Mom[1]);
+					dv[2] = ((*iterBead1)->m_Mom[2] - (*iterBead2)->m_Mom[2]);
+
+					dr = sqrt(dr2);
+				
+					wr = (1.0 - dr);
+					wr2 = wr*wr;
+					double inv_dr = 1.0/dr;
+
+					conForce	= m_vvConsInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr;
+
+					rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2]) * inv_dr;
+					gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
+
+					dissForce	= -gammap*rdotv;				
+					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					normTotalForce = (conForce + dissForce + randForce) * inv_dr;
+
+					newForce[0] = normTotalForce * dx[0];
+					newForce[1] = normTotalForce * dx[1];
+					newForce[2] = normTotalForce * dx[2];
+
+					(*iterBead1)->m_ForceCounter++;
+					(*iterBead2)->m_ForceCounter++;
+					
+					(*iterBead1)->m_Force[0] += newForce[0];
+					(*iterBead1)->m_Force[1] += newForce[1];
+					(*iterBead1)->m_Force[2] += newForce[2];
+
+					(*iterBead2)->m_Force[0] -= newForce[0];
+					(*iterBead2)->m_Force[1] -= newForce[1];
+					(*iterBead2)->m_Force[2] -= newForce[2];
+				}
+			}
+		}
+	}
+
+   // Divide the local cell-cell counter by the number of beads in this cell and add the result to the global cell-cell counter
+	
+	assert(m_lBeads.size() > 0);
+	localCellCellCounter /= m_lBeads.size();
+	
+    mpsSimBox::GlobalCellCellIntCounter += localCellCellCounter;
 }
 
 // Function to update the position and intermediate velocity of the beads 

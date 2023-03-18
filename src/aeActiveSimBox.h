@@ -58,6 +58,7 @@ public:
 	virtual double GetHalfSimBoxZLength() const;
 
     virtual bool IsACNPresent(const zString acnType) const;
+	virtual bool IsAnyACNPresent() const;
 
 	virtual aeActiveCellNetwork* GetACNFromType(const zString acnType) const;
 

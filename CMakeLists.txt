@@ -7,6 +7,7 @@ set(COMPILE_OPTIONS
     -g3
     -O3
     -fno-omit-frame-pointer
+    -DNDEBUG=1
 
     -Wall
     -Wextra
@@ -17,6 +18,23 @@ set(COMPILE_OPTIONS
     -Wno-reorder
     -Wno-sign-compare
     )
+
+set(COMPILE_OPTIONS_DEBUG
+  -g3
+  -O0
+
+  -Wall
+  -Wextra
+  -pedantic
+  #-Werror
+  -Wno-unused-variable
+  -Wno-unused-parameter
+  -Wno-reorder
+  -Wno-sign-compare
+
+  -DTraceOn
+  -UNDEBUG
+)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -43,3 +61,10 @@ add_executable(dpd-2d ${SRC_FILES})
 target_compile_options(dpd-2d
   PRIVATE ${COMPILE_OPTIONS} -DSimDimension=2
 )
+
+add_executable(dpd-debug ${SRC_FILES})
+target_compile_options(dpd-debug
+  PRIVATE ${COMPILE_OPTIONS_DEBUG}
+)
+target_compile_options(dpd-debug PRIVATE -fsanitize=address)
+target_link_options(dpd-debug PRIVATE -fsanitize=address)

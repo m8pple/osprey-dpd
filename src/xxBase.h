@@ -1100,13 +1100,18 @@ typedef xxBasevector<CBeadType*>						BeadTypeVector;
 typedef xxBasevector<CBeadType*>::iterator				BeadTypeVectorIterator;
 typedef xxBasevector<CBeadType*>::const_iterator		cBeadTypeVectorIterator;
 
-typedef xxBasevector<CAbstractBead*>					AbstractBeadVector;
-typedef xxBasevector<CAbstractBead*>::iterator			AbstractBeadVectorIterator;
-typedef xxBasevector<CAbstractBead*>::const_iterator	cAbstractBeadVectorIterator;
+typedef xxBasevector<CAbstractBead*>							AbstractBeadVector;
+typedef xxBasevector<CAbstractBead*>::iterator					AbstractBeadVectorIterator;
+typedef xxBasevector<CAbstractBead*>::const_iterator			cAbstractBeadVectorIterator;
+typedef xxBasevector<CAbstractBead*>::reverse_iterator			rAbstractBeadVectorIterator;
+typedef xxBasevector<CAbstractBead*>::const_reverse_iterator	crAbstractBeadVectorIterator;
 
 typedef xxBasevector<CBead*>							        BeadVector;
 typedef xxBasevector<CBead*>::iterator					        BeadVectorIterator;
 typedef xxBasevector<CBead*>::const_iterator			        cBeadVectorIterator;
+typedef xxBasevector<CBead*>::reverse_iterator					rBeadVectorIterator;
+typedef xxBasevector<CBead*>::const_reverse_iterator			crBeadVectorIterator;
+
 
 typedef xxBasevector<CBeadChargeWrapper*>							ChargedBeadVector;
 typedef xxBasevector<CBeadChargeWrapper*>::iterator					ChargedBeadVectorIterator;

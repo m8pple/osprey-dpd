@@ -29,7 +29,8 @@ public:
 	inline double   GetTRYCoord()   const {return m_TRCoord[1];}
 	inline double   GetTRZCoord()   const {return m_TRCoord[2];}
 	
-	inline BeadList GetBeads()		const {return m_lBeads;}
+	// TODO: DBT - Pretty sure this should return const ref, not a copy
+	inline BeadList GetBeads()		const {return BeadList(m_lBeads.begin(), m_lBeads.end());} 
 
 	inline void SetId(long id) {m_id = id;}
 
@@ -40,7 +41,7 @@ protected:
 	long m_BLIndex[3];
 	double m_BLCoord[3];
 	double m_TRCoord[3];
-	BeadList m_lBeads;
+	AbstractBeadVector m_lBeads;
 
 };
 

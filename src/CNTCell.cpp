@@ -886,9 +886,9 @@ void CCNTCell::UpdateForce()
 
 #if SimIdentifier == BD
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
+	AbstractBeadVectorIterator iterBead1;
+	AbstractBeadVectorIterator iterBead2;
+	rAbstractBeadVectorIterator riterBead2;
 
 	double dx[3];
 	double dr, dr2, drmax;
@@ -1105,9 +1105,9 @@ void CCNTCell::UpdateForce()
 #else
     // DPD and MD equations of motion
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
+	AbstractBeadVectorIterator iterBead1;
+	AbstractBeadVectorIterator iterBead2;
+	rAbstractBeadVectorIterator riterBead2;
 
 	double dx[3], dv[3], newForce[3];
 	double localStress[9];
@@ -1601,8 +1601,8 @@ void CCNTCell::UpdateForceFast()
 
     // DPD and MD equations of motion
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
+	AbstractBeadVectorIterator iterBead1;
+	AbstractBeadVectorIterator iterBead2;
 
 	double dx[3], dv[3], newForce[3];
 	double dr, dr2;
@@ -1838,7 +1838,7 @@ void CCNTCell::UpdatePos()
 
 	double dx[3];
 
-	for(BeadListIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); )
+	for(AbstractBeadVectorIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); )
 	{
 		// Only allow bead to move if its IsMovable flag is true. This allows
 		// us to indicate when a bead has already crossed a cell boundary and
@@ -1989,7 +1989,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[26]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[26]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves DTR
@@ -2004,7 +2004,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[8]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[8]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else	// bead moves TR
@@ -2017,7 +2017,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[1]-= m_SimBoxYLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[17]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[17]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 #elif SimDimension == 2
@@ -2029,7 +2029,7 @@ void CCNTCell::UpdatePos()
 							(*iterBead)->m_Pos[1]-= m_SimBoxYLength;
 					}
 					(*iterBead)->SetNotMovable();
-					m_aNNCells[8]->m_lBeads.push_front((*iterBead));
+					m_aNNCells[8]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 #endif
 				}
@@ -2048,7 +2048,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[20]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[20]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves DBR
@@ -2063,7 +2063,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[2]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[2]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else	// bead moves BR
@@ -2076,7 +2076,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[1]+= m_SimBoxYLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[11]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[11]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 #elif SimDimension == 2
@@ -2088,7 +2088,7 @@ void CCNTCell::UpdatePos()
 							(*iterBead)->m_Pos[1]+= m_SimBoxYLength;
 					}
 						(*iterBead)->SetNotMovable();
-					m_aNNCells[2]->m_lBeads.push_front((*iterBead));
+					m_aNNCells[2]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 #endif
 				}
@@ -2105,7 +2105,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[23]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[23]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves DR
@@ -2118,7 +2118,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[5]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[5]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else	// bead moves R
@@ -2129,7 +2129,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[0]-= m_SimBoxXLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[14]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[14]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 #elif SimDimension == 2
@@ -2139,7 +2139,7 @@ void CCNTCell::UpdatePos()
 							(*iterBead)->m_Pos[0]-= m_SimBoxXLength;
 					}
 					(*iterBead)->SetNotMovable();
-					m_aNNCells[5]->m_lBeads.push_front((*iterBead));
+					m_aNNCells[5]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 #endif
 				}
@@ -2161,7 +2161,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[24]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[24]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves DTL
@@ -2176,7 +2176,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[6]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[6]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else	// bead moves TL
@@ -2189,7 +2189,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[1]-= m_SimBoxYLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[15]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[15]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 #elif SimDimension == 2
@@ -2201,7 +2201,7 @@ void CCNTCell::UpdatePos()
 							(*iterBead)->m_Pos[1]-= m_SimBoxYLength;
 					}
 					(*iterBead)->SetNotMovable();
-					m_aNNCells[6]->m_lBeads.push_front((*iterBead));
+					m_aNNCells[6]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 #endif
 				}
@@ -2220,7 +2220,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[18]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[18]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves DBL
@@ -2235,7 +2235,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[0]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[0]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else	// bead moves BL
@@ -2248,7 +2248,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[1]+= m_SimBoxYLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[9]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[9]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 #elif SimDimension == 2
@@ -2260,7 +2260,7 @@ void CCNTCell::UpdatePos()
 							(*iterBead)->m_Pos[1]+= m_SimBoxYLength;
 					}
 					(*iterBead)->SetNotMovable();
-					m_aNNCells[0]->m_lBeads.push_front((*iterBead));
+					m_aNNCells[0]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 #endif
 				}
@@ -2277,7 +2277,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[21]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[21]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves DL
@@ -2290,7 +2290,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[3]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[3]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else	// bead moves L
@@ -2301,7 +2301,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[0]+= m_SimBoxXLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[12]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[12]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 #elif SimDimension == 2
@@ -2311,7 +2311,7 @@ void CCNTCell::UpdatePos()
 							(*iterBead)->m_Pos[0]+= m_SimBoxXLength;
 					}
 					(*iterBead)->SetNotMovable();
-					m_aNNCells[3]->m_lBeads.push_front((*iterBead));
+					m_aNNCells[3]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 #endif
 				}
@@ -2331,7 +2331,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[25]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[25]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves DT
@@ -2344,7 +2344,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[7]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[7]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else	// bead moves T
@@ -2355,7 +2355,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[1]-= m_SimBoxYLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[16]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[16]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 #elif SimDimension == 2
@@ -2365,7 +2365,7 @@ void CCNTCell::UpdatePos()
 							(*iterBead)->m_Pos[1]-= m_SimBoxYLength;
 					}
 					(*iterBead)->SetNotMovable();
-					m_aNNCells[7]->m_lBeads.push_front((*iterBead));
+					m_aNNCells[7]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 #endif
 				}
@@ -2382,7 +2382,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[19]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[19]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves DB
@@ -2395,7 +2395,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[1]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[1]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else	// bead moves B
@@ -2406,7 +2406,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[1]+= m_SimBoxYLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[10]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[10]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 #elif SimDimension == 2
@@ -2416,7 +2416,7 @@ void CCNTCell::UpdatePos()
 							(*iterBead)->m_Pos[1]+= m_SimBoxYLength;
 					}
 					(*iterBead)->SetNotMovable();
-					m_aNNCells[1]->m_lBeads.push_front((*iterBead));
+					m_aNNCells[1]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 #endif
 				}
@@ -2431,7 +2431,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]-= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[22]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[22]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else if( (*iterBead)->m_Pos[2] < m_BLCoord[2] )	// bead moves D
@@ -2442,7 +2442,7 @@ void CCNTCell::UpdatePos()
 								(*iterBead)->m_Pos[2]+= m_SimBoxZLength;
 						}
 						(*iterBead)->SetNotMovable();
-						m_aNNCells[4]->m_lBeads.push_front((*iterBead));
+						m_aNNCells[4]->m_lBeads.push_back((*iterBead));
 						iterBead = m_lBeads.erase(iterBead);
 					}
 					else
@@ -2486,7 +2486,7 @@ void CCNTCell::UpdatePos()
 
 void CCNTCell::UpdateMom()
 {
-	for( BeadListIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++ )
+	for( AbstractBeadVectorIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++ )
 	{
 // Conditionally compile out the update of the momenta for those simulation types
 // that do not use them; but make sure the beads' SetMovable() function is called.
@@ -2545,14 +2545,24 @@ void CCNTCell::SetNNCellIndex(long index, CCNTCell *pCell)
 
 void CCNTCell::AddBeadtoCell(CAbstractBead *pBead)
 {
-	m_lBeads.push_front(pBead);
+	m_lBeads.push_back(pBead);
 }
 
 // Function to remove a bead from the current cell.
 
 void CCNTCell::RemoveBeadFromCell(CAbstractBead* const pBead)
 {
-	m_lBeads.remove(pBead);
+	// This admits the possibility the bead might appear twice,
+	// which is the same semantics as std::list::remove (original impl)
+	unsigned index=0;
+	while(index < m_lBeads.size()){
+		if(m_lBeads[index]==pBead){
+			std::swap(m_lBeads[index], m_lBeads.back());
+			m_lBeads.pop_back();
+		}else{
+			index++;
+		}
+	}
 }
 
 // Function to remove all beads from the current cell. Note that this does NOT
@@ -2838,7 +2848,7 @@ bool CCNTCell::CheckBeadsinCell()
 
 	long index1, ix, iy, iz;
 
-	for(BeadListIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++)
+	for(AbstractBeadVectorIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++)
 	{
 		ix = static_cast<long>((*iterBead)->GetXPos()/m_CNTXCellWidth);
 		iy = static_cast<long>((*iterBead)->GetYPos()/m_CNTYCellWidth);
@@ -2874,7 +2884,7 @@ bool CCNTCell::CheckBeadsinCell()
 			TraceVector("  Cell TR coords", m_TRCoord[0], m_TRCoord[1], m_TRCoord[2]);
 			TraceVector("  Bead coords", (*iterBead)->GetXPos(), (*iterBead)->GetYPos(), (*iterBead)->GetZPos());
 
-			for(BeadListIterator iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
+			for(AbstractBeadVectorIterator iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
 			{
 				TraceInt("Bead", (*iterBead2)->GetId());
 				TraceVector("  Pos",      (*iterBead2)->GetXPos(), (*iterBead2)->GetYPos(), (*iterBead2)->GetZPos());
@@ -2926,7 +2936,7 @@ double CCNTCell::GetPotentialEnergy(CAbstractBead *pBead) const
 	double magSC;						// SC potential variables
 	double eSC, sSCOverR, sSCR3;
 
-	for(cBeadListIterator iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
+	for(cAbstractBeadVectorIterator iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
 	{
 		dx[0] = pBead->m_Pos[0] - (*iterBead2)->m_Pos[0];
 		dx[1] = pBead->m_Pos[1] - (*iterBead2)->m_Pos[1];
@@ -3005,7 +3015,7 @@ double CCNTCell::GetPotentialEnergy(CAbstractBead *pBead) const
 	for( int i=0; i<13; i++ )
 #endif
 	{
-		for(cBeadListIterator iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++)
+		for(cAbstractBeadVectorIterator iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++)
 		{
 			dx[0] = pBead->m_Pos[0] - (*iterBead2)->m_Pos[0];
 			dx[1] = pBead->m_Pos[1] - (*iterBead2)->m_Pos[1];
@@ -3151,7 +3161,7 @@ void CCNTCell::UpdateTotalEnergy(double* const pKinetic, double* const pPotentia
 	kinetic	  = 0.0;	// Zero running totals
 	potential = 0.0;
 
-	for(cBeadListIterator iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
+	for(cAbstractBeadVectorIterator iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
 	{
 		CAbstractBead* pBead1 = *iterBead1;
 		const long beadType1 = pBead1->GetType();
@@ -3171,7 +3181,7 @@ void CCNTCell::UpdateTotalEnergy(double* const pKinetic, double* const pPotentia
 		// compare a forward and reverse iterator we compare the bead ids for
 		// the terminating condition.
 
-		for(crBeadListIterator riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=pBead1->m_id; ++riterBead2 )
+		for(crAbstractBeadVectorIterator riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=pBead1->m_id; ++riterBead2 )
 		{
 			CAbstractBead* const pBead2 = *riterBead2;
 			const long beadType2 = pBead2->GetType();
@@ -3284,7 +3294,7 @@ void CCNTCell::UpdateTotalEnergy(double* const pKinetic, double* const pPotentia
 		for( int i=0; i<13; i++ )
 #endif
 		{
-			for(BeadListIterator iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
+			for(AbstractBeadVectorIterator iterBead2=m_aIntNNCells[i]->m_lBeads.begin(); iterBead2!=m_aIntNNCells[i]->m_lBeads.end(); iterBead2++ )
 			{
 				if((*iterBead2)->GetId() > pBead1->GetId())
 				{
@@ -3437,9 +3447,9 @@ void CCNTCell::UpdateLGForce()
 {
 #if EnableDPDLG == ExperimentEnabled
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
+	AbstractBeadVectorIterator iterBead1;
+	AbstractBeadVectorIterator iterBead2;
+	rAbstractBeadVectorIterator riterBead2;
 
 	double dx[3], dv[3], newForce[3];
 	double dr, dr2;
@@ -3709,10 +3719,10 @@ void CCNTCell::UpdateLGDensity()
 #if EnableDPDLG == ExperimentEnabled
     // Get a list of all beads in the current cell and its 26 neighbours
 
-    BeadList localBeads;
+    BeadVector localBeads;
     localBeads.clear();
 
-    BeadList lNNBeads;
+    BeadVector lNNBeads;
     lNNBeads.clear();
 
     for(short int i=0; i<27; i++)
@@ -3734,11 +3744,11 @@ void CCNTCell::UpdateLGDensity()
 
     double density;
 
-	for(BeadListIterator iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++)
+	for(AbstractBeadVectorIterator iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++)
 	{
         density = 0.0;
 
-		for(BeadListIterator iterBead2=localBeads.begin(); iterBead2!=localBeads.end(); iterBead2++)
+		for(AbstractBeadVectorIterator iterBead2=localBeads.begin(); iterBead2!=localBeads.end(); iterBead2++)
 		{
 			dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
 			dx[1] = ((*iterBead1)->m_Pos[1] - (*iterBead2)->m_Pos[1]);
@@ -3814,9 +3824,9 @@ void CCNTCell::UpdateForceP()
 #if SimIdentifier == BD
 
     CAbstractBead*   pBead1;
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
+	AbstractBeadVectorIterator iterBead1;
+	AbstractBeadVectorIterator iterBead2;
+	rAbstractBeadVectorIterator riterBead2;
 
 	double dx[3];
 	double dr, dr2, drmax;
@@ -3945,9 +3955,9 @@ void CCNTCell::UpdateForceP()
     // DPD and MD equations of motion
 
     CAbstractBead*   pBead1;
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
+	AbstractBeadVectorIterator iterBead1;
+	AbstractBeadVectorIterator iterBead2;
+	rAbstractBeadVectorIterator riterBead2;
 
 	double dx[3], dv[3], newForce[3];
 	double dr, dr2;
@@ -4209,9 +4219,9 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 
 #if SimIdentifier == BD
 
-	BeadListIterator iterBead1;
-	BeadListIterator iterBead2;
-	rBeadListIterator riterBead2;
+	AbstractBeadVectorIterator iterBead1;
+	AbstractBeadVectorIterator iterBead2;
+	rAbstractBeadVectorIterator riterBead2;
 
 	double dx[3];
 	double dr, dr2, drmax;
@@ -4336,7 +4346,8 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 #else
     // DPD and MD equations of motion
 
-	BeadListIterator iterBead2;
+	AbstractBeadVectorIterator iterBead2;
+	rAbstractBeadVectorIterator riterBead2;
 
 	double dx[3], dv[3], newForce[3];
 	double dr, dr2;

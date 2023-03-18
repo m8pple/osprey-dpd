@@ -480,6 +480,17 @@ bool ISimState::TimeToRestart() const
 	return (m_SimTime%m_rSimState.GetRestartPeriod() == 0);
 }
 
+long ISimState::GetNextObservationTime() const
+{
+	return std::min(
+		(m_SimTime / m_rSimState.GetSamplePeriod() + 1) * m_rSimState.GetSamplePeriod(),
+		std::min(
+			(m_SimTime / m_rSimState.GetDisplayPeriod() + 1) * m_rSimState.GetDisplayPeriod(),
+			(m_SimTime / m_rSimState.GetRestartPeriod() + 1) * m_rSimState.GetRestartPeriod()
+		)
+	);
+}
+
 bool ISimState::IsActiveBondsOn() const
 {
 	return m_rSimState.IsActiveBondsOn();

@@ -29,6 +29,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "IModifySimStateIntegration.h"
 #include "IModifySimStatePolymers.h"
 
+#include <cassert>
+
 // Force target base class needed for some functions
 
 #include "ForceTarget.h"
@@ -1336,7 +1338,8 @@ void CSimBox::EvolveFast()
 
 void CSimBox::Run()
 {
-	for(m_SimTime=1; m_SimTime<=m_TotalTime; m_SimTime++)
+	m_SimTime = 1;
+	while(m_SimTime<=m_TotalTime)
 	{
         if(IsParallel())
         {
@@ -1360,6 +1363,7 @@ void CSimBox::Run()
 		    {
     			SaveCurrentState();
 		    }
+			m_SimTime++;
 #endif
         }
         else
@@ -1391,48 +1395,81 @@ void CSimBox::Run()
 			is_non_fast_compile=true;
 			#endif
 			bool is_monitor_active = TimeToSample() || TimeToDisplay() || TimeToRestart();
-			bool are_features_active = IsEnergyOutputOn() || IsBeadChargeOn() || IsGravityOn();
+			bool are_features_active = IsEnergyOutputOn() || IsBeadChargeOn() || IsGravityOn() || IsRenormalisationOn();
 			are_features_active |= (IsActiveBondsOn() && m_pShadow && m_pShadow->IsAnyACNPresent());
 			bool are_targets_active = !m_ActiveCommandTargets.empty() || !m_ActiveForceTargets.empty();
 			bool something_slow_active = is_non_fast_compile || is_monitor_active || are_features_active || are_targets_active;
 
-			if(something_slow_active){
-				Evolve();
-			}else{
-				EvolveFast();
+			int fastSteps = 0;
+			if(!something_slow_active){
+				// Work out how far ahead we can go in fast mode
+				long nextSlowTime = m_TotalTime;
+
+				if(!m_Commands.empty()){
+					// m_Commands is sorted by execution time
+					nextSlowTime = std::min(nextSlowTime, m_Commands.front()->GetExecutionTime());
+				}
+
+				CommandGroupIterator iacg=m_ActiveCommandGroups.begin();
+				while(iacg != m_ActiveCommandGroups.end()){
+					nextSlowTime=std::min(nextSlowTime, (*iacg)->GetExecutionTime());
+					++iacg;
+				}
+
+				nextSlowTime = std::min(nextSlowTime, GetNextObservationTime());
+
+				// The step before the slow-step should also be slow, so that
+				// m_oldXXX values are valid in any commands
+				fastSteps = nextSlowTime - m_SimTime - 1;
 			}
 
-		    CNTCellCheck();		// check beads are in correct CNT cells
+			if(fastSteps > 0){
+				fprintf(stderr, "Fast stepping from %ld to %ld\n", m_SimTime, m_SimTime+fastSteps);
+				for(int i=0; i<fastSteps; i++){
+					EvolveFast();
+					m_SimTime ++;
+				}
+			}else{
+				fprintf(stderr, "Slow step at %ld : mon=%d, feat=%d, targ=%d, nextObs=%ld\n", m_SimTime, is_monitor_active, are_features_active, are_features_active, GetNextObservationTime());
 
-		    // Sample the simulation state to construct observables, check if any
-		    // events have happened and update the state of all processes.
-		    // Note that events that happen faster than SamplePeriod steps
-		    // may not be noticed by the analysis until the next time the sampling
-		    // is performed.
+				Evolve();
 
-		    if(TimeToSample())
-		    {
-    			Sample();
+				// Standard full-featured path
 
-    			ExecuteEvents();
+				CNTCellCheck();		// check beads are in correct CNT cells
 
-			    // Call the Monitor to update the state of processes that depend on
-			    // aggregates and events
+				// Sample the simulation state to construct observables, check if any
+				// events have happened and update the state of all processes.
+				// Note that events that happen faster than SamplePeriod steps
+				// may not be noticed by the analysis until the next time the sampling
+				// is performed.
 
-    			SampleProcess();
+				if(TimeToSample())
+				{
+					Sample();
 
-    			SaveProcessState();
-		    }
+					ExecuteEvents();
 
-		    if(TimeToDisplay())
-		    {
-    			SaveCurrentState();
-		    }
+					// Call the Monitor to update the state of processes that depend on
+					// aggregates and events
 
-		    if(TimeToRestart())
-		    {
-    			SaveRestartState();
-		    }
+					SampleProcess();
+
+					SaveProcessState();
+				}
+
+				if(TimeToDisplay())
+				{
+					SaveCurrentState();
+				}
+
+				if(TimeToRestart())
+				{
+					SaveRestartState();
+				}
+
+				m_SimTime++;
+			}
         }
 	}
 }

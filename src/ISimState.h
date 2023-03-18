@@ -51,6 +51,7 @@ public:
 
 	inline long   GetCurrentTime()			const {return m_SimTime;}
 	inline long   GetTotalTime()			const {return m_TotalTime;}
+	long GetNextObservationTime() const; // Returns the time at which the next display, sample, or restart observation happens
 
 	void AddProcess(xxProcess* const pProcess);
 	void AddCommand(const xxCommand *const pCommand);

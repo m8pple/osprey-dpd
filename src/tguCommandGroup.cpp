@@ -152,6 +152,11 @@ bool tguCommandGroup::TimeToExecute(long currentTime) const
     return (currentTime == m_Time);
 }
 
+long tguCommandGroup::GetExecutionTime() const
+{
+    return m_Time;
+}
+
 // Function used by the SimBox to repeatedly execute a command group.
 // The function TimeToExecute() must be called before this one to indicate
 // if the command group should be executed. If the number of remaining executions 

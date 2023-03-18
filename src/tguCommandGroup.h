@@ -54,6 +54,7 @@ public:
     // Function used by the SimBox to repeatedly execute the group
 	bool TimeToExecute(long currentTime) const;
     bool Execute(ISimState* const pISimState);
+    long GetExecutionTime() const;
 
 
     // Execution profiles for the group

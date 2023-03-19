@@ -55,6 +55,7 @@ public:
 	// the potential energy of the stiff bond
 
 	void	AddForce();
+	void	AddForceFast();
 	double	AddPotentialEnergy();
 
 private:

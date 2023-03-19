@@ -194,7 +194,7 @@ protected:
 	// each bead type, etc.
 
 	const BondVector GetAllBonds() const;
-	const BondVector GetAllPolymerisedBonds() const;
+	const BondVector &GetAllPolymerisedBonds() const;
 
 
 

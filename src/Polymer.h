@@ -109,9 +109,11 @@ public:
 
 	void AddBondForces();
 	void AddBondForces(ISimBoxBase* const pISimBoxBase);
+	void AddBondForcesFast();
 
 	void AddBondPairForces();
 	void AddBondPairForces(ISimBoxBase* const pISimBoxBase);
+	void AddBondPairForcesFast();
 
 	// Function to calculate the potential energy of the bonds and bondpairs
 

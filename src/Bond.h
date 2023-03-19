@@ -79,6 +79,8 @@ public:
 	void    AddPBCForce();
 	double  AddPotentialEnergy();
 
+	void	AddForceFast();
+
 	// ****************************************
 	// Protected local functions
 protected:

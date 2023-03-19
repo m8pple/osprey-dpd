@@ -1298,8 +1298,8 @@ void CSimBox::EvolveFast(unsigned nSteps)
 		// AddBondPairForces() must be called after AddBondForces() because it relies
 		// on the bond lengths having already been calculated in CBond::AddForce().
 
-		AddBondForces();
-		AddBondPairForces();
+		AddBondForcesFast();
+		AddBondPairForcesFast();
 	}
 
 	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
@@ -1548,9 +1548,34 @@ void CSimBox::AddBondForces()
 	// in any single polymer or nanoparticle. Note that we should check whether the bond stress is to
 	// be added to the analysis of the stress profile.
 
-	BondVector vBonds = GetAllPolymerisedBonds();
+	const BondVector &vBonds = GetAllPolymerisedBonds();
+	for(cBondVectorIterator iterBond=vBonds.begin(); iterBond!=vBonds.end(); iterBond++)
+	{
+		(*iterBond)->AddForce();
+	}
+}
 
-	for(BondVectorIterator iterBond=vBonds.begin(); iterBond!=vBonds.end(); iterBond++)
+void CSimBox::AddBondForcesFast()
+{
+	for(PolymerVectorIterator iterPoly=m_vAllPolymers.begin(); iterPoly!=m_vAllPolymers.end(); iterPoly++)
+	{
+		(*iterPoly)->AddBondForcesFast();
+	}
+    
+    // Add bond forces that bind polymers into nanoparticles. These are dynamically-created but stored in 
+    // their owning CNanoparticle instances instead of in the general polymerised bond container.
+
+	for(NanoparticleIterator iterNano=m_Nanoparticles.begin(); iterNano!=m_Nanoparticles.end(); iterNano++)
+    {
+        (*iterNano)->AddBondForces();
+    }    
+
+	// Next add in the forces due to dynamically-created bonds that are not contained
+	// in any single polymer or nanoparticle. Note that we should check whether the bond stress is to
+	// be added to the analysis of the stress profile.
+
+	const BondVector &vBonds = GetAllPolymerisedBonds();
+	for(cBondVectorIterator iterBond=vBonds.begin(); iterBond!=vBonds.end(); iterBond++)
 	{
 		(*iterBond)->AddForce();
 	}
@@ -1575,6 +1600,14 @@ void CSimBox::AddBondPairForces()
 		{
 			(*iterPoly)->AddBondPairForces();
 		}
+	}
+}
+
+void CSimBox::AddBondPairForcesFast()
+{
+	for(PolymerVectorIterator iterPoly=m_vAllPolymers.begin(); iterPoly!=m_vAllPolymers.end(); iterPoly++)
+	{
+		(*iterPoly)->AddBondPairForcesFast();
 	}
 }
 

@@ -792,7 +792,7 @@ const BondVector ISimState::GetAllBonds() const
 	return m_rSimState.GetBonds();
 }
 
-const BondVector ISimState::GetAllPolymerisedBonds() const
+const BondVector &ISimState::GetAllPolymerisedBonds() const
 {
 	return m_rSimState.GetPolymerisedBonds();
 }

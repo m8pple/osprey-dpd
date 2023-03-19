@@ -1604,7 +1604,7 @@ void CCNTCell::UpdateForceFast()
 	AbstractBeadVectorIterator iterBead1;
 	AbstractBeadVectorIterator iterBead2;
 
-	double dx[3], dv[3], newForce[3];
+	double dx[3], dv[3], dx_dv[3], newForce[3];
 	double dr, dr2;
 
 	double gammap, rdotv, wr, wr2;
@@ -1632,11 +1632,13 @@ void CCNTCell::UpdateForceFast()
 		iterBead2 = std::next(iterBead1);
 		for(int ii2=ii1+1; ii2 < m_lBeads.size(); ii2++, iterBead2++){
 
-			dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
-			dx[1] = ((*iterBead1)->m_Pos[1] - (*iterBead2)->m_Pos[1]);
-			dx[2] = ((*iterBead1)->m_Pos[2] - (*iterBead2)->m_Pos[2]);
-
-			dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
+			double dx2[3];
+			for(int d=0; d<3; d++){
+				dx[d] = ((*iterBead1)->m_Pos[d] - (*iterBead2)->m_Pos[d]);
+				dx2[d] = dx[d] * dx[d];
+			}
+	
+			dr2 = dx2[0] + dx2[1] + dx2[2];
 
 // Calculate the interactions between the two beads for each simulation type.
 // For the DPD interactions we use the flag UseDPDBeadRadii to determine whether
@@ -1646,9 +1648,10 @@ void CCNTCell::UpdateForceFast()
 
 			if( dr2 < 1.0 && dr2 > min_r2 )
 			{		
-				dv[0] = ((*iterBead1)->m_Mom[0] - (*iterBead2)->m_Mom[0]);
-				dv[1] = ((*iterBead1)->m_Mom[1] - (*iterBead2)->m_Mom[1]);
-				dv[2] = ((*iterBead1)->m_Mom[2] - (*iterBead2)->m_Mom[2]);
+				for(int d=0; d<3; d++){
+					dv[d] = ((*iterBead1)->m_Mom[d] - (*iterBead2)->m_Mom[d]);
+					dx_dv[d] = dx[d] * dv[d];
+				}
 
 				dr = sqrt(dr2);
 				wr = (1.0 - dr);
@@ -1661,24 +1664,18 @@ void CCNTCell::UpdateForceFast()
 
 // Dissipative and random force magnitudes. Note dr factor in newForce calculation
 
-				rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2]) * inv_dr;
+				rdotv		= (dx_dv[0] + dx_dv[1] + dx_dv[2]) * inv_dr;
 				gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
 
 				dissForce	= -gammap*rdotv;				
 				randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
 				normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
-				newForce[0] = normTotalForce * dx[0];
-				newForce[1] = normTotalForce * dx[1];
-				newForce[2] = normTotalForce * dx[2];
-				
-				(*iterBead1)->m_Force[0] += newForce[0];
-				(*iterBead1)->m_Force[1] += newForce[1];
-				(*iterBead1)->m_Force[2] += newForce[2];
-
-				(*iterBead2)->m_Force[0] -= newForce[0];
-				(*iterBead2)->m_Force[1] -= newForce[1];
-				(*iterBead2)->m_Force[2] -= newForce[2];
+				for(int d=0; d<3; d++){
+					newForce[d] = normTotalForce * dx[d];
+					(*iterBead1)->m_Force[d] += newForce[d];
+					(*iterBead2)->m_Force[d] -= newForce[d];
+				}
 			}
 		}
 	}
@@ -1705,9 +1702,9 @@ void CCNTCell::UpdateForceFast()
 			for(int jj2=0; jj2<numLocal; jj2++, iterBead1++){
 				localCellCellCounter++;  // Increment the local cell-cell inteaction counter
 
-				dx[0] = ((*iterBead1)->m_Pos[0] - (*iterBead2)->m_Pos[0]);
-				dx[1] = ((*iterBead1)->m_Pos[1] - (*iterBead2)->m_Pos[1]);
-				dx[2] = ((*iterBead1)->m_Pos[2] - (*iterBead2)->m_Pos[2]);
+				for(int d=0; d<3; d++){
+					dx[d] = ((*iterBead1)->m_Pos[d] - (*iterBead2)->m_Pos[d]);
+				}
 
 				if( both_external )
 				{
@@ -1730,15 +1727,11 @@ void CCNTCell::UpdateForceFast()
 
 				dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
 
-// Calculate the interactions between the two beads for each simulation type.
-// For the DPD interactions we have to change the distance-dependence according
-// to the bead interaction radii.
-
 				if( dr2 < 1.0 && dr2 > min_r2)
 				{		
-					dv[0] = ((*iterBead1)->m_Mom[0] - (*iterBead2)->m_Mom[0]);
-					dv[1] = ((*iterBead1)->m_Mom[1] - (*iterBead2)->m_Mom[1]);
-					dv[2] = ((*iterBead1)->m_Mom[2] - (*iterBead2)->m_Mom[2]);
+					for(int d=0; d<3; d++){
+						dv[d] = ((*iterBead1)->m_Mom[d] - (*iterBead2)->m_Mom[d]);
+					}
 
 					dr = sqrt(dr2);
 				
@@ -1755,17 +1748,11 @@ void CCNTCell::UpdateForceFast()
 					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
 					normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
-					newForce[0] = normTotalForce * dx[0];
-					newForce[1] = normTotalForce * dx[1];
-					newForce[2] = normTotalForce * dx[2];
-					
-					(*iterBead1)->m_Force[0] += newForce[0];
-					(*iterBead1)->m_Force[1] += newForce[1];
-					(*iterBead1)->m_Force[2] += newForce[2];
-
-					(*iterBead2)->m_Force[0] -= newForce[0];
-					(*iterBead2)->m_Force[1] -= newForce[1];
-					(*iterBead2)->m_Force[2] -= newForce[2];
+					for(int d=0; d<3; d++){
+						newForce[d] = normTotalForce * dx[d];
+						(*iterBead1)->m_Force[d] += newForce[d];
+						(*iterBead2)->m_Force[d] -= newForce[d];
+					}
 				}
 			}
 		}

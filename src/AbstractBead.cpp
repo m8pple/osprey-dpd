@@ -21,6 +21,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Polymer.h"
 #include "xxParallelBase.h"
 
+#include <cassert>
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -85,6 +87,8 @@ CAbstractBead::CAbstractBead(long type) : m_id(-1), m_Type(type),
                                  m_Radius(0.0)
 #endif
 {
+	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+
 #if EnableDPDLG == ExperimentEnabled
     m_LGRadius  = 0.0;
     m_LGDensity = 0.0;
@@ -131,6 +135,9 @@ CAbstractBead::CAbstractBead(long id, long type, bool movable,
                                                             m_Radius(0.5)
 #endif
 {
+	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	assert(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
+
 #if EnableDPDLG == ExperimentEnabled
     m_LGRadius  = 0.0;
     m_LGDensity = 0.0;
@@ -175,6 +182,9 @@ CAbstractBead::CAbstractBead(long id, long type, bool movable, double radius,
                                                             m_Radius(radius)
 #endif
 {
+	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	assert(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
+
 #if EnableDPDLG == ExperimentEnabled
     m_LGRadius  = 0.0;
     m_LGDensity = 0.0;
@@ -216,6 +226,9 @@ CAbstractBead::CAbstractBead(long id, long type, bool movable, double radius, do
                                                             m_LGRadius(lgRadius),
                                                             m_LGDensity(0.0)
 {
+	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	assert(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
+
 #if EnableParallelSimBox == SimMPSEnabled
     m_pPolymer = 0;
 #endif
@@ -252,6 +265,9 @@ CAbstractBead::CAbstractBead(CPolymer* const pPolymer, long id, long type, bool 
                                                             m_Radius(radius),
                                                             m_pPolymer(pPolymer)
 {
+	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	assert(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
+
 	for(short int i=0; i<3; i++)
 	{
 		m_Pos[i]		= x0[i];	// Note non-zero initial values!

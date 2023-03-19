@@ -9,6 +9,8 @@
 #if !defined(AFX_ABSTRACTBEAD_H__12767EC0_3849_11D3_820E_0060088AD300__INCLUDED_)
 #define AFX_ABSTRACTBEAD_H__12767EC0_3849_11D3_820E_0060088AD300__INCLUDED_
 
+#include <cstdint>
+#include <cassert>
 
 // Forward declarations
 
@@ -165,8 +167,8 @@ public:
 
 	// Public functions to set bead state and coordinates
 
-	inline void   SetId(long id)			{m_id			= id;}
-	inline void   SetType(long type)		{m_Type			= type;}
+	inline void   SetId(long id)			{ assert(id < INT32_MAX);  m_id = id;}
+	inline void   SetType(long type)		{ assert(type <= UINT8_MAX); m_Type	= type;}
 	inline void   SetInvisible()			{m_bIsVisible	= false;}
 	inline void   SetVisible()				{m_bIsVisible	= true;}
 	inline void   SetVisible(bool bVisible)	{m_bIsVisible	= bVisible;}
@@ -244,27 +246,23 @@ public:
 
 		return m_bIsMovable;
 	}
+
+	void PrefetchHint()
+	{
+		__builtin_prefetch( &this->m_Type );
+	}
 protected:
 
-	long m_id;				// member variable order here sets order of initialisation
-	long m_Type;			// in the constructor
+	// Convert id and type to reduce cache footprint
+	// Reducing id and type widths means header fits in 8 bytes.
+	// That means the hot meta-data + pos + mom + force fits in 80 bytes, so more likely to fit in two cache lines
+	// When doing force updates we can get meta-data + pos + mom in 56 bytes, so when rejecting beads we sometimes won't touch m_Force
+	// TODO : Is uint8_t too aggressive for type? Could convert to bit-fields...
+	int32_t m_id;			// member variable order here sets order of initialisation
+	uint8_t m_Type;			// in the constructor
 	bool m_bIsVisible;		// Indicates a bead is written to current state snapshots
 	bool m_bIsMovable;		// Indicates a bead can move in the current time step
 	bool m_bIsFrozen;		// Indicates a bead has been frozen in place		
-
-	long   m_ForceCounter;  // Debug variable to count how many interactions a bead has 
-
-	double m_Radius;		// Interaction radius
-
-#if EnableDPDLG == ExperimentEnabled
-	double m_LGRadius;		// Interaction radius for density-dependent LG force
-	double m_LGDensity;		// Local bead density for density-dependent LG force
-#endif
-
-#if SimIdentifier == BD
-    double m_TransDiff;     // Translational diffusion coefficient for BD beads
-    double m_RotDiff;       // Rotational diffusion coefficient for BD beads
-#endif
 
 	double m_Pos[3];		// Current coordinates
 	double m_Mom[3];
@@ -279,6 +277,20 @@ protected:
 	double m_InitialPos[3];
 	double m_dPos[3];		// Differential position coordinates
 	double m_Stress[9];
+
+	long   m_ForceCounter;  // Debug variable to count how many interactions a bead has 
+
+	double m_Radius;		// Interaction radius
+
+#if EnableDPDLG == ExperimentEnabled
+	double m_LGRadius;		// Interaction radius for density-dependent LG force
+	double m_LGDensity;		// Local bead density for density-dependent LG force
+#endif
+
+#if SimIdentifier == BD
+    double m_TransDiff;     // Translational diffusion coefficient for BD beads
+    double m_RotDiff;       // Rotational diffusion coefficient for BD beads
+#endif
     
 #if EnableParallelSimBox == SimMPSEnabled
     CPolymer* m_pPolymer;   // Parent polymer needed for trans-processor messaging

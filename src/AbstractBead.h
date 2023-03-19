@@ -229,6 +229,8 @@ public:
 	// m_bIsFrozen flag overrides the m_bIsMovable flag. 
 	// Previously these were virtual functions, with specific overloads in CBead,
 	// CInclusiveBead and CWallBead, but they can all safely use this inlineable version.
+	//
+	// SetMovable is idempotent, as it allows for easier optimisations elsewhere.
 	bool SetMovable()
 	{
 		m_bIsMovable = !m_bIsFrozen;

@@ -1219,7 +1219,7 @@ void CSimBox::EvolveP()
 }
 
 
-void CSimBox::EvolveFast()
+void CSimBox::EvolveFast(unsigned nSteps)
 {
 	#if ( (SimDimension!=3)  \
 		|| (EnableStressTensorSphere == SimMiscEnabled) \
@@ -1258,28 +1258,31 @@ void CSimBox::EvolveFast()
 
 	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
 	{
-		(*iterCell)->UpdatePosFast();
-	} 
+		(*iterCell)->UpdateMomFastReverse();
+	}
 
-	// Next calculate the forces between all pairs of beads in NN CNT cells
-	// that can potentially interact. No monitor accumulations are performed.
+	for(unsigned i=0; i<nSteps; i++){
 
-	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
-	{
-		(*iterCell)->UpdateForceFast();
-	} 
+		for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
+		{
+			(*iterCell)->UpdateMomThenPosFast();
+		} 
 
-	// Add in the forces between bonded beads and the stiff bond force. Note that
-	// AddBondPairForces() must be called after AddBondForces() because it relies
-	// on the bond lengths having already been calculated in CBond::AddForce().
+		// Next calculate the forces between all pairs of beads in NN CNT cells
+		// that can potentially interact. No monitor accumulations are performed.
 
-	AddBondForces();
-	AddBondPairForces();
+		for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
+		{
+			(*iterCell)->UpdateForceFast();
+		} 
 
-	// Finally update the velocities of the beads using the old and new values for
-	// the forces. Note that even simulation types (such as Brownian Dynamics) that
-    // do not use the bead velocities need to call this function as it calls the
-    // SetMovable() function for each bead when it moves from one cell to another.
+		// Add in the forces between bonded beads and the stiff bond force. Note that
+		// AddBondPairForces() must be called after AddBondForces() because it relies
+		// on the bond lengths having already been calculated in CBond::AddForce().
+
+		AddBondForces();
+		AddBondPairForces();
+	}
 
 	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
 	{
@@ -1426,10 +1429,8 @@ void CSimBox::Run()
 
 			if(fastSteps > 0){
 				fprintf(stderr, "Fast stepping from %ld to %ld\n", m_SimTime, m_SimTime+fastSteps);
-				for(int i=0; i<fastSteps; i++){
-					EvolveFast();
-					m_SimTime ++;
-				}
+				EvolveFast(fastSteps);
+				m_SimTime += fastSteps;
 			}else{
 				fprintf(stderr, "Slow step at %ld : mon=%d, feat=%d, targ=%d, nextObs=%ld\n", m_SimTime, is_monitor_active, are_features_active, are_features_active, GetNextObservationTime());
 

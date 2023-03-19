@@ -656,7 +656,7 @@ private:
     // Functions to evolve a parallel simulation
     void EvolveP();
 
-	void EvolveFast();	// Fast evolution when there is no monitoring active
+	void EvolveFast(unsigned numSteps);	// Fast evolution when there is no monitoring active
 
 
 private:

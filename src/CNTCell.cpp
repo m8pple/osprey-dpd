@@ -1599,6 +1599,8 @@ void CCNTCell::UpdateForceFast()
 		return;
 	}
 
+	m_aIntNNCells[0]->PrefetchHint();
+
     // DPD and MD equations of motion
 
 	AbstractBeadVectorIterator iterBead1;
@@ -1693,6 +1695,10 @@ void CCNTCell::UpdateForceFast()
 
 	for( int i=0; i<13; i++ )
 	{	
+		if(i<12){
+			m_aIntNNCells[i+1]->PrefetchHint();
+		}
+
 		bool both_external = m_bExternal && m_aIntNNCells[i]->IsExternal();
 
 		iterBead2=m_aIntNNCells[i]->m_lBeads.begin();

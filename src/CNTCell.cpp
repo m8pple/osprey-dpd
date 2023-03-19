@@ -2464,6 +2464,13 @@ void CCNTCell::UpdatePos()
 
 void CCNTCell::UpdatePosFast()
 {
+	#ifndef NDEBUG
+	if(m_lambda!=0.5){
+		ErrorTrace("Attempt to call UpdatePosFast with lambda!=0.5");
+		exit(1);
+	}
+	#endif
+
 	enum DirIndex : char{
 		UTR = 26,
 		DTR = 8,
@@ -2522,15 +2529,12 @@ void CCNTCell::UpdatePosFast()
 		// DPD and MD simulations
 		// Store current values of position, velocity and force for later use
 
-		// We do not write to m_oldPos, as it is not needed in fast path (causes extra memory traffic)
-
-		bead->m_oldMom[0] = bead->m_Mom[0];
-		bead->m_oldMom[1] = bead->m_Mom[1];
-		bead->m_oldMom[2] = bead->m_Mom[2];
-
-		bead->m_oldForce[0] = bead->m_Force[0];
-		bead->m_oldForce[1] = bead->m_Force[1];
-		bead->m_oldForce[2] = bead->m_Force[2];
+		// We do not write to m_oldPos, m_oldMom, or m_oldForce, as it is not needed in fast path (causes extra memory traffic)
+#ifndef NDEBUG
+		bead->m_oldPos[0] = nanf("");
+		bead->m_oldMom[0] = nanf("");
+		bead->m_oldForce[0] = nanf("");
+#endif		
 
 		// Update position coordinates
 
@@ -2557,9 +2561,11 @@ void CCNTCell::UpdatePosFast()
 
 		// Update intermediate velocity
 
-		bead->m_Mom[0] = bead->m_oldMom[0] + m_lamdt*bead->m_oldForce[0];
-		bead->m_Mom[1] = bead->m_oldMom[1] + m_lamdt*bead->m_oldForce[1];
-		bead->m_Mom[2] = bead->m_oldMom[2] + m_lamdt*bead->m_oldForce[2];
+		// We know that lambda=0.5 for fast path
+		assert(m_lamdt == m_halfdt);
+		bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt*bead->m_Force[0];
+		bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt*bead->m_Force[1];
+		bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt*bead->m_Force[2];
 
 		// Zero current force on beads so that UpdateForce() just has to form
 		// a sum of all bead-bead interactions
@@ -2696,6 +2702,64 @@ void CCNTCell::UpdateMom()
 										  (*iterBead)->m_Pos[1]*(*iterBead)->m_Mom[0];
 		}
 #endif
+	}
+}
+
+void CCNTCell::UpdateMomFastReverse()
+{
+	#if SimIdentifier == BD
+	ErrorTrace("Attempt to call UpdateMomFast with DB");
+	exit(1);
+	#endif
+	#ifndef NDEBUG
+	if(m_lambda!=0.5){
+		ErrorTrace("Attempt to call UpdateMomFast with lambda!=0.5");
+		exit(1);
+	}
+	#endif
+	
+	for( AbstractBeadVectorIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++ )
+	{
+		if((*iterBead)->SetMovable())	// flag ignored by immovable beads
+		{
+			// We have already updated m_Mom to m_oldMom + m_halfdt * m_oldForce
+			(*iterBead)->m_Mom[0] -= m_halfdt * (*iterBead)->m_Force[0] ;
+			(*iterBead)->m_Mom[1] -= m_halfdt* (*iterBead)->m_Force[1];
+			(*iterBead)->m_Mom[2] -= m_halfdt * (*iterBead)->m_Force[2];		
+
+#ifndef NDEBUG
+			(*iterBead)->m_AngMom[0]	= nanf(""); // angular momentum not updated for fast path
+#endif
+		}
+	}
+}
+
+void CCNTCell::UpdateMomFast()
+{
+	#if SimIdentifier == BD
+	ErrorTrace("Attempt to call UpdateMomFast with DB");
+	exit(1);
+	#endif
+	#ifndef NDEBUG
+	if(m_lambda!=0.5){
+		ErrorTrace("Attempt to call UpdateMomFast with lambda!=0.5");
+		exit(1);
+	}
+	#endif
+	
+	for( AbstractBeadVectorIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++ )
+	{
+		if((*iterBead)->SetMovable())	// flag ignored by immovable beads
+		{
+			// We have already updated m_Mom to m_oldMom + m_halfdt * m_oldForce
+			(*iterBead)->m_Mom[0] = (*iterBead)->m_Mom[0] + m_halfdt * (*iterBead)->m_Force[0] ;
+			(*iterBead)->m_Mom[1] = (*iterBead)->m_Mom[1] + m_halfdt* (*iterBead)->m_Force[1];
+			(*iterBead)->m_Mom[2] = (*iterBead)->m_Mom[2] + m_halfdt * (*iterBead)->m_Force[2];		
+
+#ifndef NDEBUG
+			(*iterBead)->m_AngMom[0]	= nanf(""); // angular momentum not updated for fast path
+#endif
+		}
 	}
 }
 
@@ -3020,6 +3084,12 @@ const zString CCNTCell::GetRandomAlphabeticString(long size)
     }
 
     return rstring;
+}
+
+// Allows access to the global value of lambda
+double CCNTCell::GetLambda()
+{
+	return m_lambda;
 }
 
 // Function to check that all the beads in the current CNTCell have coordinates

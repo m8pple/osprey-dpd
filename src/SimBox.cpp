@@ -1283,7 +1283,7 @@ void CSimBox::EvolveFast()
 
 	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
 	{
-		(*iterCell)->UpdateMom();
+		(*iterCell)->UpdateMomFast();
 	} 
 }
 
@@ -1397,6 +1397,7 @@ void CSimBox::Run()
 			bool is_monitor_active = TimeToSample() || TimeToDisplay() || TimeToRestart();
 			bool are_features_active = IsEnergyOutputOn() || IsBeadChargeOn() || IsGravityOn() || IsRenormalisationOn();
 			are_features_active |= (IsActiveBondsOn() && m_pShadow && m_pShadow->IsAnyACNPresent());
+			are_features_active |= CCNTCell::GetLambda() != 0.5;
 			bool are_targets_active = !m_ActiveCommandTargets.empty() || !m_ActiveForceTargets.empty();
 			bool something_slow_active = is_non_fast_compile || is_monitor_active || are_features_active || are_targets_active;
 

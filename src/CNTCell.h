@@ -48,6 +48,7 @@ public:
 	static double Randf();
 	static double Gasdev();
 	static double Expdev();
+	static double GetLambda();
 
 	static const zString GetRandomString();
 	static const zString GetRandomString(const zString prefix, const zString separator);
@@ -137,6 +138,7 @@ public:
 	// Fast version of updating function that doesn't calculate stress
 	void UpdateForceFast();
 	void UpdatePosFast();
+	void UpdateMomFast();
 
     // Alternative force calculation to include the DPD density-dependent force.
 

@@ -15,6 +15,7 @@ class mpsBorder;
 
 
 #include "AbstractCell.h"
+#include "AbstractBead.h"
 
 class CCNTCell : public CAbstractCell  
 {
@@ -160,6 +161,13 @@ public:
 	void SetNNCellIndex(long index, CCNTCell* pCell);
 	void SetIntNNCellIndex(long index, CCNTCell* pCell);
 	bool CheckBeadsinCell();
+
+	void PrefetchHint()
+	{
+		for(unsigned i=0; i<m_lBeads.size(); i++){
+			m_lBeads[i]->PrefetchHint();
+		}
+	}
 
 	// ****************************************
 	// Protected local functions

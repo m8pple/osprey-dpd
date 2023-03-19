@@ -1263,18 +1263,36 @@ void CSimBox::EvolveFast(unsigned nSteps)
 
 	for(unsigned i=0; i<nSteps; i++){
 
-		for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
-		{
-			(*iterCell)->UpdateMomThenPosFast();
-		} 
+		iterCell = m_vCNTCells.begin();
+		(*iterCell)->PrefetchHint();
+
+		while(iterCell != m_vCNTCells.end()){
+			auto curr=*iterCell;
+
+			++iterCell;
+			if(iterCell!=m_vCNTCells.end()){
+				(*iterCell)->PrefetchHint();
+			}
+
+			curr->UpdateMomThenPosFast();
+		}
 
 		// Next calculate the forces between all pairs of beads in NN CNT cells
 		// that can potentially interact. No monitor accumulations are performed.
 
-		for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
-		{
-			(*iterCell)->UpdateForceFast();
-		} 
+		iterCell = m_vCNTCells.begin();
+		(*iterCell)->PrefetchHint();
+
+		while(iterCell != m_vCNTCells.end()){
+			auto curr=*iterCell;
+
+			++iterCell;
+			if(iterCell!=m_vCNTCells.end()){
+				(*iterCell)->PrefetchHint();
+			}
+
+			curr->UpdateForceFast();
+		}
 
 		// Add in the forces between bonded beads and the stiff bond force. Note that
 		// AddBondPairForces() must be called after AddBondForces() because it relies

@@ -216,11 +216,32 @@ public:
 
 	// PVFs to force derived classes to implement beads' ability to move and be frozen
 
-	virtual bool  SetMovable()		= 0;	// must be provided by derived classes
-	virtual bool  SetNotMovable()	= 0;	// must be provided by derived classes
 	virtual bool  SetFrozen()		= 0;	// must be provided by derived classes
 	virtual bool  SetNotFrozen()	= 0;	// must be provided by derived classes
 
+	// Functions used in the integration loop to indicate if a bead has already had
+	// its position updated. This prevents CCNTCell::UpdatePos() from moving a bead 
+	// twice if it crosses a CNT cell boundary and is added to a new cell's bead list.
+	// They return the current state of the bead's m_bIsMovable flag so that a calling
+	// routine can alter the state and see the new value with a single function call.
+	//
+	// Beads that have been frozen are prevented from being made movable because the
+	// m_bIsFrozen flag overrides the m_bIsMovable flag. 
+	// Previously these were virtual functions, with specific overloads in CBead,
+	// CInclusiveBead and CWallBead, but they can all safely use this inlineable version.
+	bool SetMovable()
+	{
+		m_bIsMovable = !m_bIsFrozen;
+
+		return m_bIsMovable;
+	}
+
+	bool SetNotMovable()
+	{
+		m_bIsMovable = false;
+
+		return m_bIsMovable;
+	}
 protected:
 
 	long m_id;				// member variable order here sets order of initialisation

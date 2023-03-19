@@ -67,15 +67,24 @@ CWallBead::~CWallBead()
 // Function that must be provided by all CAbstractBead-derived classes, but which
 // does nothing for wall beads as they are not allowed to move.
 
+/*
+These have both been lifted to CAbstractBead to enable inlining.
+Because m_bIsFrozen is always true for this class the default
+CAbstractBead implementation works:
+>  m_bIsMovable = !m_bIsFrozen;
+>  return m_bIsMovable;
+
 bool CWallBead::SetMovable()
 {
 	return m_bIsMovable;
 }
 
+
 bool CWallBead::SetNotMovable()
 {
 	return m_bIsMovable;
 }
+*/
 
 // Function that must be provided by all CAbstractBead-derived classes. Normally,
 // this does nothing because wall beads should not move anyway, but in the future

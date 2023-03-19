@@ -99,31 +99,6 @@ CBead::CBead(const CBead &oldBead) : CAbstractBead(oldBead)
 //	}
 }
 
-// Functions used in the integration loop to indicate if a bead has already had
-// its position updated. This prevents CCNTCell::UpdatePos() from moving a bead 
-// twice if it crosses a CNT cell boundary and is added to a new cell's bead list.
-// They return the current state of the bead's m_bIsMovable flag so that a calling
-// routine can alter the state and see the new value with a single function call.
-//
-// The implementations of these function are particular to each class derived from
-// CAbstractBead to allow special bead types, such as CWallBead, to prevent their
-// instances from moving at all. Beads that have been frozen are prevented from
-// being made movable because the m_bIsFrozen flag overrides the m_bIsMovable flag. 
-//
-
-bool CBead::SetMovable()
-{
-	m_bIsMovable = !m_bIsFrozen;
-
-	return m_bIsMovable;
-}
-
-bool CBead::SetNotMovable()
-{
-	m_bIsMovable = false;
-
-	return m_bIsMovable;
-}
 
 // Function used to freeze beads in place. This sets the bead's m_bIsMovable flag 
 // to false so that it cannot be reset within the integration loop until a call 

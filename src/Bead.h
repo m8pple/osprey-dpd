@@ -36,11 +36,12 @@ public:
 	friend bool operator <( const CBead &a, const CBead &b);
 	friend bool operator ==(const CBead &a, const CBead &b);
 
-	virtual bool SetMovable();
-	virtual bool SetNotMovable();
 	virtual bool SetFrozen();
 	virtual bool SetNotFrozen();
 
+	// Now provided by CAbstractBead
+	// virtual bool SetNotMovable();
+	// virtual bool SetMovable();
 private:
 
 };

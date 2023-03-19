@@ -33,21 +33,6 @@ CInclusionBead::~CInclusionBead()
 
 }
 
-bool CInclusionBead::SetMovable()
-{
-	m_bIsMovable = false;
-
-	return m_bIsMovable;
-}
-
-bool CInclusionBead::SetNotMovable()
-{
-	m_bIsMovable = false;
-
-	return m_bIsMovable;
-}
-
-
 bool CInclusionBead::SetFrozen()
 {
 	m_bIsMovable	= false;

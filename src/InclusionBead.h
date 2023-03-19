@@ -15,11 +15,12 @@ class CInclusionBead : public CAbstractBead
 public:
 	virtual ~CInclusionBead();
 
-	virtual bool SetMovable();
-	virtual bool SetNotMovable();
 	virtual bool SetFrozen();
 	virtual bool SetNotFrozen();
 
+	// Now provided by CAbstractBead
+	// virtual bool SetNotMovable();
+	// virtual bool SetMovable();
 protected:
 	CInclusionBead();
 

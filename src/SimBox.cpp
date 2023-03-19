@@ -1258,7 +1258,7 @@ void CSimBox::EvolveFast()
 
 	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
 	{
-		(*iterCell)->UpdatePos();
+		(*iterCell)->UpdatePosFast();
 	} 
 
 	// Next calculate the forces between all pairs of beads in NN CNT cells

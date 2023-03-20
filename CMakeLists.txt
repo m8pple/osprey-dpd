@@ -41,11 +41,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # cheating until source file count goes down
 file(GLOB SRC_FILES src/*.cpp)
-add_executable(dpd ${SRC_FILES})
 
+add_executable(dpd ${SRC_FILES})
 target_compile_options(dpd
   PRIVATE ${COMPILE_OPTIONS}
 )
+# These get a good boost, and should be portable. fast-math appears fine in the 
+# context of commands I've tried, but there may be parts where it doesn't work.
+# AFAICT nothing in osprey depends on errno, or has very sensitive ordering.
+target_compile_options(dpd PRIVATE -march=native -fomit-frame-pointer -ffast-math)
+target_link_options(dpd PRIVATE -march=native -fomit-frame-pointer -ffast-math)
+
 
 add_executable(dpd-bd ${SRC_FILES})
 target_compile_options(dpd-bd

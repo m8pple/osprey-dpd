@@ -47,6 +47,7 @@ public:
 	static double GetExponentialRandomNo();
 	static double GetGaussRandomNo();
 	static double Randf();
+	static double RandUnifScaled(double i31_to_r_scale); // Returns u * i31_to_r_scale, where u is a random number in [-2^31,2^31)
 	static double Gasdev();
 	static double Expdev();
 	static double GetLambda();

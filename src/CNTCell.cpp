@@ -1573,6 +1573,8 @@ void CCNTCell::UpdateForce()
 #endif
 }
 
+//#pragma GCC push_options
+//#pragma GCC optimize("fast-math")
 void CCNTCell::UpdateForceFast()
 {
 	#if (SimDimension!=3)
@@ -1600,6 +1602,8 @@ void CCNTCell::UpdateForceFast()
 	}
 
 	m_aIntNNCells[0]->PrefetchHint();
+
+	double rng_scale =  CCNTCell::m_invrootdt * CCNTCell::m_Inv2Power32;
 
     // DPD and MD equations of motion
 
@@ -1670,7 +1674,7 @@ void CCNTCell::UpdateForceFast()
 				gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
 
 				dissForce	= -gammap*rdotv;				
-				randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+				randForce	= sqrt(gammap)*RandUnifScaled(rng_scale);
 				normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
 				for(int d=0; d<3; d++){
@@ -1750,8 +1754,8 @@ void CCNTCell::UpdateForceFast()
 					rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2]) * inv_dr;
 					gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
 
-					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					dissForce	= -gammap*rdotv;		
+					randForce	= sqrt(gammap)*RandUnifScaled(rng_scale);
 					normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
 					for(int d=0; d<3; d++){
@@ -1771,6 +1775,7 @@ void CCNTCell::UpdateForceFast()
 	
     mpsSimBox::GlobalCellCellIntCounter += localCellCellCounter;
 }
+//#pragma GCC pop_options
 
 // Function to update the position and intermediate velocity of the beads 
 // from the old values for position, velocity and force. 
@@ -3119,6 +3124,14 @@ double CCNTCell::GetExternalRandomNumber()
 double CCNTCell::Randf()
 {
     return static_cast<double>(CCNTCell::lcg(CCNTCell::m_RNGSeed))*CCNTCell::m_Inv2Power32;
+}
+
+double CCNTCell::RandUnifScaled(double i31_to_r_scale)
+{
+    int32_t i31;
+	uint32_t u32=lcg(m_RNGSeed);
+	memcpy(&i31, &u32, 4); // Avoid undefined behaviour. Gets number in range [-2^31,2^31)
+	return i31 * i31_to_r_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
 }
 
 // Private static helper function for the lcg RNG

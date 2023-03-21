@@ -1019,7 +1019,10 @@ bool CInputDPDFile::Serialize()
 								}
 								else
 								{
-                                    const zString errMsg = "Error reading Command name/time: " + commandName + " " + ToString(executionTime);
+									zString errMsg = "Error reading Command name/time: " + commandName + " " + ToString(executionTime);
+									if( executionTime < lastExecutionTime ){
+										errMsg += ", execution time is before lastExecutionTime="+ToString(lastExecutionTime)+" but command times must be ordered.";	
+									}
 									return IOError(errMsg);
 								}
 								token = "";

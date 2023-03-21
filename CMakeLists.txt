@@ -40,7 +40,33 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # cheating until source file count goes down
-file(GLOB SRC_FILES src/*.cpp)
+file(GLOB SRC_FILES src/*.cpp src/*/*.cpp)
+
+INCLUDE_DIRECTORIES(
+  src
+  src/aa
+  src/ac
+  src/acf
+  src/ae
+  src/aev 
+  src/cc
+  src/cgc
+  src/cgt
+  src/ct
+  src/ep_protocols
+  src/et_tools
+  src/ev_events
+  src/interfaces
+  src/log
+  src/mc_monitor_cmds
+  src/mp_parallel 
+  src/pc 
+  src/pm
+  src/pr_processes
+  src/ta_decorators
+  src/tgu
+)
+
 
 add_executable(dpd ${SRC_FILES})
 target_compile_options(dpd

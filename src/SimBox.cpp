@@ -16,6 +16,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 //////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
+
+#include "ISimEngine.h"
+
 #include "SimDefs.h"
 #include "ExperimentDefs.h"
 #include "SimMathFlags.h"
@@ -28,6 +31,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "IModifySimStateBondTypes.h"
 #include "IModifySimStateIntegration.h"
 #include "IModifySimStatePolymers.h"
+
 
 #include <cassert>
 
@@ -1446,8 +1450,16 @@ void CSimBox::Run()
 			}
 
 			if(fastSteps > 0){
-				fprintf(stderr, "Fast stepping from %ld to %ld\n", m_SimTime, m_SimTime+fastSteps);
-				EvolveFast(fastSteps);
+				auto engine=ISimEngine::GetGlobalEngine();
+				ISimBox *box=const_cast<ISimBox*>(GetISimBox());
+				if(engine && engine->CanSupport(box).empty()){
+					fprintf(stderr, "Fast stepping from %ld to %ld with engine %s\n", m_SimTime, m_SimTime+fastSteps, engine->Name().c_str());
+					bool modified=true; // TODO : detect when sim box has been modified
+					engine->Run(box, modified, fastSteps);
+				}else{
+					fprintf(stderr, "Fast stepping from %ld to %ld with EvolveFast\n", m_SimTime, m_SimTime+fastSteps);
+					EvolveFast(fastSteps);
+				}
 				m_SimTime += fastSteps;
 			}else{
 				fprintf(stderr, "Slow step at %ld : mon=%d, feat=%d, targ=%d, nextObs=%ld\n", m_SimTime, is_monitor_active, are_features_active, are_features_active, GetNextObservationTime());
@@ -6331,8 +6343,10 @@ bool CSimBox::MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, doub
 		    pBead->SetYPos(y);
 		    pBead->SetZPos(z);
 		
-            m_vCNTCells[oldIndex]->RemoveBeadFromCell(pBead);
-            m_vCNTCells[newIndex]->AddBeadtoCell(pBead);
+			if(oldIndex != newIndex){
+	            m_vCNTCells[oldIndex]->RemoveBeadFromCell(pBead);
+    	        m_vCNTCells[newIndex]->AddBeadtoCell(pBead);
+			}
         }
         else
         {

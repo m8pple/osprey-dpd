@@ -193,6 +193,39 @@ bool xxBase::ErrorTrace(zString errStr) const
 	return false;
 }
 
+void xxBase::FatalTrace(zString errStr) const
+{
+	ErrorTrace(errStr);
+#if SimMPS == SimulationEnabled
+	int errCode = 1;
+	MPI_Abort(MPI_COMM_WORLD, errCode);
+#endif
+	exit(1);
+}
+
+void xxBase::FatalTraceGlobal(zString errStr)
+{
+#if SimMPS == SimulationDisabled
+
+	if(IGlobalSimBox::Instance())
+	{
+		new CLogSimErrorTrace(IGlobalSimBox::Instance()->GetCurrentTime(), errStr);
+    }
+	else
+	{
+		std::cout<<"\n"<<(errStr)<<std::endl;
+	}
+
+#endif
+
+#if SimMPS == SimulationEnabled
+	int errCode = 1;
+	MPI_Abort(MPI_COMM_WORLD, errCode);
+#endif
+	exit(1);
+}
+
+
 // General function for writing out informational messages for all classes that 
 // inherit from xxBase. If the IGlobalSimBox() instance is non-null we get 
 // the current time and log an information message. If the instance is null, 

@@ -285,7 +285,8 @@ class xxProcessObject;
 
 	// Macros needed for STL types
 
-	#define size_type						long
+	// This avoids problems if including STL containers after including xxBa
+	typedef long size_type;
 
 	// **********************************************************************
 	// class xxBasevector
@@ -308,6 +309,15 @@ class xxProcessObject;
 		xxBasevector(size_type num, const T& val=T()) : std::vector<T>(num,val){}
 		xxBasevector(const xxBasevector& oldVec) : std::vector<T>(oldVec){}
 		~xxBasevector(){}
+
+		// Avoid -Wdeprecated warnings.
+		xxBasevector &operator=(const xxBasevector &ov)
+		{
+			if(this != &ov){
+				std::vector<T>::assign(ov.begin(), ov.end());
+			}
+			return *this;
+		}
 
 //		inline T& at(size_type i)             {return (*(begin() + i)); }
 //		inline const T& at(size_type i) const {return (*(begin() + i)); }
@@ -1695,8 +1705,23 @@ public:
 	zString ToString(long x) const;
 	zString ToString(double x) const;
 
-protected:
+	// Made this public so that helper functions and classes can print error
+	// messages on the behalf of other objects that inherit from xxBase.
 	virtual bool ErrorTrace(zString errStr) const;
+
+	/* This function is for errors that occur within helper functions and classes
+		where there is no feasible approach to carry on. The existing approach
+		of returning a bool all the way back through the call stack doesn't work
+		well there, so this method will try to print a message and then just 
+		wind up the process with exit.
+	*/
+	virtual void FatalTrace(zString errStr) const;
+
+	/* Version of FatalTrace for when we don't have an active xxState object. */
+	static void FatalTraceGlobal(zString errStr);
+
+
+protected:
 	virtual void TraceEndl() const;
 	virtual void Trace(zString msgStr) const;
 	virtual void TraceStringNoEndl(zString msgStr) const;

@@ -51,6 +51,7 @@ public:
 	static double Gasdev();
 	static double Expdev();
 	static double GetLambda();
+	static double GetKt();
 
 	static const zString GetRandomString();
 	static const zString GetRandomString(const zString prefix, const zString separator);

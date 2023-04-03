@@ -3306,6 +3306,12 @@ double CCNTCell::GetLambda()
 	return m_lambda;
 }
 
+// Allows access to global value of Kt
+double CCNTCell::GetKt()
+{
+	return m_kT;
+}
+
 // Function to check that all the beads in the current CNTCell have coordinates
 // within the cell's boundaries.
 

@@ -28,6 +28,8 @@ public:
 	inline long    GetSecondIndex()	const {return m_SecondBondIndex;} 
 	inline CBond*  GetFirst()		const {return m_pFirst;}
 	inline CBond*  GetSecond()		const {return m_pSecond;}
+	inline double  GetCosPhi0()		const {return m_CosPhi0;}
+	inline double  GetSinPhi0()		const {return m_SinPhi0;}
 
 	inline double  GetP2()			const {return m_P2;}
 	inline double  GetFirstLength()	const {return m_FirstLength;}

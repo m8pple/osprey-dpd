@@ -56,6 +56,10 @@ private:
 
 	bool CheckBeadWithinBox(long id, long type, double& xp, double& yp, double& zp);
 
+	template<class TDst>
+	bool SerializeWriteImpl(TDst &dst);
+
+
 	// ****************************************
 	// Data members
 private:

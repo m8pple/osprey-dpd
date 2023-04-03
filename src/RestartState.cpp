@@ -25,6 +25,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "LogRestartStateBuilderError.h"  
 #include "LogRestartStateBuilderWarning.h" 
 
+#include "FastOstream.h"
+
 
 // **********************************************************************
 // Global Functions.
@@ -94,6 +96,117 @@ bool CRestartState::AreWarningMessagesLogged() const
 	return m_bLogWarningMessages;
 }
 
+
+
+template<class TDst>
+bool CRestartState::SerializeWriteImpl(TDst &outStream)
+{
+	// To avoid beads that are very close to the SimBox boundaries having
+	// their coordinates read in as if they were on the boundary we check
+	// all beads and translate them to the origin if one of their coordinates
+	// is within a certain epsilon of a boundary. We don't have to do this
+	// for wall head beads as their coordinates do not change during a simulation
+	// and they are assigned safe values in CBuilder::AssignWallBeadCoords().
+	// Note that we cannot move the unPBC coordinates because beads joined
+	// into polymers use these to calculate the bond lengths and forces and
+	// this calculation is screwed up unless all beads in a polymer have
+	// unPBC coordinates that are in the same box image.
+
+//		m_outStream.precision(8);
+
+	double xp[3];
+
+	for(cPolymerVectorIterator iterPoly=m_riState.GetPolymers().begin(); iterPoly!=m_riState.GetPolymers().end(); iterPoly++ )
+	{
+		for(cBeadVectorIterator iterBead=(*iterPoly)->GetBeads().begin(); iterBead!=(*iterPoly)->GetBeads().end(); iterBead++)
+		{
+			xp[0] = (*iterBead)->GetXPos();
+			xp[1] = (*iterBead)->GetYPos();
+			xp[2] = (*iterBead)->GetZPos();
+
+			// Check for beads with coordinates outside the SimBox, and log an
+			// error message and stop the run if any are found. Also check for 
+			// beads that have coordinates that are closer than m_CoordErrorLimit 
+			// to the boundaries and log a warning message and shift them to the
+			// them to the origin. The run continues in this case.
+
+			if(CheckBeadWithinBox((*iterBead)->GetId(), (*iterBead)->GetType(), xp[0], xp[1], xp[2]))
+			{
+				outStream << (*iterPoly)->GetId()			<< ' ' << (*iterPoly)->GetType()		<< ' ';
+				outStream << (*iterBead)->GetId()			<< ' ' << (*iterBead)->GetType()		<< ' ';
+				double radius=(*iterBead)->GetRadius();
+				if(radius==0.5){
+					outStream << '0'<<'.'<<'5'; // Extremely common, and avoids printing over-precision values of 0.5
+				}else{
+					outStream << (*iterBead)->GetRadius()		<< ' ';
+				}
+				outStream << xp[0]						<< ' ' << xp[1]							<< ' ' << xp[2]   << ' ';
+				outStream << (*iterBead)->GetunPBCXPos()  << ' ' << (*iterBead)->GetunPBCYPos()   << ' ' << (*iterBead)->GetunPBCZPos()   << ' ';
+				outStream << (*iterBead)->GetXMom()		<< ' ' << (*iterBead)->GetYMom()		<< ' ' << (*iterBead)->GetZMom()		<< ' ';
+				outStream << (*iterBead)->GetXForce()		<< ' ' << (*iterBead)->GetYForce()		<< ' ' << (*iterBead)->GetZForce()		<< '\n';
+			}
+			else
+			{
+				return ErrorTrace("Bead coordinate error writing restart state");
+			}
+		}
+	}
+
+//		outStream.precision(6);
+
+	// Now the wall polymer bead coordinates. We write the head bead data first and
+	// then the remainder of the polymer's beads. This is because the head bead of a 
+	// wall polymer is not kept in its bead vector, but we need to write it in a 
+	// well-defined order so that we can read it in later. It does not matter what
+	// order we use as long it is written and read consistently.
+	//
+	// We write the data this way rather than use the vAllBeads, vAllBonds vectors 
+	// because we want to identify beads and bonds from their parent polymers,  
+
+	if(m_riState.IsWallPresent())
+	{
+		for(cPolymerVectorIterator iterWallPoly=m_riState.GetWallPolymers().begin(); iterWallPoly!=m_riState.GetWallPolymers().end(); iterWallPoly++ )
+		{
+			// Head bead of wall polymers is fixed in the wall
+
+			CAbstractBead* pHead = (*iterWallPoly)->GetHead();
+
+			outStream << (*iterWallPoly)->GetId()	<< ' ' << (*iterWallPoly)->GetType() << ' ';
+			outStream << pHead->GetId()			<< ' ' << pHead->GetType()			 << ' ';
+			outStream << pHead->GetRadius()		<< ' ';
+			outStream << pHead->GetXPos()			<< ' ' << pHead->GetYPos()			 << ' ' << pHead->GetZPos()   << ' ';
+			outStream << pHead->GetunPBCXPos()    << ' ' << pHead->GetunPBCYPos()      << ' ' << pHead->GetunPBCZPos()   << ' ';
+			outStream << pHead->GetXMom()			<< ' ' << pHead->GetYMom()			 << ' ' << pHead->GetZMom()   << ' ';
+			outStream << pHead->GetXForce()		<< ' ' << pHead->GetYForce()		 << ' ' << pHead->GetZForce() << '\n';
+			
+			// The next loop is skipped if the wall polymers consist of a single bead
+
+			for(cBeadVectorIterator iterBead=(*iterWallPoly)->GetBeads().begin(); iterBead!=(*iterWallPoly)->GetBeads().end(); iterBead++)
+			{
+				xp[0] = (*iterBead)->GetXPos();
+				xp[1] = (*iterBead)->GetYPos();
+				xp[2] = (*iterBead)->GetZPos();
+
+				if(CheckBeadWithinBox((*iterBead)->GetId(), (*iterBead)->GetType(), xp[0], xp[1], xp[2]))
+				{
+					outStream << (*iterWallPoly)->GetId()		<< ' ' << (*iterWallPoly)->GetType()	<< ' ';
+					outStream << (*iterBead)->GetId()			<< ' ' << (*iterBead)->GetType()		<< ' ';
+					outStream << (*iterBead)->GetRadius()		<< ' ';
+					outStream << xp[0]						<< ' ' << xp[1]							<< ' ' << xp[2]   << ' ';
+					outStream << (*iterBead)->GetunPBCXPos()  << ' ' << (*iterBead)->GetunPBCYPos()   << ' ' << (*iterBead)->GetunPBCZPos()   << ' ';
+					outStream << (*iterBead)->GetXMom()		<< ' ' << (*iterBead)->GetYMom()		<< ' ' << (*iterBead)->GetZMom()		<< ' ';
+					outStream << (*iterBead)->GetXForce()		<< ' ' << (*iterBead)->GetYForce()		<< ' ' << (*iterBead)->GetZForce()		<< '\n';
+				}
+				else
+				{
+					return ErrorTrace("Wall bead coordinate error writing restart state");
+				}
+			}
+		}
+	}
+	return true;
+}
+
 // Function to read/write the bead coordinate data and other information from a 
 // previously-saved CRestartState. 
 
@@ -115,105 +228,17 @@ bool CRestartState::Serialize()
 		m_outStream << m_riState.IsShearPresent()   << zEndl;
 
 		// Next write out the bulk polymers' bead coordinates.
-
-		// To avoid beads that are very close to the SimBox boundaries having
-		// their coordinates read in as if they were on the boundary we check
-		// all beads and translate them to the origin if one of their coordinates
-		// is within a certain epsilon of a boundary. We don't have to do this
-		// for wall head beads as their coordinates do not change during a simulation
-		// and they are assigned safe values in CBuilder::AssignWallBeadCoords().
-		// Note that we cannot move the unPBC coordinates because beads joined
-		// into polymers use these to calculate the bond lengths and forces and
-		// this calculation is screwed up unless all beads in a polymer have
-		// unPBC coordinates that are in the same box image.
-
-//		m_outStream.precision(8);
-
-		double xp[3];
-
-		for(cPolymerVectorIterator iterPoly=m_riState.GetPolymers().begin(); iterPoly!=m_riState.GetPolymers().end(); iterPoly++ )
-		{
-			for(cBeadVectorIterator iterBead=(*iterPoly)->GetBeads().begin(); iterBead!=(*iterPoly)->GetBeads().end(); iterBead++)
-			{
-				xp[0] = (*iterBead)->GetXPos();
-				xp[1] = (*iterBead)->GetYPos();
-				xp[2] = (*iterBead)->GetZPos();
-
-				// Check for beads with coordinates outside the SimBox, and log an
-                // error message and stop the run if any are found. Also check for 
-                // beads that have coordinates that are closer than m_CoordErrorLimit 
-                // to the boundaries and log a warning message and shift them to the
-                // them to the origin. The run continues in this case.
-
-                if(CheckBeadWithinBox((*iterBead)->GetId(), (*iterBead)->GetType(), xp[0], xp[1], xp[2]))
-                {
-				    m_outStream << (*iterPoly)->GetId()			<< " " << (*iterPoly)->GetType()		<< " ";
-				    m_outStream << (*iterBead)->GetId()			<< " " << (*iterBead)->GetType()		<< " ";
-				    m_outStream << (*iterBead)->GetRadius()		<< " ";
-				    m_outStream << xp[0]						<< " " << xp[1]							<< " " << xp[2]   << " ";
-				    m_outStream << (*iterBead)->GetunPBCXPos()  << " " << (*iterBead)->GetunPBCYPos()   << " " << (*iterBead)->GetunPBCZPos()   << " ";
-				    m_outStream << (*iterBead)->GetXMom()		<< " " << (*iterBead)->GetYMom()		<< " " << (*iterBead)->GetZMom()		<< " ";
-				    m_outStream << (*iterBead)->GetXForce()		<< " " << (*iterBead)->GetYForce()		<< " " << (*iterBead)->GetZForce()		<< zEndl;
-                }
-                else
-                {
-		            return ErrorTrace("Bead coordinate error writing restart state");
-                }
+		if(0){
+			if(!SerializeWriteImpl(m_outStream)){
+				return false;
+			}
+		}else{
+			FastOstream fst(this, m_outStream);
+			if(!SerializeWriteImpl(fst)){
+				return false;
 			}
 		}
-
-//		m_outStream.precision(6);
-
-		// Now the wall polymer bead coordinates. We write the head bead data first and
-		// then the remainder of the polymer's beads. This is because the head bead of a 
-		// wall polymer is not kept in its bead vector, but we need to write it in a 
-		// well-defined order so that we can read it in later. It does not matter what
-		// order we use as long it is written and read consistently.
-		//
-		// We write the data this way rather than use the vAllBeads, vAllBonds vectors 
-		// because we want to identify beads and bonds from their parent polymers,  
-
-		if(m_riState.IsWallPresent())
-		{
-			for(cPolymerVectorIterator iterWallPoly=m_riState.GetWallPolymers().begin(); iterWallPoly!=m_riState.GetWallPolymers().end(); iterWallPoly++ )
-			{
-				// Head bead of wall polymers is fixed in the wall
-
-				CAbstractBead* pHead = (*iterWallPoly)->GetHead();
-
-				m_outStream << (*iterWallPoly)->GetId()	<< " " << (*iterWallPoly)->GetType() << " ";
-				m_outStream << pHead->GetId()			<< " " << pHead->GetType()			 << " ";
-				m_outStream << pHead->GetRadius()		<< " ";
-				m_outStream << pHead->GetXPos()			<< " " << pHead->GetYPos()			 << " " << pHead->GetZPos()   << " ";
-				m_outStream << pHead->GetunPBCXPos()    << " " << pHead->GetunPBCYPos()      << " " << pHead->GetunPBCZPos()   << " ";
-				m_outStream << pHead->GetXMom()			<< " " << pHead->GetYMom()			 << " " << pHead->GetZMom()   << " ";
-				m_outStream << pHead->GetXForce()		<< " " << pHead->GetYForce()		 << " " << pHead->GetZForce() << zEndl;
-				
-				// The next loop is skipped if the wall polymers consist of a single bead
-
-				for(cBeadVectorIterator iterBead=(*iterWallPoly)->GetBeads().begin(); iterBead!=(*iterWallPoly)->GetBeads().end(); iterBead++)
-				{
-					xp[0] = (*iterBead)->GetXPos();
-					xp[1] = (*iterBead)->GetYPos();
-					xp[2] = (*iterBead)->GetZPos();
-
-	                if(CheckBeadWithinBox((*iterBead)->GetId(), (*iterBead)->GetType(), xp[0], xp[1], xp[2]))
-                    {
-					    m_outStream << (*iterWallPoly)->GetId()		<< " " << (*iterWallPoly)->GetType()	<< " ";
-				        m_outStream << (*iterBead)->GetId()			<< " " << (*iterBead)->GetType()		<< " ";
-				        m_outStream << (*iterBead)->GetRadius()		<< " ";
-				        m_outStream << xp[0]						<< " " << xp[1]							<< " " << xp[2]   << " ";
-				        m_outStream << (*iterBead)->GetunPBCXPos()  << " " << (*iterBead)->GetunPBCYPos()   << " " << (*iterBead)->GetunPBCZPos()   << " ";
-				        m_outStream << (*iterBead)->GetXMom()		<< " " << (*iterBead)->GetYMom()		<< " " << (*iterBead)->GetZMom()		<< " ";
-				        m_outStream << (*iterBead)->GetXForce()		<< " " << (*iterBead)->GetYForce()		<< " " << (*iterBead)->GetZForce()		<< zEndl;
-                    }
-                    else
-                    {
-		                return ErrorTrace("Wall bead coordinate error writing restart state");
-                    }
-				}
-			}
-		}
+		m_outStream.flush();
 
         // Store the stream position so that other classes can append data if needed
 

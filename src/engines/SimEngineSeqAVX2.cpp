@@ -59,7 +59,7 @@ private:
         return false;
     }
 
-    void calc_forces_avx2(
+    void calc_force_avx2(
         __m256i &rng_state,
 
         unsigned home_count,
@@ -255,7 +255,7 @@ private:
 
         for(unsigned i0=0; i0<home_cell.count-1; i0++){
             for(unsigned i1=i0+1; i1<home_cell.count; i1++){
-                calc_forces( home_cell.local[i0], home_cell.local[i1], home_cell.local[i1].pos );
+                calc_force( home_cell.local[i0], home_cell.local[i1], home_cell.local[i1].pos );
             }
         }
 
@@ -308,7 +308,7 @@ private:
                     }
                 }
 
-                calc_forces_avx2(
+                calc_force_avx2(
                     rng_state_avx2,
                     home_cell.count,
                     home_pos,

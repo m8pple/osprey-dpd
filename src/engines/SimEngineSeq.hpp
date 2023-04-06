@@ -28,6 +28,8 @@
 
 #include "bond_info.hpp"
 
+#include "RNGPolicy.hpp"
+
 static bool require_fail_impl(const char *file, int line, const char *cond)
 {
     fprintf(stderr, "%s:%d: requirement failed : %s\n", file, line, cond);
@@ -45,6 +47,13 @@ static void declare(bool cond)
         __builtin_unreachable();
     }
 }
+
+
+struct EnginePolicyConcept
+{
+    static const RNGPolicy RNG_POLICY = RNGPolicy_Rng_LCG64;
+};
+
 
 
 struct SimEngineSeq
@@ -134,7 +143,8 @@ protected:
         uint32_t bead_id;
         uint8_t type;
         uint8_t frozen;
-        uint32_t _pad_[2];
+        uint32_t per_round_rng; // Only used if hashing RNG policy is used
+        uint32_t _pad_[1];
     };
     static_assert(sizeof(Bead)==4*4*4);
 
@@ -520,10 +530,11 @@ protected:
 	    return i31 * rng_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
     }
 
-    void calc_forces(
+    bool calc_force(
         Bead &home,
         Bead &other,
-        float other_x[4] // This includes any adjustment
+        float other_x[4], // This includes any adjustment
+        float newForce[4]  // The force acting on home bead
     ){
         float dx[4], dx2[4];
 
@@ -541,34 +552,48 @@ protected:
 
         if( dr2 < 1.0f && dr2 > min_r2)
         {		
-            float dv[4], dx_dv[4];
+            return false;
+        }
+        float dv[4], dx_dv[4];
 
-            for(int d=0; d<3; d++){
-                dv[d] = home.mom[d] - other.mom[d];
-                dx_dv[d] = dx[d] * dv[d];
-            }
+        for(int d=0; d<3; d++){
+            dv[d] = home.mom[d] - other.mom[d];
+            dx_dv[d] = dx[d] * dv[d];
+        }
 
-            declare(dr2 > 0);
-            float dr = std::sqrt(dr2);
-            float wr = (1.0f - dr);
-            float wr2 = wr*wr;
-            float inv_dr = 1.0f/dr;
+        declare(dr2 > 0);
+        float dr = std::sqrt(dr2);
+        float wr = (1.0f - dr);
+        float wr2 = wr*wr;
+        float inv_dr = 1.0f/dr;
 
-            const auto &coeffs = coefficients[ home.type * num_bead_types + other.type ];
+        const auto &coeffs = coefficients[ home.type * num_bead_types + other.type ];
 
-            float conForce = coeffs.first * wr;
+        float conForce = coeffs.first * wr;
 
-            float rdotv		= (dx_dv[0] + dx_dv[1] + dx_dv[2]) * inv_dr;
-            float gammap	= coeffs.second * wr2;
+        float rdotv		= (dx_dv[0] + dx_dv[1] + dx_dv[2]) * inv_dr;
+        float gammap	= coeffs.second * wr2;
 
-            float dissForce	= -gammap*rdotv;
-            declare(gammap > 0);
-            float randForce	= std::sqrt(gammap)*RandUnifScaled();
-            float normTotalForce = (conForce + dissForce + randForce) * inv_dr;
+        float dissForce	= -gammap*rdotv;
+        declare(gammap > 0);
+        float randForce	= std::sqrt(gammap)*RandUnifScaled();
+        float normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
-            float newForce[4];
+        for(int d=0; d<CALC_DIM; d++){
+            newForce[d] = normTotalForce * dx[d];
+        }
+        return true;
+    }
+
+    void calc_force(
+        Bead &home,
+        Bead &other,
+        float other_x[4] // This includes any adjustment
+    ){
+        float newForce[4];
+
+        if(calc_force(home, other, other_x, newForce)){
             for(int d=0; d<CALC_DIM; d++){
-                newForce[d] = normTotalForce * dx[d];
                 home.force[d] += newForce[d];
                 other.force[d] -= newForce[d];
             }
@@ -586,7 +611,7 @@ protected:
 
         for(unsigned i0=0; i0<home_cell.count-1; i0++){
             for(unsigned i1=i0+1; i1<home_cell.count; i1++){
-                calc_forces( home_cell.local[i0], home_cell.local[i1], home_cell.local[i1].pos );
+                calc_force( home_cell.local[i0], home_cell.local[i1], home_cell.local[i1].pos );
             }
         }
 
@@ -620,7 +645,7 @@ protected:
                 for(unsigned home_i=0; home_i<home_cell.count; home_i++){
                     Bead &home_bead = home_cell.local[home_i];
 
-                    calc_forces(home_bead, other_bead, AnyExternal ? other_x : other_bead.pos);
+                    calc_force(home_bead, other_bead, AnyExternal ? other_x : other_bead.pos);
                 }
             }
         }

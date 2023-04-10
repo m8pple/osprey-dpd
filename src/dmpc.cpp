@@ -60,8 +60,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "StdAfx.h"
 #include "SimDefs.h"
 #include "Experiment.h"
+#include "xxCommandObject.h"
+#include "CommandLineParameters.h"
 
-int main(int argc, char* argv[])
+#include <memory>
+
+int main(int argc, char** argv)
 {
     zString runId;
     long errCode = 0;
@@ -94,6 +98,17 @@ int main(int argc, char* argv[])
 //	std::cout << "Proc " << my_rank << " has set error handling on and has error string length " << MPI_MAX_ERROR_STRING << zEndl;
 	
 #endif
+
+    int argcOrig=argc;
+    char **argvOrig=argv;
+
+    CommandLineParameters::Initialise(argc, argv, [=](const std::string &msg) {
+        std::cout<<msg<<std::endl;
+        #if SimMPS == SimulationEnabled
+        MPI_Abort(MPI_COMM_WORLD, 1);
+        #endif
+        exit(1);
+    });
 
 	if(argc == 1)     // Note that argv[0] = executable file name hence argc >= 1
 	{

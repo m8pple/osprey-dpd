@@ -1,9 +1,12 @@
 #ifndef FastOstream_h
 #define FastOstream_h
 
+#include <cmath>
 #include <vector>
 #include <cassert>
 #include <xxState.h>
+
+
 
 /*
 An extremely minimal formatter which only knows how to format:
@@ -32,7 +35,11 @@ struct FastOstream
 
 		digits=dst.precision();
 		assert(digits>0);
-		scale=exp10(digits);
+		// scale=std::exp10(digits); OSX libm doesn't have this ? Anyway, linker errors...
+		scale=1;
+		for(int i=0; i<digits; i++){
+			scale *= 10;
+		}
 	}
 
 	FastOstream(const FastOstream &) = delete;

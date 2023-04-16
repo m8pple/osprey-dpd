@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <set>
 #include <cstring>
+#include <unordered_set>
 
 #include "AbstractBead.h"
 #include "ISimBox.h"
@@ -21,16 +22,13 @@
 
 #include "ISimEngine.h"
 
-#include "immintrin.h"
-#include "pmmintrin.h"
-
 #include "morton_codec.hpp"
 
 #include "bond_info.hpp"
 
 #include "RNGPolicy.hpp"
 
-static bool require_fail_impl(const char *file, int line, const char *cond)
+static inline bool require_fail_impl(const char *file, int line, const char *cond)
 {
     fprintf(stderr, "%s:%d: requirement failed : %s\n", file, line, cond);
     assert(0);
@@ -40,7 +38,7 @@ static bool require_fail_impl(const char *file, int line, const char *cond)
 #define require(cond) \
     if(!(cond)){ require_fail_impl(__FILE__, __LINE__, #cond); }
 
-static void declare(bool cond)
+static inline void declare(bool cond)
 {
     if(!cond){
         assert(0);
@@ -48,23 +46,46 @@ static void declare(bool cond)
     }
 }
 
+enum NhoodType
+{
+    NhoodType_Size_Half = 0,
+    NhoodType_Size_Full = 1,
+
+    NhoodType_Size_Mask = 1,
+
+    NHoodType_ForceShare_None =   0x10,  // No forces shared across boundary
+    NHoodType_ForceShare_Direct = 0x20, // Forces added directly with no locking
+
+    NhoodType_ForceShare_Mask =   0xf0
+};
 
 struct EnginePolicyConcept
 {
     static const RNGPolicy RNG_POLICY = RNGPolicy_Rng_LCG64;
+    static constexpr bool USE_MORTON = false;
+    static constexpr NhoodType NHOOD_TYPE = (NhoodType)( NhoodType_Size_Half | NHoodType_ForceShare_Direct );
 };
 
 
-
+template<class TPolicy = EnginePolicyConcept>
 struct SimEngineSeq
     : public ISimEngine
 {
 public:
-    static constexpr bool USE_MORTON = false;
+    static constexpr bool USE_MORTON = TPolicy::USE_MORTON;
+    static constexpr RNGPolicy RNG_POLICY = TPolicy::RNG_POLICY;
+    static constexpr NhoodType NHOOD_TYPE = TPolicy::NHOOD_TYPE;
+
+    using rng_t = RNGImpl<RNG_POLICY>;
 
     std::string Name() const override
     {
-        return "SimEngineSeq";
+        std::string res="SimEngineSeq_";
+        res += rng_t::Name();
+        if(USE_MORTON){
+            res += "Morton";
+        }
+        return res;
     }
 
     bool IsParallel() const override
@@ -120,6 +141,8 @@ public:
             #ifndef NDEBUG
             validate_cells();
             #endif
+
+            round_id += 1;
         }
 
         #ifndef NDEBUG
@@ -140,56 +163,92 @@ protected:
         float pos[4];
         float mom[4];
         float force[4];
+        
+        uint8_t type : 7;
+        uint8_t frozen : 1;
+        int8_t unpbcWrap[3]; // Offset of bead position in PBC terms 
+
         uint32_t bead_id;
-        uint8_t type;
-        uint8_t frozen;
-        uint32_t per_round_rng; // Only used if hashing RNG policy is used
+        uint32_t round_tag; // Only used if hashing RNG policy is used
         uint32_t _pad_[1];
     };
-    static_assert(sizeof(Bead)==4*4*4);
+    static_assert(sizeof(Bead)==4*4*4, "Bead is expected to be 64 bytes.");
+
+    enum EdgeTag : uint8_t
+    {
+        EdgeTag_ForceShare_None = 0,
+        EdgeTag_ForceShare_Direct = 1
+    };
 
     struct Neighbour
     {
         uint32_t index;
-        std::array<uint8_t,4> edge_tags; // Tells us what boundary to apply to positions in this cell
+        EdgeTag tag;
+        std::array<uint8_t,3> offsets; // Tells us what boundary to apply to positions in this cell
     };
 
-    std::array<uint8_t,4> make_edge_tag(const int32_t *home, const int32_t *neighbour, const int32_t *dims)
+    Neighbour make_edge_tag(const int32_t *home_pos, const int32_t *neighbour_pos, const int32_t *dims)
     {
-        std::array<uint8_t,4> local;
+        Neighbour local;
+        local.index=pos_to_cell_index(neighbour_pos);
         for(int d=0; d<3; d++){
-            int delta=neighbour[d] - home[d];
+            int delta=neighbour_pos[d] - home_pos[d];
             if(delta==0 || delta==1 || delta==-1){
-                local[d]=0;
+                local.offsets[d]=0;
             }else if(delta==1-dims[d]){
-                local[d]=1;
+                local.offsets[d]=1;
             }else if(delta==dims[d]-1){
-                local[d]=2;
+                local.offsets[d]=2;
             }else{
                 assert(0);
                 fprintf(stderr, "Logic violation in make_edge_tag");
                 exit(1);
             }
+            if( (NHOOD_TYPE & NhoodType_ForceShare_Mask) == NHoodType_ForceShare_None){
+                local.tag=EdgeTag_ForceShare_None;
+            }else if( (NHOOD_TYPE & NhoodType_ForceShare_Mask) == NHoodType_ForceShare_Direct){
+                local.tag=EdgeTag_ForceShare_Direct;
+            }else{
+                require(0); // Don't know how to choose
+            }
+
         }
         return local;
     }
 
+    // It is deliberately 14 = 13+1, so that we can use the final
+    // extra entry to act as prefetch for the next cell
+    static constexpr unsigned NHOOD_ARRAY_SIZE = (NHOOD_TYPE & NhoodType_Size_Mask) == NhoodType_Size_Half ? 14 : 27;
+
     struct Cell
     {
+        // Hottest variables for force calculation
         uint32_t count;
         uint32_t to_move; // to_move <= count
         bool any_frozen;
         bool any_external;
 
-        float origin[3];
+        float origin[CALC_DIM];
         uint32_t cell_index;
 
-        // It is deliberately 14 = 13+1, so that we can use the final
-        // extra entry to act as prefetch for the next cell
-        Neighbour nhood[14];
+        Neighbour nhood[NHOOD_ARRAY_SIZE];
 
         Bead local[MAX_BEADS_PER_CELL];
+
+        std::mutex mutex; // Place at the end. Ideally not hot.
+        uint8_t __pad__[64];
     };
+
+    unsigned GetNhoodSize(const Cell &c)
+    {
+        switch( (NHOOD_TYPE&NhoodType_Size_Mask) ){
+        case NhoodType_Size_Half: return 13;
+        case NhoodType_Size_Full: return 26;
+        default:
+            require(0);
+            return 0;
+        }
+    }
 
     float dims_float[4];
     int32_t dims_int[4];
@@ -197,6 +256,10 @@ protected:
     float dt;
     float halfdt;
     float halfdt2;
+
+    uint64_t global_seed;
+    uint64_t round_id;
+    double rng_stddev;
     
     float edge_adjustments[3][3];
 
@@ -206,17 +269,17 @@ protected:
     std::vector<Cell> cells;
     std::vector<int32_t> bead_locations; // The current location of each slot
 
-    // Indices of cells in order of visiting. Mainly used for morton orderig.
+    // Indices of cells in order of visiting. Used for morton orderig.
     std::vector<uint32_t> cell_enum_order;
 
     BondInfo bonds;
 
     AbstractBeadVector original_beads;
-
-    uint64_t rng_state = 0;
-    float rng_scale;
+    std::vector<CAbstractBead*> id_to_original_bead;
 
     bool any_frozen_beads;
+
+    uint64_t bead_round_tag_lcg; // Used to populate bead.round_tag for hashing rngs
 
     unsigned pos_to_cell_index(const float *pos)
     {
@@ -261,7 +324,7 @@ protected:
         }
     }
 
-    std::vector<std::array<int,3>> make_forward_nhood()
+    std::vector<std::array<int,3>> make_half_nhood()
     {
         std::set<std::array<int,3>> res;
         std::array<int,3> l;
@@ -282,6 +345,24 @@ protected:
         return {res.begin(), res.end()};
     }
 
+    std::vector<std::array<int,3>> make_full_nhood()
+    {
+        std::set<std::array<int,3>> res;
+        std::array<int,3> l;
+        for(l[2]=-1; l[2] < 2; l[2]++){
+            for(l[1]=-1; l[1] < 2; l[1]++){
+                for(l[0]=-1; l[0] < 2; l[0]++){
+                    if( l == std::array<int,3>{0,0,0} ){
+                        continue; // Don't add centre
+                    }
+                    res.insert(l);
+                }
+            }
+        }
+        require(res.size()==26);
+        return {res.begin(), res.end()};
+    }
+
     virtual void on_import(ISimBox *box)
     {}
 
@@ -293,9 +374,9 @@ protected:
             exit(1);
         }
 
-        if(rng_state==0){
-            rng_state=box->GetRNGSeed();
-        }
+        global_seed=box->GetRNGSeed();
+        round_id=box->GetCurrentTime();
+        rng_stddev=sqrt(2 * CCNTCell::GetKt() / box->GetStepSize()); 
 
         dims_float[0] = box->GetSimBoxXLength();
         dims_float[1] = box->GetSimBoxYLength();
@@ -306,7 +387,11 @@ protected:
             half_dims_float[d] = dims_float[d] / 2;
         }
         unsigned ncells=dims_int[0] * dims_int[1] * dims_int[2];
-        cells.resize( ncells );
+
+        if(cells.size() != ncells){
+            std::vector<Cell> buffer(ncells);
+            std::swap(cells, buffer);
+        }
         for(int d=0; d<3; d++){
             edge_adjustments[d][0] = 0;
             edge_adjustments[d][1] = +dims_float[d];
@@ -316,9 +401,6 @@ protected:
         dt=box->GetStepSize();
         halfdt=dt * 0.5f;
         halfdt2=halfdt * dt;
-
-        double invrootdt = sqrt(24.0*CCNTCell::GetKt()/dt);
-        rng_scale = ldexp(invrootdt, -32);
 
         const auto &bead_types=box->GetBeadTypes();
         num_bead_types = bead_types.size();
@@ -330,7 +412,14 @@ protected:
             }
         }
 
-        std::vector<std::array<int,3>> forward_nhood=make_forward_nhood();
+        std::vector<std::array<int,3>> rel_nhood;
+        if( (NHOOD_TYPE & NhoodType_Size_Mask) == NhoodType_Size_Half){
+            rel_nhood=make_half_nhood();
+        }else if( (NHOOD_TYPE & NhoodType_Size_Mask) == NhoodType_Size_Full){
+            rel_nhood=make_full_nhood();
+        }else{
+            require(0);
+        }
 
         unsigned cell_index=0;
         std::array<int,3> cell_pos;
@@ -341,23 +430,24 @@ protected:
                     for(int d=0; d<3; d++){
                         cell.origin[d] = cell_pos[d];
                     }
-                    cell.origin[3] = 0;
+                    for(int d=3; d<CALC_DIM; d++){
+                        cell.origin[d] = 0;
+                    }
                     cell.cell_index = cell_index;
                     assert( pos_to_cell_index(cell.origin) == cell_index );
 
                     cell.any_external=false;
 
                     unsigned neighbour_offset=0;
-                    for(const auto &pos_delta : forward_nhood){
+                    for(const auto &pos_delta : rel_nhood){
                         int neighbour_pos[3];
                         for(int d=0; d<3; d++){
                             neighbour_pos[d] = ( cell_pos[d] + pos_delta[d] + dims_int[d] ) % dims_int[d];
                         }
 
-                        cell.nhood[neighbour_offset].index=pos_to_cell_index(neighbour_pos);
-                        auto tags=make_edge_tag( cell_pos.data(), neighbour_pos, dims_int );
-                        cell.nhood[neighbour_offset].edge_tags = tags;
-                        cell.any_external |= tags[0] | tags[1] | tags[2];
+                        auto link = make_edge_tag( cell_pos.data(), neighbour_pos, dims_int );
+                        cell.nhood[neighbour_offset] = link;
+                        cell.any_external |= link.offsets[0] | link.offsets[1] | link.offsets[2];
 
                         neighbour_offset++;
                     }
@@ -374,16 +464,16 @@ protected:
         // Build prefetch links. Final nhood entry is the first entry of
         // the following cell
         for(unsigned i=0; i<cells.size()-1; i++){
-            cells[i].nhood[13] = cells[i].nhood[0];
+            cells[i].nhood[rel_nhood.size()] = cells[i].nhood[0];
         }
-        cells.back().nhood[13] = cells.back().nhood[12];
+        cells.back().nhood[rel_nhood.size()] = cells.back().nhood[rel_nhood.size()];
 
         if(USE_MORTON){
             auto order=morton_codec::make_morton_order(dims_int[0], dims_int[1], dims_int[2]);
             cell_enum_order.resize(order.size());
             for(unsigned i=0; i<order.size(); i++){
                 const auto &cp=order[i];
-                int pos[3]={std::get<0>(cp), std::get<1>(cp), std::get<2>(cp)};
+                int pos[3]={(int)std::get<0>(cp), (int)std::get<1>(cp), (int)std::get<2>(cp)};
                 cell_enum_order[i] = pos_to_cell_index(pos);
             }
         }
@@ -392,10 +482,18 @@ protected:
         const auto &beads=box->GetBeads();
         unsigned num_beads=beads.size();
         bead_locations.assign(num_beads, -1); // We are assuming bead ids are contiguous.
+        id_to_original_bead.assign(num_beads, nullptr);
 
         original_beads=box->GetBeads(); // This method will create a new vector.
         any_frozen_beads = false;
-        for(const CAbstractBead * b : original_beads){
+
+        std::unordered_set<long> seen_beed_ids;
+
+        bead_round_tag_lcg = SplitMix64( box->GetRNGSeed() + SplitMix64(box->GetCurrentTime()) );
+        for(CAbstractBead * b : original_beads){
+            #ifndef NDEBUG
+            require(seen_beed_ids.insert(b->GetId()).second);
+            #endif
             import_bead(*b);
         }
 
@@ -404,7 +502,16 @@ protected:
         on_import(box);
     }
 
-    void import_bead(const CAbstractBead &b)
+    double wrapped_distance(double x0, double x1, double w )
+    {
+        if(x0 < x1){
+            return std::min(x1-x0, (x0+w)-x1);
+        }else{
+            return std::min(x0-x1, (x1+w)-x0);
+        }
+    }
+
+    void import_bead(CAbstractBead &b)
     {
         // Osprey bead ids start at 1
         require(1 <= b.GetId() && b.GetId() <= UINT32_MAX);
@@ -420,7 +527,10 @@ protected:
                 c.pos[d] = 0;  
             }
             require( 0 <= c.pos[d] && c.pos[d] < dims_float[d] );
+
+            c.unpbcWrap[d] = 0;
         }
+        assert( wrapped_distance( b.GetXPos(), fmod(b.GetunPBCXPos() , dims_float[0] ), dims_float[0]) < 0.1 );
 
         c.mom[0]=b.GetXMom();
         c.mom[1]=b.GetYMom();
@@ -434,12 +544,17 @@ protected:
         c.type=b.GetType();
         c.frozen=b.GetFrozen();
         any_frozen_beads |= c.frozen;
+        if(rng_t::USES_BEAD_ROUND_TAG){
+            c.round_tag = bead_round_tag_lcg >> 32;
+            bead_round_tag_lcg = 6364136223846793005ull * bead_round_tag_lcg + 1;
+        }
 
         for(int d=0; d<3; d++){
             c.mom[d] -= halfdt * c.force[d];
         }
 
         unsigned cell_index = pos_to_cell_index( c.pos );
+        assert(cell_index < cells.size());
         auto &cell = cells[cell_index];
         unsigned cell_offset = cell.count;
         require( cell_offset < MAX_BEADS_PER_CELL );
@@ -450,15 +565,27 @@ protected:
         unsigned bead_location=cell_index * MAX_BEADS_PER_CELL + cell_offset;
         require( c.bead_id < bead_locations.size() && bead_locations[c.bead_id] == -1);
         bead_locations[c.bead_id] = bead_location;
+
+        require(id_to_original_bead[c.bead_id]==nullptr);
+        id_to_original_bead[c.bead_id] = &b;
+
+        // We shear off the intra-box offset from unPBC, then restore it later on export
+        b.SetunPBCXPos( b.GetunPBCXPos() - c.pos[0] );
+        b.SetunPBCYPos( b.GetunPBCYPos() - c.pos[1] );
+        b.SetunPBCZPos( b.GetunPBCZPos() - c.pos[2] );
     }
 
     void export_all(ISimBox *box)
     { 
+        #ifndef NDEBUG
+        validate_cells();
+        #endif
+
         auto simstate=box->GetSimBox();
 
         for(CAbstractBead * b : original_beads){
             unsigned id = b->GetId() - 1;
-            const auto &ib = find(id);
+            auto &ib = find(id); // Not const, as we flush unPBC
             
             // Apply half mom correction to get out of loop skew
             b->SetXMom( ib.mom[0] + halfdt * ib.force[0] );
@@ -469,13 +596,33 @@ protected:
             b->SetYForce( ib.force[1] );
             b->SetZForce( ib.force[2] );
 
+            for(int d=0; d<3; d++){
+                assert( 0<=ib.pos[d] && ib.pos[d]<dims_float[d] );
+            }
+
             simstate->MoveBeadBetweenCNTCells(b, ib.pos[0], ib.pos[1], ib.pos[2]);
+
+            flush_unpbc_wrap(b, ib);
+            // At this point the unPBC pos should have no offset, and wrap to the simbox origin (i.e. 0)
+            #ifndef NDEBUG
+            double tmp1=b->GetunPBCXPos() + dims_float[0]/2;
+            double tmp2=std::abs(fmod(tmp1 , dims_float[0] ));
+            assert( std::abs( tmp2 - dims_float[0]/2  ) < 0.1 );
+            #endif
+            
+            b->SetunPBCXPos( b->GetunPBCXPos() + ib.pos[0] );
+            b->SetunPBCYPos( b->GetunPBCYPos() + ib.pos[1] );
+            b->SetunPBCZPos( b->GetunPBCZPos() + ib.pos[2] );
+            assert( wrapped_distance( b->GetXPos(), fmod(b->GetunPBCXPos() , dims_float[0] ), dims_float[0]) < 0.1 );
+
         }
     }
 
     // Do sweep of all cells and validate beads. Pretty expensive.
     void validate_cells() const
     {
+        std::unordered_set<long> ids;
+
         for(unsigned i=0; i<bead_locations.size(); i++){
             int32_t loc=bead_locations[i];
             require(0 <= loc);
@@ -491,6 +638,8 @@ protected:
 
             const auto &obead = find(i);
             require( &bead == &obead);
+
+            require( ids.insert(i).second );
         }
     }
 
@@ -520,17 +669,8 @@ protected:
         return res;
     }
 
-    float RandUnifScaled()
-    {
-        uint32_t u32 = rng_state>>32;
-        rng_state=6364136223846793005ull * rng_state + 1;
-        
-        int32_t i31;
-    	memcpy(&i31, &u32, 4); // Avoid undefined behaviour. Gets number in range [-2^31,2^31)
-	    return i31 * rng_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
-    }
-
     bool calc_force(
+        rng_t &rng,
         Bead &home,
         Bead &other,
         float other_x[4], // This includes any adjustment
@@ -550,7 +690,7 @@ protected:
         static const float min_r = 0.000000001f;
         static const float min_r2 = min_r * min_r;
 
-        if( dr2 < 1.0f && dr2 > min_r2)
+        if( dr2 >= 1.0f || dr2 < min_r2)
         {		
             return false;
         }
@@ -576,7 +716,7 @@ protected:
 
         float dissForce	= -gammap*rdotv;
         declare(gammap > 0);
-        float randForce	= std::sqrt(gammap)*RandUnifScaled();
+        float randForce	= std::sqrt(gammap)*rng.NextUnifScaled(home,other);
         float normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
         for(int d=0; d<CALC_DIM; d++){
@@ -586,22 +726,26 @@ protected:
     }
 
     void calc_force(
+        rng_t &rng,
+        bool reflect_force,
         Bead &home,
         Bead &other,
         float other_x[4] // This includes any adjustment
     ){
         float newForce[4];
 
-        if(calc_force(home, other, other_x, newForce)){
+        if(calc_force(rng, home, other, other_x, newForce)){
             for(int d=0; d<CALC_DIM; d++){
                 home.force[d] += newForce[d];
-                other.force[d] -= newForce[d];
+                if( reflect_force ){
+                    other.force[d] -= newForce[d];
+                }
             }
         }
     }
 
     template<bool AnyExternal>
-    void update_forces(Cell &home_cell)
+    void update_forces(rng_t &rng, Cell &home_cell)
     {
         home_cell.to_move = home_cell.count;
 
@@ -611,11 +755,11 @@ protected:
 
         for(unsigned i0=0; i0<home_cell.count-1; i0++){
             for(unsigned i1=i0+1; i1<home_cell.count; i1++){
-                calc_force( home_cell.local[i0], home_cell.local[i1], home_cell.local[i1].pos );
+                calc_force(rng, /* reflect_force */ true, home_cell.local[i0], home_cell.local[i1], home_cell.local[i1].pos );
             }
         }
 
-        for(unsigned nhood_index=0; nhood_index<13; nhood_index++){
+        for(unsigned nhood_index=0; nhood_index<GetNhoodSize(home_cell); nhood_index++){
             Cell &prefetch_cell = cells[home_cell.nhood[nhood_index+1].index];
             // Get the header of the cell
             __builtin_prefetch(&prefetch_cell.count);
@@ -624,11 +768,16 @@ protected:
             
             auto nlink=home_cell.nhood[nhood_index];
             Cell &other_cell=cells[nlink.index];
+            bool reflect_forces = (NHOOD_TYPE & NhoodType_ForceShare_Mask) == NHoodType_ForceShare_Direct;
+
+            assert( nlink.tag==EdgeTag_ForceShare_Direct || nlink.tag==EdgeTag_ForceShare_None );
+            reflect_forces |= nlink.tag==EdgeTag_ForceShare_Direct;
+            assert(!reflect_forces);
 
             float other_delta[4];
             if(AnyExternal){
                 for(int d=0; d<3; d++){
-                    other_delta[d] = edge_adjustments[d][nlink.edge_tags[d]];
+                    other_delta[d] = edge_adjustments[d][nlink.offsets[d]];
                 }
                 other_delta[3]=0;
             }
@@ -644,8 +793,7 @@ protected:
 
                 for(unsigned home_i=0; home_i<home_cell.count; home_i++){
                     Bead &home_bead = home_cell.local[home_i];
-
-                    calc_force(home_bead, other_bead, AnyExternal ? other_x : other_bead.pos);
+                    calc_force(rng, reflect_forces, home_bead, other_bead, AnyExternal ? other_x : other_bead.pos);
                 }
             }
         }
@@ -653,13 +801,15 @@ protected:
 
     virtual __attribute__((noinline)) void update_forces()
     {
+        rng_t rng(rng_stddev, global_seed, round_id, 0);
+
         // TODO : branching based on any external may introduce data-dependent
         // control and bloat instruction size. Is minor saving worth it?
         for_each_cell([&](Cell &cell){
             if(cell.any_external){
-                update_forces<true>(cell);
+                update_forces<true>(rng, cell);
             }else{
-                update_forces<false>(cell);
+                update_forces<false>(rng, cell);
             }
         },[](Cell &cell){
 
@@ -668,12 +818,14 @@ protected:
 
     virtual __attribute__((noinline)) void update_mom_and_move()
     {
+        rng_t rng(rng_stddev, global_seed, round_id, 1);
+
         if(any_frozen_beads){
             for_each_cell([&](Cell &cell){
                 if(cell.any_frozen){
-                    update_mom_and_move<true>(cell);
+                    update_mom_and_move<true>(rng, cell);
                 }else{
-                    update_mom_and_move<false>(cell);
+                    update_mom_and_move<false>(rng, cell);
                 }
             },[&](Cell &next){
                 __builtin_prefetch(&next.count);
@@ -681,7 +833,7 @@ protected:
             });
         }else{
             for_each_cell([&](Cell &cell){
-                update_mom_and_move<false>(cell);
+                update_mom_and_move<false>(rng, cell);
             },[&](Cell &next){
                 __builtin_prefetch(&next.count);
                 __builtin_prefetch(&next.local[0]);
@@ -689,8 +841,29 @@ protected:
         }
     }
 
+    void flush_unpbc_wrap(CAbstractBead *b,  Bead &ib)
+    {
+        // TODO : The numerical stability of the unPBC stuff is dodgy in general.
+        // However, it is a double-precision accumulation, so hopefully error accumultion
+        // is not too bad
+        b->SetunPBCXPos( b->GetunPBCXPos() + dims_float[0] * ib.unpbcWrap[0] );
+        ib.unpbcWrap[0]=0;
+        b->SetunPBCYPos( b->GetunPBCYPos() + dims_float[1] * ib.unpbcWrap[1] );
+        ib.unpbcWrap[1]=0;
+        b->SetunPBCZPos( b->GetunPBCZPos() + dims_float[2] * ib.unpbcWrap[2] );
+        ib.unpbcWrap[2]=0;
+    }
+
+    void flush_unpbc_wrap(Bead &ib)
+    {
+        CAbstractBead *b=id_to_original_bead.at(ib.bead_id);
+        assert(b->GetId() == ib.bead_id+1);
+        flush_unpbc_wrap( b, ib );
+    }
+
+
     template<bool AnyFrozen>
-    void update_mom_and_move(Cell &cell)
+    void update_mom_and_move(rng_t &rng, Cell &cell)
     {
         assert(AnyFrozen ? any_frozen_beads : true);
         
@@ -721,6 +894,10 @@ protected:
 
                 float new_origin_d = std::floor( bead.pos[d] );
                 moved |= new_origin_d != cell.origin[d];
+
+                if(rng_t::USES_BEAD_ROUND_TAG){
+                    bead.round_tag = rng.MakeBeadTag(bead.bead_id);
+                }
             }
 
             if(!moved){
@@ -735,11 +912,19 @@ protected:
                 pre_wrap_pos[d] = bead.pos[d];
                 if(bead.pos[d] < 0){
                     bead.pos[d] += dims_float[d];
+                    bead.unpbcWrap[d] -= 1;
+                    if( bead.unpbcWrap[d] < -100 ){
+                        flush_unpbc_wrap(bead);
+                    }
                 }
                 // The above could results in bead.pos[d] == dims_float[d] due to
                 // rounding, so this is not an else if
                 if(bead.pos[d] >= dims_float[d]){
                     bead.pos[d] -= dims_float[d];
+                    bead.unpbcWrap[d] += 1;
+                    if( bead.unpbcWrap[d] < -100 ){
+                        flush_unpbc_wrap(bead);
+                    }
                 }
                 new_origin[d] = std::floor( bead.pos[d] );
             }

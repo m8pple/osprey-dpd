@@ -26,41 +26,42 @@ struct morton_codec
     struct position_t
     {
         position_t()
-            : bits(0)
-        {}
+        {
+            data.bits=0;
+        }
 
         position_t(uint16_t _x, uint16_t _y, uint16_t _z)
         {
-            x=_x;
-            y=_y;
-            z=_z;
+            data.parts.x=_x;
+            data.parts.y=_y;
+            data.parts.z=_z;
         }
 
         union{
             struct{
                 uint16_t x, y, z, _pad;
-            };
+            } parts;
             uint64_t bits;
-        };
+        } data;
 
         position_t operator|(position_t o) const
         {
             position_t res=*this;
-            res.bits |= o.bits;
+            res.data.bits |= o.data.bits;
             return res;
         }
 
         position_t operator<<(unsigned dist) const
         {
-            return position_t{uint16_t(x<<dist), uint16_t(y<<dist), uint16_t(z<<dist)};
+            return position_t{uint16_t(data.parts.x<<dist), uint16_t(data.parts.y<<dist), uint16_t(data.parts.z<<dist)};
         }
 
         bool operator==(position_t o) const
-        { return bits==o.bits; }
+        { return data.bits==o.data.bits; }
     };
 
     static const unsigned LOG2K=9;
-    static_assert((LOG2K%3)==0);
+    static_assert((LOG2K%3)==0, "LOG2K must be divisible by 3");
     
     static const unsigned K=1<<LOG2K;
     static const unsigned KMASK=K-1;
@@ -85,11 +86,11 @@ struct morton_codec
     {
         for(unsigned i=0; i<K; i++){
             position_t part;
-            part.bits=0;
+            part.data.bits=0;
             for(unsigned j=0; j<LOG2K/3; j++){
-                part.x |= ((i>>(j*3+0))&1) << j;
-                part.y |= ((i>>(j*3+1))&1) << j;
-                part.z |= ((i>>(j*3+2))&1) << j;
+                part.data.parts.x |= ((i>>(j*3+0))&1) << j;
+                part.data.parts.y |= ((i>>(j*3+1))&1) << j;
+                part.data.parts.z |= ((i>>(j*3+2))&1) << j;
             }
             lut_rev[i]=part;
         }
@@ -103,7 +104,7 @@ struct morton_codec
 
     uint64_t operator()(position_t pos) const
     {
-        return (*this)(pos.x, pos.y, pos.z);
+        return (*this)(pos.data.parts.x, pos.data.parts.y, pos.data.parts.z);
     }
 
     uint64_t operator()(uint16_t x, uint16_t y, uint16_t z) const

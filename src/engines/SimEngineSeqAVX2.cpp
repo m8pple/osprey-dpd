@@ -1,5 +1,7 @@
 #include "SimEngineSeq.hpp"
 
+#ifdef __AVX2__
+
 #include "immintrin.h"
 #include "pmmintrin.h"
 
@@ -466,3 +468,5 @@ private:
 };
 
 static bool reg_SimEngineSeqAVX2 = SimEngineBase<SimEngineSeqAVX2>::Register();
+
+#endif // __AVX2__

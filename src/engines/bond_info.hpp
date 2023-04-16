@@ -4,11 +4,15 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <cmath>
+#include <unordered_map>
 
 #include "Polymer.h"
 #include "Bond.h"
 #include "BondPair.h"
 
+#include "tbb/parallel_for.h"
+#include "tbb/blocked_range.h"
 
 struct BondInfo
 {
@@ -29,7 +33,7 @@ struct BondInfo
         float m_SinPhi0;
     };
 
-    static_assert(sizeof(Bond)==sizeof(BondPair));
+    static_assert(sizeof(Bond)==sizeof(BondPair), "Bond and BondPair are expected to be the same size.");
 
     union BondOrBondPair
     {
@@ -41,6 +45,7 @@ struct BondInfo
     {
         uint16_t num_bonds;
         uint16_t num_bond_pairs;
+        uint32_t colour;
         BondOrBondPair data[1]; // Actually a flexible length array
     };
 
@@ -55,7 +60,15 @@ struct BondInfo
     unsigned max_bonds=0;
     std::vector<float> working_space;
 
-    polymer_ptr import_polymer(const CPolymer &src_polymer)
+    /* For safe parallel updating we need to ensure that each bead is contained in exactly
+        one polymer. Each polymer has a colour, and the first polymer to touch a bead gives
+        it it's own colour. If a polymer contains a bead with a different colour it can't
+        be updated in parallel. */
+    std::vector<uint32_t> bead_colours;
+    // If true, then all polymers reference distinct beads
+    bool polymers_use_disjoint_beads; 
+
+    polymer_ptr import_polymer(uint32_t colour, const CPolymer &src_polymer, std::vector<uint32_t> &working)
     {
         auto &bonds=src_polymer.GetBonds();
         auto &bond_pairs=src_polymer.GetBondPairs();
@@ -68,17 +81,25 @@ struct BondInfo
         polymer_ptr res(backing);
         res->num_bonds=bonds.size();
         res->num_bond_pairs=bond_pairs.size();
+        res->colour=colour;
 
+        working.clear();
         std::unordered_map<const CBond*,unsigned> bond_to_index;
         for(unsigned i=0; i<bonds.size(); i++){
             auto &dst_bond=res->data[i].bond;
             CBond *src_bond=bonds[i];
+
             dst_bond.head_bead_id = src_bond->GetHead()->GetId()-1;
+            working.push_back(dst_bond.head_bead_id);
+            
             dst_bond.tail_bead_id = src_bond->GetTail()->GetId()-1;
+            working.push_back(dst_bond.tail_bead_id);
+            
             dst_bond.length = src_bond->GetUnStrLength();
             dst_bond.springConst = src_bond->GetSprConst();
             bond_to_index[src_bond] = i;
         }
+
 
         for(unsigned i=0; i<bond_pairs.size(); i++){
             auto &dst_bond_pair=res->data[bonds.size()+i].bond_pair;
@@ -91,6 +112,29 @@ struct BondInfo
             dst_bond_pair.Modulus=src_bond_pair->GetModulus();
         }
 
+        // Each bead id appears at least twice.
+        // TODO: Is cost of removing redundancy worth it?
+        std::sort(working.begin(), working.end());
+        working.erase( std::unique(working.begin(), working.end()), working.end() );
+
+        unsigned existing_bead_colour_min = UINT32_MAX;
+        for(auto bead_id : working){
+            auto existing_bead_colour = bead_colours[bead_id];
+            existing_bead_colour_min = std::min(existing_bead_colour_min, existing_bead_colour);
+            bead_colours[bead_id] = colour;
+        }
+
+        if(existing_bead_colour_min != UINT32_MAX){
+            polymers_use_disjoint_beads = false;
+            assert(colour < existing_bead_colour_min);
+            colour = existing_bead_colour_min;
+            res->colour = colour;
+        
+            for(auto bead_id : working){
+                bead_colours[bead_id] = colour;
+            }
+        }
+
         return res;
     }
 
@@ -98,16 +142,21 @@ struct BondInfo
     {
         const auto &src_polymers=box->GetPolymers();
 
+        unsigned nbeads=box->GetBeadTotal();
+        bead_colours.assign(nbeads, UINT32_MAX);
+        polymers_use_disjoint_beads=true;
+
         polymers.clear();
         max_bonds=0;
 
+        std::vector<uint32_t> working;
         for(unsigned i=0; i<src_polymers.size(); i++){
             const CPolymer *src_polymer=src_polymers[i];
             if(src_polymer->GetSize() <= 1){
                 continue;
             }
 
-            auto poly=import_polymer(*src_polymer);
+            auto poly=import_polymer(polymers.size(), *src_polymer, working);
             if(poly){
                 max_bonds=std::max<unsigned>(max_bonds, poly->num_bonds);
                 polymers.push_back(std::move(poly));
@@ -118,12 +167,49 @@ struct BondInfo
     }
 
     template<class TBeadSource>
-    void update_polymers(TBeadSource &bead_source, float dims_float[4])
+    void update_polymers_seq(TBeadSource &bead_source, float dims_float[4])
     {
         float local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
         float half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
         for(const auto &p : polymers){
             update_polymer(dims_float, half_dims_float, *p, &working_space[0], bead_source);
+        }
+    }
+
+    template<class TBeadSource>
+    void update_polymers_tbb(TBeadSource &bead_source, float dims_float[4])
+    {
+        float local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
+        float half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
+        
+        using range_t = tbb::blocked_range<unsigned>;
+        tbb::parallel_for( range_t(0, polymers.size()), [&](const range_t &rr){
+            float *local_working=0;
+            std::vector<float> local_working_space;
+            if(working_space.size() <= 1024){
+                // Allocate up to 4KB on the current stack. We should be safe for alloca here as:
+                // - We don't expect this function to be inlined into a loop, as it is launched as a task by TBB
+                // - update_polymer doesn't do anything recursive or use a lot of stack (kind of the point of passing in working space)
+                local_working = (float*)alloca(sizeof(float) * working_space.size());
+            }else{
+                local_working_space.resize(working_space.size());
+                local_working = &local_working_space[0];
+            }
+            
+            for(unsigned i=rr.begin(); i<rr.end(); i++){
+                update_polymer(dims_float, half_dims_float, *polymers[i], local_working, bead_source);
+            }
+        });
+    }
+
+    template<class TBeadSource>
+    void update_polymers(TBeadSource &bead_source, float dims_float[4])
+    {
+        if(polymers_use_disjoint_beads){
+            std::cerr<<"TBB bonds\n";
+            update_polymers_tbb(bead_source, dims_float);
+        }else{
+            update_polymers_seq(bead_source, dims_float);
         }
     }
 
@@ -163,8 +249,8 @@ struct BondInfo
                 head.force[d] += dx[d] * fScale;
                 tail.force[d] -= dx[d] * fScale;
             
-                assert(!isnanf(head.force[d]));
-                assert(!isnanf(tail.force[d]));
+                assert(!std::isnan(head.force[d]));
+                assert(!std::isnan(tail.force[d]));
             }
             
         }
@@ -208,7 +294,7 @@ struct BondInfo
                     { forceMag = m_Modulus/magProduct; }*/
 
                     forceMag *= (bond_pair.m_CosPhi0 - bond_pair.m_SinPhi0 / Prefactor);
-                    assert(!isnanf(forceMag));
+                    assert(!std::isnan(forceMag));
                 }
 
         		float BeadXForce[3], BeadYForce[3], BeadZForce[3];
@@ -216,7 +302,7 @@ struct BondInfo
                 BeadXForce[0] = forceMag*(b1b2Overb1Sq*first[0] - second[0]);
                 BeadYForce[0] = forceMag*(b1b2Overb1Sq*first[1] - second[1]);
                 BeadZForce[0] = forceMag*(b1b2Overb1Sq*first[2] - second[2]);
-                assert(!isnanf(BeadXForce[0]));
+                assert(!std::isnan(BeadXForce[0]));
 
                 first_tail_bead.force[0] += BeadXForce[0];
                 first_tail_bead.force[1] += BeadYForce[0];
@@ -246,9 +332,9 @@ struct BondInfo
                 first_head_bead.force[2] += BeadZForce[1];
 
                 for(int d=0; d<3; d++){
-                    assert(!isnanf(BeadXForce[d]));
-                    assert(!isnanf(BeadYForce[d]));
-                    assert(!isnanf(BeadZForce[d]));
+                    assert(!std::isnan(BeadXForce[d]));
+                    assert(!std::isnan(BeadYForce[d]));
+                    assert(!std::isnan(BeadZForce[d]));
                 }
 
             }

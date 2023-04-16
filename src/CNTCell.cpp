@@ -1928,6 +1928,12 @@ void CCNTCell::UpdatePos()
 			dx[1] = m_dt*(*iterBead)->m_Mom[1] + m_halfdt2*(*iterBead)->m_Force[1];
 			dx[2] = m_dt*(*iterBead)->m_Mom[2] + m_halfdt2*(*iterBead)->m_Force[2];
 
+			// This is not strictly illegal, but usually means something has
+			// gone very wrong. It's a useful break-point in debug mode.
+			assert( std::abs(dx[0]) < m_HalfSimBoxXLength);
+			assert( std::abs(dx[1]) < m_HalfSimBoxYLength);
+			assert( std::abs(dx[2]) < m_HalfSimBoxZLength);
+
 			(*iterBead)->m_Pos[0] += dx[0];
 			(*iterBead)->m_Pos[1] += dx[1];
 			(*iterBead)->m_Pos[2] += dx[2];
@@ -1970,6 +1976,13 @@ void CCNTCell::UpdatePos()
 // limit the number of tests to do when applying the pbcs.
 // Notice that we use the push_front() member function so that
 // we can access the bead in the new cell (if it moved) by front().
+
+			// used to debug final position
+			CAbstractBead *working = *iterBead;
+			assert( -m_SimBoxXLength/2 < working->GetXPos() && working->GetXPos() <= m_SimBoxXLength*1.5);
+			assert( -m_SimBoxYLength/2 < working->GetYPos() && working->GetYPos() <= m_SimBoxYLength*1.5);
+			assert( -m_SimBoxZLength/2 < working->GetZPos() && working->GetZPos() <= m_SimBoxZLength*1.5);
+			double pre_pos[3]={working->m_Pos[0], working->m_Pos[1], working->m_Pos[2]};
 
 			if( (*iterBead)->m_Pos[0] > m_TRCoord[0] )
 			{
@@ -2463,6 +2476,7 @@ void CCNTCell::UpdatePos()
 		{
 			iterBead++;	// if the bead is not movable increment the iterator
 		}
+
 // **********************************************************************
 	}
 }
@@ -3317,69 +3331,104 @@ double CCNTCell::GetKt()
 
 bool CCNTCell::CheckBeadsinCell()
 {
-	bool bBeadsFound = true;
+#if EnableParallelCommands == SimMPSEnabled
+	const bool fixupMisplacedBeads = false;
+#else 
+	const bool fixupMisplacedBeads = true;
+#endif
+
+	unsigned numMisplacedBeadsFound = 0;
 
 	long index1, ix, iy, iz;
 
-	for(AbstractBeadVectorIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++)
-	{
-		ix = static_cast<long>((*iterBead)->GetXPos()/m_CNTXCellWidth);
-		iy = static_cast<long>((*iterBead)->GetYPos()/m_CNTYCellWidth);
+	// Step backwards, so that if we need to remove a bead all the others
+	// will already have been processed.
+	for(int offset = m_lBeads.size()-1; offset >= 0; offset--){
+		CAbstractBead *pBead = m_lBeads[offset];
+
+		ix = static_cast<long>(pBead->GetXPos()/m_CNTXCellWidth);
+		iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
 
 #if SimDimension == 2
 		iz = 0;
 #elif SimDimension == 3
-		iz = static_cast<long>((*iterBead)->GetZPos()/m_CNTZCellWidth);		
+		iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);		
 #endif
 
 		index1 = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix;
 
-		if(index1 != GetId())
-		{
-			bBeadsFound = false;
+		if(index1==GetId()){
+			continue;
+		}
 
-			CAbstractBead* pBead = (*iterBead);
+		assert(index1 != GetId());
+		
+		numMisplacedBeadsFound += 1;
 
-			// Post a warning message about the error. but only write to the screen
-			// during debug. Note that the time returned by the Monitor may be incorrect
-			// if the SamplePeriod is not 1, but it will be out by at most SamplePeriod.
-			// This is because the Monitor only updates its current time when the
-			// data is sampled.
+		// Post a warning message about the error. but only write to the screen
+		// during debug. Note that the time returned by the Monitor may be incorrect
+		// if the SamplePeriod is not 1, but it will be out by at most SamplePeriod.
+		// This is because the Monitor only updates its current time when the
+		// data is sampled.
 
-			new CLogCNTBeadError(m_pMonitor->GetCurrentTime(), 
-														  ix, iy, iz, index1, GetId(), pBead);
+		new CLogCNTBeadError(m_pMonitor->GetCurrentTime(), 
+														ix, iy, iz, index1, GetId(), pBead);
 
 #ifdef TraceOn
-			TraceInt2(  "Cell has beads", GetId(), m_lBeads.size());
-			TraceInt2(  "  Bead has false cell index", (*iterBead)->GetId(), index1);
-			TraceInt3(  "  Cell BL index",  m_BLIndex[0], m_BLIndex[1], m_BLIndex[2]);
-			TraceVector("  Cell BL coords", m_BLCoord[0], m_BLCoord[1], m_BLCoord[2]);
-			TraceVector("  Cell TR coords", m_TRCoord[0], m_TRCoord[1], m_TRCoord[2]);
-			TraceVector("  Bead coords", (*iterBead)->GetXPos(), (*iterBead)->GetYPos(), (*iterBead)->GetZPos());
+		TraceInt2(  "Cell has beads", GetId(), m_lBeads.size());
+		TraceInt2(  "  Bead has false cell index", pBead->GetId(), index1);
+		TraceInt3(  "  Cell BL index",  m_BLIndex[0], m_BLIndex[1], m_BLIndex[2]);
+		TraceVector("  Cell BL coords", m_BLCoord[0], m_BLCoord[1], m_BLCoord[2]);
+		TraceVector("  Cell TR coords", m_TRCoord[0], m_TRCoord[1], m_TRCoord[2]);
+		TraceVector("  Bead coords", pBead->GetXPos(), pBead->GetYPos(), pBead->GetZPos());
 
-			for(AbstractBeadVectorIterator iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
-			{
-				TraceInt("Bead", (*iterBead2)->GetId());
-				TraceVector("  Pos",      (*iterBead2)->GetXPos(), (*iterBead2)->GetYPos(), (*iterBead2)->GetZPos());
-				TraceVector("  old Pos",  (*iterBead2)->m_oldPos[0], (*iterBead2)->m_oldPos[1], (*iterBead2)->m_oldPos[2]);
-				TraceVector("  Vel",      (*iterBead2)->GetXMom(), (*iterBead2)->GetYMom(), (*iterBead2)->GetZMom());
-				TraceVector("  old Vel",  (*iterBead2)->m_oldMom[0], (*iterBead2)->m_oldMom[1], (*iterBead2)->m_oldMom[2]);
-				TraceVector("  Force",    (*iterBead2)->m_Force[0], (*iterBead2)->m_Force[1], (*iterBead2)->m_Force[2]);
-				TraceVector("  old Force",(*iterBead2)->m_oldForce[0], (*iterBead2)->m_oldForce[1], (*iterBead2)->m_oldForce[2]);
+		for(AbstractBeadVectorIterator iterBead2=m_lBeads.begin(); iterBead2!=m_lBeads.end(); iterBead2++)
+		{
+			TraceInt("Bead", (*iterBead2)->GetId());
+			TraceVector("  Pos",      (*iterBead2)->GetXPos(), (*iterBead2)->GetYPos(), (*iterBead2)->GetZPos());
+			TraceVector("  old Pos",  (*iterBead2)->m_oldPos[0], (*iterBead2)->m_oldPos[1], (*iterBead2)->m_oldPos[2]);
+			TraceVector("  Vel",      (*iterBead2)->GetXMom(), (*iterBead2)->GetYMom(), (*iterBead2)->GetZMom());
+			TraceVector("  old Vel",  (*iterBead2)->m_oldMom[0], (*iterBead2)->m_oldMom[1], (*iterBead2)->m_oldMom[2]);
+			TraceVector("  Force",    (*iterBead2)->m_Force[0], (*iterBead2)->m_Force[1], (*iterBead2)->m_Force[2]);
+			TraceVector("  old Force",(*iterBead2)->m_oldForce[0], (*iterBead2)->m_oldForce[1], (*iterBead2)->m_oldForce[2]);
 
 //				Trace("its NNCells are:");
 //				for(long ic=0; ic<27; ic++)
 //				{
 //					TraceInt2("", ic, m_aNNCells[ic]->GetId()); 
 //				}
-				Trace("**********");
-			}
+			Trace("**********");
+		}
 #endif
 
+		if(fixupMisplacedBeads){
+			// Neither std::fmod or std::remainder do what we want.
+			// This is rare. So we do it naively.
+			auto mod_wrap = [](double x, double y)
+			{
+				while( x < 0)	x += y;
+				while( x >= y)  x -= y;
+				return x;
+			};
+
+			// If a bead has skipped more than one cell it may have skipped over the external 
+			// boundary wrapping checks. So we explicitly wrap here to handle that case.
+			double xpos = mod_wrap(pBead->GetXPos(), m_SimBoxXLength);
+			double ypos = mod_wrap(pBead->GetYPos(), m_SimBoxYLength);
+			double zpos = mod_wrap(pBead->GetZPos(), m_SimBoxZLength);
+
+			TraceInt("Fixing Bead", pBead->GetId());
+			TraceVector("  New pos", xpos, ypos, zpos);
+
+
+			// Note that this will modify the array that we are iterating over, but it will only access
+			// element offset.
+			// The beads in [0,offset) will remain in place, and get processed next.
+			m_pISimBox->GetSimBox()->MoveBeadBetweenCNTCells( pBead, xpos, ypos, zpos );
 		}
 	}
 
-	return bBeadsFound;
+	return numMisplacedBeadsFound==0;
 }
 
 // Function to return the potential energy of a bead interacting with all the

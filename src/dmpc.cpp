@@ -99,8 +99,7 @@ int main(int argc, char** argv)
 	
 #endif
 
-    int argcOrig=argc;
-    char **argvOrig=argv;
+    std::vector<char*> argvOriginal(argv, argv+argc);
 
     CommandLineParameters::Initialise(argc, argv, [=](const std::string &msg) {
         std::cout<<msg<<std::endl;

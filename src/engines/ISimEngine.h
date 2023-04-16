@@ -3,8 +3,9 @@
 
 #include <string>
 #include <memory>
+#include <iostream>
 
-#include <unordered_map>
+#include <map>
 
 class ISimBox;
 
@@ -86,10 +87,17 @@ public:
         return factories.find(name) != factories.end();
     }
 
-private:
-    static std::unordered_map<std::string,std::shared_ptr<ISimEngineFactory>> &GetFactories()
+    static void ListEngines(std::ostream &dst)
     {
-        static std::unordered_map<std::string,std::shared_ptr<ISimEngineFactory>> factories;
+        for(const auto &kv : GetFactories()){
+            dst<<kv.first<<"\n";
+        }
+    }
+
+private:
+    static std::map<std::string,std::shared_ptr<ISimEngineFactory>> &GetFactories()
+    {
+        static std::map<std::string,std::shared_ptr<ISimEngineFactory>> factories;
         return factories;
     }
 };
@@ -103,7 +111,7 @@ private:
         : public ISimEngineFactory
         , public TCapabilities
     {
-        std::shared_ptr<ISimEngine> CreateEngineInstance()
+        std::shared_ptr<ISimEngine> CreateEngineInstance() override
         { return std::make_shared<TImpl>(); }
 
         std::string Name() const override

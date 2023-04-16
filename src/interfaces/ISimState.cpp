@@ -30,12 +30,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "IModifySimStateBondTypes.h"
 #include "IModifySimStateIntegration.h"
 #include "IModifySimStatePolymers.h"
+#include "CommandLineParameters.h"
 
 // SimBox headers
 
 #include "xxCommand.h"          // Needed for command class definition
 #include "xxEvent.h"			// Include in case no events are defined
-
+#include "xxCommandObject.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -55,7 +56,9 @@ ISimState::ISimState(CSimState& simState, const ISimBox* const pISimBox) : ISimE
 									m_RenormalisationPeriod(1),
 									m_rSimState(simState)
 {
-
+	for(const auto &c : CommandLineParameters::GetExtraCommands()){
+		AddCommand(c->GetCommand());
+	}
 }
 
 ISimState::~ISimState()

@@ -4,6 +4,8 @@
 
 #include "xxCommandObject.h"
 
+#include "ISimEngine.h"
+
 bool CommandLineParameters::sm_initialised = false;
 std::vector<std::unique_ptr<xxCommandObject>> CommandLineParameters::sm_extra_commands;
 
@@ -48,10 +50,23 @@ Parameters:
     # Equivalent to above, with optional Command prefix
     $ dpd --add-command "Command SetTimeStepSize 4 0.1" water
 
+--set-engine EngineName : Selects a specific execution engine
+
+--list-engines : Lists all available engines, then quits with error without starting simulation.
+
 )";
 
 void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<void(const std::string &)> on_error)
 {
+    auto consume_args = [&](unsigned n)
+    {
+        assert( n < argc );
+        for(unsigned i=1; i<argc-n; i++){
+            argv[i] = argv[i+n];
+        }
+        argc -= n;
+    };
+
     if(sm_initialised){
         return on_error("CommandLineParameters::Initialise already called.");
     }
@@ -94,11 +109,27 @@ void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<vo
             std::cout << *cmd;
 
             sm_extra_commands.push_back(std::move(cmd));
+
+            consume_args(2);
+        }else if(cmd=="--list-engines"){
+            ISimEngineFactory::ListEngines(std::cout);
+            exit(1);
+        }else if(cmd=="--set-engine"){
+            if(argc < 3){
+                return on_error("Missing argument to --set-engine");
+            }
+
+            std::string engine_name = argv[2];
             
-            argc -= 2;
-            argv += 2;
+            auto inst = ISimEngineFactory::CreateEngineInstanceByName(engine_name);
+            if(!inst){
+                return on_error("Couldn't find engine called "+engine_name);
+            }
+            ISimEngine::SetGlobalEngine(inst );
+
+            consume_args(2);
         }else if(cmd=="--help"){
-            ++argc;
+            consume_args(1);
             return on_error(sg_usage);
         }else{
             return on_error("Didn't understand command line flag '"+cmd+"'");

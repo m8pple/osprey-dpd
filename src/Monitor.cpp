@@ -901,6 +901,12 @@ void CMonitor::CalculateSingleBeadData()
 		long iz = static_cast<long>((*iterBead)->m_Pos[2]/m_GridZCellWidth);	
 #endif
 
+		// TODO : This is only needed if CCNTCell::UpdatePos can produce cells out
+		// of range. 
+		ix = std::max<long>(0, std::min<long>(m_GridXCellNo-1, ix ));
+		iy = std::max<long>(0, std::min<long>(m_GridYCellNo-1, iy ));
+		iz = std::max<long>(0, std::min<long>(m_GridZCellNo-1, iz ));
+
 		long index = m_GridXCellNo*(m_GridYCellNo*iz+iy) + ix;
 
 		m_vGridObservables.at((*iterBead)->GetType())->m_vField.at(index) += 1.0;
@@ -1955,6 +1961,18 @@ void CMonitor::AddBeadStress(const CAbstractBead* const pBead1, const CAbstractB
 	m_LowerStressSliceIndex = static_cast<long>(m_LowerStressSliceCoord);
 	m_LowerStressSliceRem   = m_LowerStressSliceCoord - static_cast<double>(m_LowerStressSliceIndex);
 
+	// The way that the reference CCNTCell::UpdatePos works means that beads can move
+	// more than one cell, and so boundary wrapping does not always get properly applied.
+	// CCNTCell::CheckCell now moves beads into the right place, but that happens
+	// _after_ AddBeadStress, so the beads will be in the wrong position.
+	// I (dt10) don't want to massively change the reference UpdatePos, so this
+	// function is modified to accept that fast beads may temporarily move
+	// outside the sim boundary, and we just clamp them.
+	// TODO : This is hacky. Replacing CCNTCell::UpdatePos with something which guarantees
+	// bead placement would make this redundant.
+	m_UpperStressSliceIndex = std::max<long>( std::min<long>( m_UpperStressSliceIndex, m_vvSliceStress11.size()-1 ), 0);
+	m_LowerStressSliceIndex = std::max<long>( std::min<long>(m_LowerStressSliceIndex, m_vvSliceStress11.size()-1 ),  0 );
+
 	// The next case takes care of coincident and non-coincident beads within a slice and
 	// those coincident on a slice border.
 
@@ -2351,6 +2369,19 @@ void CMonitor::AddBondStress(const CBond* const pBond)
 	m_LowerStressSliceIndex = static_cast<long>(m_LowerStressSliceCoord);
 	m_LowerStressSliceRem   = m_LowerStressSliceCoord - static_cast<double>(m_LowerStressSliceIndex);
 
+	// This is a duplicate of the problem from CMonitor::AddBeadStress.
+	// The way that the reference CCNTCell::UpdatePos works means that beads can move
+	// more than one cell, and so boundary wrapping does not always get properly applied.
+	// CCNTCell::CheckCell now moves beads into the right place, but that happens
+	// _after_ AddBeadStress, so the beads will be in the wrong position.
+	// I (dt10) don't want to massively change the reference UpdatePos, so this
+	// function is modified to accept that fast beads may temporarily move
+	// outside the sim boundary, and we just clamp them.
+	// TODO : This is hacky. Replacing CCNTCell::UpdatePos with something which guarantees
+	// bead placement would make this redundant.
+	m_UpperStressSliceIndex = std::max<long>( std::min<long>( m_UpperStressSliceIndex, m_vvSliceStressBond11.size()-1 ), 0);
+	m_LowerStressSliceIndex = std::max<long>( std::min<long>(m_LowerStressSliceIndex, m_vvSliceStressBond11.size()-1 ),  0 );
+
 	// The next case takes care of coincident and non-coincident beads within a slice and
 	// those coincident on a slice border.
 
@@ -2588,6 +2619,19 @@ void CMonitor::AddBondPairStress(const CBondPair* const pBondPair)
 
 		m_LowerStressSliceIndex = static_cast<long>(m_LowerStressSliceCoord);
 		m_LowerStressSliceRem   = m_LowerStressSliceCoord - static_cast<double>(m_LowerStressSliceIndex);
+
+		// This is a duplicate of the problem from CMonitor::AddBeadStress und so weiter.
+		// The way that the reference CCNTCell::UpdatePos works means that beads can move
+		// more than one cell, and so boundary wrapping does not always get properly applied.
+		// CCNTCell::CheckCell now moves beads into the right place, but that happens
+		// _after_ AddBeadStress, so the beads will be in the wrong position.
+		// I (dt10) don't want to massively change the reference UpdatePos, so this
+		// function is modified to accept that fast beads may temporarily move
+		// outside the sim boundary, and we just clamp them.
+		// TODO : This is hacky. Replacing CCNTCell::UpdatePos with something which guarantees
+		// bead placement would make this redundant.
+		m_UpperStressSliceIndex = std::max<long>( std::min<long>( m_UpperStressSliceIndex, m_vvSliceStressBondPair11.size()-1 ), 0);
+		m_LowerStressSliceIndex = std::max<long>( std::min<long>(m_LowerStressSliceIndex, m_vvSliceStressBondPair11.size()-1 ),  0 );
 
 		// The next case takes care of coincident and non-coincident beads within a slice and
 		// those coincident on a slice border.

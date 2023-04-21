@@ -3,6 +3,8 @@ cmake_policy(VERSION 3.3)
 
 project(osprey-dpd VERSION "0.0.0")
 
+find_package(TBB REQUIRED)
+
 set(COMPILE_OPTIONS
     -g3
     -O3
@@ -17,8 +19,6 @@ set(COMPILE_OPTIONS
     -Wno-unused-parameter
     -Wno-reorder
     -Wno-sign-compare
-
-    -mavx2
     )
 
 set(COMPILE_OPTIONS_DEBUG
@@ -36,8 +36,6 @@ set(COMPILE_OPTIONS_DEBUG
 
   -DTraceOn
   -UNDEBUG
-
-  -mavx2
 )
 
 set(CMAKE_CXX_STANDARD 11)
@@ -77,6 +75,7 @@ add_executable(dpd ${SRC_FILES})
 target_compile_options(dpd
   PRIVATE ${COMPILE_OPTIONS}
 )
+target_link_libraries(dpd PRIVATE TBB::tbb)
 
 add_executable(dpd-opt ${SRC_FILES})
 target_compile_options(dpd-opt
@@ -106,7 +105,8 @@ target_compile_options(dpd-2d
 
 add_executable(dpd-debug ${SRC_FILES})
 target_compile_options(dpd-debug
-  PRIVATE ${COMPILE_OPTIONS_DEBUG}
+  PRIVATE ${COMPILE_OPTIONS_DEBUG} -ferror-limit=2
 )
-target_compile_options(dpd-debug PRIVATE -fsanitize=address)
-target_link_options(dpd-debug PRIVATE -fsanitize=address)
+target_compile_options(dpd-debug PRIVATE -fsanitize=undefined)
+target_link_options(dpd-debug PRIVATE -fsanitize=undefined)
+target_link_libraries(dpd-debug PRIVATE TBB::tbb)

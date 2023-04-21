@@ -1,0 +1,52 @@
+dpd
+
+Title	" Swish "
+Date    10/01/23
+Comment	" Sweep a globule left then right, watch it break part and observe change of global momentum "
+
+
+State	random
+
+
+Bead  W0
+      0.5
+      25
+      1
+
+Bead  W1
+      0.5
+      100 25
+      1 1
+
+Polymer	Water0    1.0   " (W0) "
+Polymer	Water1    0.0   " (W1) "
+
+
+Box         16  16  16       1  1  1
+Density		3
+Temp        1
+RNGSeed		-26784
+Lambda		0.5
+Step		0.02
+Time		2000
+SamplePeriod     10
+AnalysisPeriod	 10
+DensityPeriod    100
+DisplayPeriod    50
+RestartPeriod    2000
+Grid		1  1  1
+
+
+Command SelectBeadTypeInSphere 1 wibble W0 0.5 0.5 0.5 0 4
+Command AssignExistingBeadType 1 wibble W1
+Command SetTargetDisplayId 1 wibble 1
+
+Command SetCurrentStateCamera         1    0.5 -1.0 -0.5  0.5 0.5 0.5
+Command SetCurrentStateDefaultFormat  1    Paraview
+
+
+Command ConstantForceOnTarget 100 wibble wibble_f1  0 0 1 2
+Command RemoveCommandTargetActivity 200 wibble_f1
+
+Command ConstantForceOnTarget 1000 wibble wibble_f2  0 0 -1 2
+Command RemoveCommandTargetActivity 1200 wibble_f2

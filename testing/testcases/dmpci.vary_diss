@@ -1,0 +1,39 @@
+dpd
+
+Title	" vary_diss "
+Date    10/01/23
+Comment	" modify dissipative constant during simulation "
+
+
+State	random
+
+
+Bead  W0
+      0.5
+      25
+      0.0001
+
+Polymer	Water0    1.0   " (W0) "
+
+
+Box         13  15  17       1  1  1
+Density		3
+Temp        1
+RNGSeed		-26784
+Lambda		0.5
+Step		0.02
+Time		2000
+SamplePeriod     5
+AnalysisPeriod	 25
+DensityPeriod    25
+DisplayPeriod    25
+RestartPeriod    25
+Grid		1  1  1
+
+
+Command SetCurrentStateCamera         1    0.5 -1.0 -0.5  0.5 0.5 0.5
+Command SetCurrentStateDefaultFormat  1    Paraview
+
+Command SetDPDBeadDissInt  500 W0 W0 0.01
+Command SetDPDBeadDissInt 1000 W0 W0 1
+Command SetDPDBeadDissInt 1500 W0 W0 100

@@ -1,3 +1,9 @@
 build/
 bin/
 profiling/
+testing/testcases/*/
+tmp/
+
+*.dat
+*.vtk
+*.pyc

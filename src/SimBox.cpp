@@ -1449,10 +1449,10 @@ void CSimBox::Run()
 				fastSteps = nextSlowTime - m_SimTime - 1;
 			}
 
-			if(fastSteps > 0){
-				auto engine=ISimEngine::GetGlobalEngine();
+			auto engine=ISimEngine::GetGlobalEngine();
+			if(engine && fastSteps > 0){
 				ISimBox *box=const_cast<ISimBox*>(GetISimBox());
-				if(engine && engine->CanSupport(box).empty()){
+				if(engine->CanSupport(box).empty()){
 					fprintf(stderr, "Fast stepping from %ld to %ld with engine %s\n", m_SimTime, m_SimTime+fastSteps, engine->Name().c_str());
 					bool modified=true; // TODO : detect when sim box has been modified
 					engine->Run(box, modified, fastSteps);

@@ -46,7 +46,7 @@ def calculate_quantised_walk_statistic(nbuckets:int, ntimes:int, nreps:int, boun
 def calculate_extreme_value_statistic(ntimes:int, nreps:int, ul_boundaries : np.ndarray, paths : np.ndarray):
     assert ul_boundaries.shape == (ntimes,2)
     assert paths.shape==(ntimes,nreps)
-    assert np.all(ul_boundaries[:,0] < ul_boundaries[:,1])
+    assert np.sum(ul_boundaries[:,0] < ul_boundaries[:,1]) > ntimes/2, str(ul_boundaries)+"\n"+str(paths)
     extrema = (paths < ul_boundaries[:,0].reshape((ntimes,1))) | (ul_boundaries[:,1].reshape((ntimes,1)) < paths)
     statistics=np.sum(extrema, axis=0) / ntimes
     assert statistics.shape==(nreps,)
@@ -88,7 +88,7 @@ while True:
     if not os.path.exists(f"{replicate_dir}/finished"):
         sys.stderr.write("Skipping {replicate_dir}\n")
     else:
-        slice=parse_dmpcas(f"{replicate_dir}/dmpcas.{dmpci_name}")
+        slice=parse_dmpcas(replicate_dir, dmpci_name)
         all_slices.append(slice)
     r=r+1
 
@@ -187,14 +187,35 @@ for (nindex,name) in enumerate(names):
         res["slices"][name]["times"].append(stats)
         #print(f"{t:3}, {name:11}, {len(x)}, {mean:.8}, {stddev:.6}, {skewness:.5}, {kurtosis:.5}, {minval:.8}, {q01:.8}, {q10:.8}, {q50:.8}, {q90:.8}, {q99:.8}, {maxval:.8}")
 
+assert transition_probs.shape == (nnames,ntimes,nbuckets,nbuckets)
 
 # remove any metrics that have collapsed or are constant
-for (nindex,name) in enumerate(names):
+for nindex in range(nnames-1,-1,-1):
+    name=names[nindex]
+    assert name in res["slices"]
     if any(stddevs[nindex,:]==0):
         sys.stderr.write(f"Removing {name}, means={means[nindex,:]} stddev={stddevs[nindex,:]}\n")
-        del res["slices"][name]
-        res["names"].remove(name)
+        slices=res["slices"]
+        del slices[name]
+        del names[nindex]
+        stddevs=np.delete(stddevs, [nindex], axis=0)
+        means=np.delete(means, [nindex], axis=0)
+        # Not needed as res["names"] is the same object as names
+        # res["names"].remove(name)
+        data_cube=np.delete(data_cube, [nindex], axis=0)
+        stats_cube=np.delete(stats_cube, [nindex], axis=0)
+        transition_probs=np.delete(transition_probs,[nindex],axis=0)
+        transition_boundaries=np.delete(transition_boundaries,[nindex],axis=0)
+        
         nnames -= 1
+
+        assert transition_probs.shape == (nnames,ntimes,nbuckets,nbuckets)
+
+assert data_cube.shape == (nnames,ntimes,nreps)
+assert len(names) == nnames
+assert stats_cube.shape == (nnames,ntimes,2)
+assert transition_probs.shape == (nnames,ntimes,nbuckets,nbuckets)
+assert transition_boundaries.shape == (nnames,ntimes,nbuckets)
 
 for (nindex,name) in enumerate(names):
     s=calculate_quantised_walk_statistic(nbuckets, ntimes, nreps, transition_boundaries[nindex,:,:], transition_probs[nindex,:,:,:], data_cube[nindex,:,:])

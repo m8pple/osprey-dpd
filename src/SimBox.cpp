@@ -6362,6 +6362,43 @@ bool CSimBox::MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, doub
     return bValid;
 }
 
+void CSimBox::AddBeadToCNTCell(CAbstractBead* const pBead) const
+{
+#if EnableParallelSimBox == SimMPSEnabled
+    
+    // Parallel branch not enabled yet, and we don't expect it to occur
+	FatalTraceGlobal("AddBeadToCNTCell - Not expected to be called from parallel code.");
+    
+#else
+    
+	assert(pBead);
+	// Get current position and the index to the owning CNT cell
+	
+	long ix, iy, iz;
+	
+#ifndef NDEBUG
+	ix = static_cast<long>(pBead->GetXPos()/m_CNTXCellWidth);
+	iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
+	iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);
+	
+	const long oldIndex = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix;
+	const auto &oldCell = *m_vCNTCells.at(oldIndex);
+	const auto &bb = oldCell.GetBeads();
+	assert( std::find(bb.begin(), bb.end(), pBead) == bb.end());
+#endif
+
+	// Now get the new position and the index to the new CNT cel
+	ix = static_cast<long>(pBead->GetXPos()/m_CNTXCellWidth);
+	iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
+	iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);
+	
+	const long newIndex = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix; 
+	m_vCNTCells[newIndex]->AddBeadtoCell(pBead);
+	
+#endif
+}
+
+
 
 #if EnableParallelSimBox == SimMPSEnabled
 // Access functions to the  parallel SimBox that need to be accessed by other classes. Because they are all only used in the 

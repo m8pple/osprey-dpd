@@ -2480,7 +2480,7 @@ void CCNTCell::UpdatePos()
 // **********************************************************************
 	}
 }
-
+#if 0
 void CCNTCell::UpdatePosFast()
 {
 	#ifndef NDEBUG
@@ -2674,6 +2674,147 @@ void CCNTCell::UpdatePosFast()
 			}
 		}
 	}*/
+}
+#endif
+
+void CCNTCell::UpdateMomThenPosFastV2()
+{
+	#ifndef NDEBUG
+	if(m_lambda!=0.5){
+		ErrorTrace("Attempt to call UpdatePosFast with lambda!=0.5");
+		exit(1);
+	}
+	#endif
+
+	double dx[3];
+
+	int index=m_lBeads.size()-1;
+
+	while(index >= 0){
+		assert(!m_lBeads.empty());
+
+		CAbstractBead *bead=m_lBeads[index];
+
+		// Only allow bead to move if its IsMovable flag is true. This allows
+		// us to indicate when a bead has already crossed a cell boundary and
+		// should not be moved again in this timestep.
+
+		if(!bead->GetMovable()){
+			index++;
+			continue;
+		}
+		
+		/*for(int d=0; d<3; d++){
+			assert( m_BLCoord[d] <= bead->m_Pos[d] );
+			assert( m_TRCoord[d] >= bead->m_Pos[d] );
+		}*/
+
+		bead->SetNotMovable();
+
+		// DPD and MD simulations
+		// Store current values of position, velocity and force for later use
+
+		// We do not write to m_oldPos, m_oldMom, or m_oldForce, as it is not needed in fast path (causes extra memory traffic)
+#ifndef NDEBUG
+		bead->m_oldPos[0] = nanf("");
+		bead->m_oldMom[0] = nanf("");
+		bead->m_oldForce[0] = nanf("");
+#endif		
+
+		// Apply the mom from the end of previous step (loop skewed)
+		bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt * bead->m_Force[0] ;
+		bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt* bead->m_Force[1];
+		bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt * bead->m_Force[2];
+
+		// Update position coordinates
+
+		dx[0] = m_dt*bead->m_Mom[0] + m_halfdt2*bead->m_Force[0];
+		dx[1] = m_dt*bead->m_Mom[1] + m_halfdt2*bead->m_Force[1];
+		dx[2] = m_dt*bead->m_Mom[2] + m_halfdt2*bead->m_Force[2];
+
+		bead->m_Pos[0] += dx[0];
+		bead->m_Pos[1] += dx[1];
+		bead->m_Pos[2] += dx[2];
+
+		// Update the unPBC coordinates for use in calculating bond lengths
+		// where we don't want to have to check for beads at opposite side
+		// of the simulation box.
+
+		bead->m_unPBCPos[0] += dx[0];
+		bead->m_unPBCPos[1] += dx[1];
+		bead->m_unPBCPos[2] += dx[2];
+
+		// We do not update m_dPos
+#ifndef NDEBUG
+		bead->m_dPos[0] = nanf("");
+#endif
+
+		// Update intermediate velocity
+
+		// We know that lambda=0.5 for fast path
+		assert(m_lamdt == m_halfdt);
+		bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt*bead->m_Force[0];
+		bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt*bead->m_Force[1];
+		bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt*bead->m_Force[2];
+
+		// Zero current force on beads so that UpdateForce() just has to form
+		// a sum of all bead-bead interactions
+
+		// Force counting is not tracked in fast mode
+#ifndef NDEBUG
+		bead->m_ForceCounter = -1000;
+#endif
+
+		bead->m_Force[0] = 0.0;
+		bead->m_Force[1] = 0.0;
+		bead->m_Force[2] = 0.0;
+
+		/* 
+		Idea here is to make it a branchless as possible. Expected case is that beads
+		mostly stay in the same cell, so all boundary conditions need to be evaluated.
+		*/
+		int deltaParts[3];
+		int moved=0;
+		for(int d=0; d<3; d++){
+			deltaParts[d] = (bead->m_Pos[d] > m_TRCoord[d]) - (bead->m_Pos[d] < m_BLCoord[d]);
+			moved |= deltaParts[d];
+		}
+		if(!moved){
+			for(int d=0; d<3; d++){
+				assert( m_BLCoord[d] <= bead->m_Pos[d] );
+				assert( m_TRCoord[d] >= bead->m_Pos[d] );
+			}
+
+			// If the bead did not change cells increment the
+			// iterator by hand.
+			index++;
+			continue;
+		}
+
+		// Enforce wrapping. Unconditional on all dims, as movement is relatively rare
+		// Use while loop as it is safer, and costs little (hopefully0)
+		while(bead->m_Pos[0] < 0)	bead->m_Pos[0] += m_SimBoxXLength;
+		while(bead->m_Pos[1] < 0)	bead->m_Pos[1] += m_SimBoxYLength;
+		while(bead->m_Pos[2] < 0)	bead->m_Pos[2] += m_SimBoxZLength;
+		while(bead->m_Pos[0] >= m_SimBoxXLength)	bead->m_Pos[0] -= m_SimBoxXLength;
+		while(bead->m_Pos[1] >= m_SimBoxYLength)	bead->m_Pos[1] -= m_SimBoxYLength;
+		while(bead->m_Pos[2] >= m_SimBoxZLength)	bead->m_Pos[2] -= m_SimBoxZLength;
+
+		assert( fmod(m_SimBoxXLength, 1) == 0);
+		assert( fmod(m_SimBoxYLength, 1) == 0);
+		assert( fmod(m_SimBoxZLength, 1) == 0);
+		assert( m_CNTXCellWidth == 1 && m_CNTYCellWidth==1 && m_CNTZCellWidth==1);
+
+		int ix=floor(bead->m_Pos[0]), iy=floor(bead->m_Pos[1]), iz=floor(bead->m_Pos[2]);
+		int cell_index = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix; 
+
+		if(index+1 < m_lBeads.size()){
+			std::swap(m_lBeads[index], m_lBeads.back());
+		}
+		m_lBeads.pop_back();
+
+		m_pISimBox->GetSimBox()->AddBeadToCNTCell(bead);
+	}
 }
 
 
@@ -2874,6 +3015,8 @@ void CCNTCell::UpdateMomThenPosFast()
 		}
 	}*/
 }
+
+
 
 // Function to update the velocity of the beads using the old
 // velocity and the old and new values for the force. Note that this

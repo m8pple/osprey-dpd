@@ -144,6 +144,7 @@ public:
 	void UpdateMomFast();
 	void UpdateMomFastReverse(); // Pre-correct backwards to allow loop skewing
 	void UpdateMomThenPosFast();
+	void UpdateMomThenPosFastV2();
 
     // Alternative force calculation to include the DPD density-dependent force.
 

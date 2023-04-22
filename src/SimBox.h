@@ -466,6 +466,7 @@ public:
     
     // PVFs inherited from the ISimState interface base class that change the CSimBox's internal structure
     
+	virtual void AddBeadToCNTCell(CAbstractBead* const pBead) const;
     virtual bool MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, double y, double z) const;
 
     // Function to return all the (non-wall) polymers for manipulation by commands

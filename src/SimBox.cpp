@@ -1278,7 +1278,7 @@ void CSimBox::EvolveFast(unsigned nSteps)
 				(*iterCell)->PrefetchHint();
 			}
 
-			curr->UpdateMomThenPosFast();
+			curr->UpdateMomThenPosFastV2();
 		}
 
 		// Next calculate the forces between all pairs of beads in NN CNT cells
@@ -6362,7 +6362,9 @@ bool CSimBox::MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, doub
     return bValid;
 }
 
-void CSimBox::AddBeadToCNTCell(CAbstractBead* const pBead) const
+// cell_index must be the exact index for the cell, and the bead must be in bounds
+// The bead must not currently be in any cell (including the target)
+void CSimBox::AddBeadToCNTCell(int cell_index, CAbstractBead* const pBead) const
 {
 #if EnableParallelSimBox == SimMPSEnabled
     
@@ -6373,27 +6375,17 @@ void CSimBox::AddBeadToCNTCell(CAbstractBead* const pBead) const
     
 	assert(pBead);
 	// Get current position and the index to the owning CNT cell
-	
-	long ix, iy, iz;
-	
 #ifndef NDEBUG
-	ix = static_cast<long>(pBead->GetXPos()/m_CNTXCellWidth);
-	iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
-	iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);
-	
-	const long oldIndex = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix;
-	const auto &oldCell = *m_vCNTCells.at(oldIndex);
-	const auto &bb = oldCell.GetBeads();
-	assert( std::find(bb.begin(), bb.end(), pBead) == bb.end());
-#endif
-
+	long ix, iy, iz;
 	// Now get the new position and the index to the new CNT cel
 	ix = static_cast<long>(pBead->GetXPos()/m_CNTXCellWidth);
 	iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
 	iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);
-	
-	const long newIndex = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix; 
-	m_vCNTCells[newIndex]->AddBeadtoCell(pBead);
+	const long trueIndex = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix; 
+	assert(trueIndex == cell_index);
+#endif
+
+	m_vCNTCells[cell_index]->AddBeadtoCell(pBead);
 	
 #endif
 }

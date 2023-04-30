@@ -93,6 +93,11 @@ public:
 	static void SetDPDBeadDissInt(long firstType, long secondType, double newValue);
 	static void SetDPDBeadLGInt(long firstType, long secondType, double newValue);
 
+	// Allow inspection of current dynamic values CCNTCell is using
+	static double GetDPDBeadConsInt(long firstType, long secondType);
+	static double GetDPDBeadDissInt(long firstType, long secondType);
+
+
 	// Change the integration step size and dependent parameters
 
 	static void ChangeTimeStepConstants(const double dt);

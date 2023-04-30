@@ -447,6 +447,11 @@ void CCNTCell::SetDPDBeadConsInt(long firstType, long secondType, double newValu
 
 }
 
+double CCNTCell::GetDPDBeadConsInt(long firstType, long secondType)
+{
+	return m_vvConsInt.at(firstType).at(secondType);
+}
+
 void CCNTCell::SetDPDBeadDissInt(long firstType, long secondType, double newValue)
 {
 	if(0 <= firstType  && firstType  < static_cast<long>(m_vvDissInt.size()) &&
@@ -455,6 +460,11 @@ void CCNTCell::SetDPDBeadDissInt(long firstType, long secondType, double newValu
 		m_vvDissInt.at(firstType).at(secondType) = newValue;
 		m_vvDissInt.at(secondType).at(firstType) = newValue;	
 	}
+}
+
+double CCNTCell::GetDPDBeadDissInt(long firstType, long secondType)
+{
+	return m_vvDissInt.at(firstType).at(secondType);
 }
 
 // Function used by the CSimState to change the value of the DPD density-dependent
@@ -2773,11 +2783,9 @@ void CCNTCell::UpdateMomThenPosFastV2()
 		Idea here is to make it a branchless as possible. Expected case is that beads
 		mostly stay in the same cell, so all boundary conditions need to be evaluated.
 		*/
-		int deltaParts[3];
-		int moved=0;
+		bool moved=0;
 		for(int d=0; d<3; d++){
-			deltaParts[d] = (bead->m_Pos[d] > m_TRCoord[d]) - (bead->m_Pos[d] < m_BLCoord[d]);
-			moved |= deltaParts[d];
+			moved |= (bead->m_Pos[d] > m_TRCoord[d]) - (bead->m_Pos[d] < m_BLCoord[d]);
 		}
 		if(!moved){
 			for(int d=0; d<3; d++){
@@ -2792,7 +2800,7 @@ void CCNTCell::UpdateMomThenPosFastV2()
 		}
 
 		// Enforce wrapping. Unconditional on all dims, as movement is relatively rare
-		// Use while loop as it is safer, and costs little (hopefully0)
+		// Use while loop as it is safer for super-fast beads and small boxes, and costs little (hopefully)
 		while(bead->m_Pos[0] < 0)	bead->m_Pos[0] += m_SimBoxXLength;
 		while(bead->m_Pos[1] < 0)	bead->m_Pos[1] += m_SimBoxYLength;
 		while(bead->m_Pos[2] < 0)	bead->m_Pos[2] += m_SimBoxZLength;
@@ -2813,7 +2821,7 @@ void CCNTCell::UpdateMomThenPosFastV2()
 		}
 		m_lBeads.pop_back();
 
-		m_pISimBox->GetSimBox()->AddBeadToCNTCell(bead);
+		m_pISimBox->GetSimBox()->AddBeadToCNTCell(cell_index, bead);
 	}
 }
 

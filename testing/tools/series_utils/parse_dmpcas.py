@@ -1,5 +1,10 @@
 import re
+import os
+import sys
 from typing import *
+import numpy as np
+from series_utils.time_series_bundle import TimeSeriesBundle
+from run_replicates import calc_dmpci_file_hash, make_dir_name
 
 dmpcas_scalar_names=[
     "Temperature",
@@ -94,4 +99,61 @@ def parse_dmpcas(directory, dmpci_name):
 
     parse_and_add_dmpchs(directory, dmpci_name, res)
 
+    return res
+
+def parse_dmpcas_to_bundle(directory, dmpci_name, dmpci_hash):
+    all_slices={}
+    r=0
+    while True:
+        replicate_dir=f"{directory}/{make_dir_name(r)}"
+        if not os.path.isdir(replicate_dir):
+            sys.stderr.write(f"Missing directory {replicate_dir} finished search\n")
+            break
+
+        assert os.path.isfile(f"{replicate_dir}/dmpci.{dmpci_name}-{dmpci_hash}"), f"Missing {replicate_dir}/dmpci.{dmpci_name}-{dmpci_hash}"
+        
+        if not os.path.exists(f"{replicate_dir}/finished.{dmpci_name}-{dmpci_hash}"):
+            sys.stderr.write(f"Skipping {replicate_dir}\n")
+        else:
+            slice=parse_dmpcas(replicate_dir, f"{dmpci_name}-{dmpci_hash}")
+
+            all_slices[r]=slice
+            got_times=list(slice.keys())
+            got_times.sort()
+            for (k,v) in slice.items():
+                got_names=list(v.keys())
+            got_names.sort()
+            if len(all_slices)==1:
+                times=got_times
+                names=got_names
+            else:
+                assert times==got_times
+                assert names==got_names
+        r=r+1
+
+    assert len(all_slices)>0
+
+    reps=list(all_slices.keys())
+    reps.sort()
+    nreps=len(reps)
+
+
+    cube=np.zeros(shape=(len(names), len(times), nreps))
+    for (rindex,rep) in enumerate(reps):
+        data=all_slices[rep]
+        for (tindex,time) in enumerate(times):
+            slice=data[time]
+            for (name,value) in slice.items():
+                assert name in names, f"{names}, {name}"
+                nindex=names.index(name)
+                cube[nindex,tindex,rindex]=value
+
+    res=TimeSeriesBundle(
+        dmpci_name=dmpci_name,
+        dmpci_hash=dmpci_hash,
+        names=names,
+        rep_names=reps,
+        times=times,
+        data=cube
+    )
     return res

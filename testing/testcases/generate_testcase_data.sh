@@ -7,15 +7,23 @@ set -m
 
 dpd_executable=$1
 
+target=1000
+if [[ $# -gt 1 ]] ; then
+    target=$2
+fi
 
-if [[ $# -eq 1 ]] ; then
+if [[ $# -lt 3 ]] ; then
+    echo $#
+    echo $0 $dpd_executable $target
     for i in dmpci.* ; do 
-        $0 $@ $i
+        $0 $dpd_executable $target $i
     done
     exit 0
 fi
 
-dmpci_file=$2
+dmpci_file=$3
+
+
 
 function on_ctrl_c() {
     >&2 echo "Received ctrl-c. Killing $generate_pid and children. Will now summarise data, press ctrl-c again to cancel."
@@ -23,7 +31,7 @@ function on_ctrl_c() {
     trap - INT
 }
 
-../tools/run_replicates.py $dpd_executable $dmpci_file &
+../tools/run_replicates.py $dpd_executable $dmpci_file $target &
 generate_pid=$!
 trap on_ctrl_c INT
 

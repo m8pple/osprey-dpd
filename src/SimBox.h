@@ -419,6 +419,9 @@ class CSimBox : public ISimState,
 #endif
 	friend class SimEngineFast;
 	friend class SimEngineRef;
+	friend class SimEngineTest_SkipTime;
+	friend class SimEngineTest_FrozenBeads;
+	friend class SimEngineTest_WrongDiss;
 
 public:
 
@@ -466,7 +469,7 @@ public:
     
     // PVFs inherited from the ISimState interface base class that change the CSimBox's internal structure
     
-	virtual void AddBeadToCNTCell(CAbstractBead* const pBead) const;
+	virtual void AddBeadToCNTCell(int cell_index, CAbstractBead* const pBead) const;
     virtual bool MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, double y, double z) const;
 
     // Function to return all the (non-wall) polymers for manipulation by commands

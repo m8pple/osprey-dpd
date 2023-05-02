@@ -2702,6 +2702,7 @@ void CCNTCell::UpdateMomThenPosFastV2()
 
 	while(index >= 0){
 		assert(!m_lBeads.empty());
+		assert(index < m_lBeads.size());
 
 		CAbstractBead *bead=m_lBeads[index];
 
@@ -2710,7 +2711,7 @@ void CCNTCell::UpdateMomThenPosFastV2()
 		// should not be moved again in this timestep.
 
 		if(!bead->GetMovable()){
-			index++;
+			index--;
 			continue;
 		}
 		
@@ -2795,7 +2796,7 @@ void CCNTCell::UpdateMomThenPosFastV2()
 
 			// If the bead did not change cells increment the
 			// iterator by hand.
-			index++;
+			index--;
 			continue;
 		}
 
@@ -2822,6 +2823,7 @@ void CCNTCell::UpdateMomThenPosFastV2()
 		m_lBeads.pop_back();
 
 		m_pISimBox->GetSimBox()->AddBeadToCNTCell(cell_index, bead);
+		--index;
 	}
 }
 
@@ -3163,6 +3165,9 @@ void CCNTCell::SetNNCellIndex(long index, CCNTCell *pCell)
 
 void CCNTCell::AddBeadtoCell(CAbstractBead *pBead)
 {
+	assert( m_BLCoord[0] <= pBead->GetXPos() && pBead->GetXPos() <= m_TRCoord[0] );
+	assert( m_BLCoord[1] <= pBead->GetYPos() && pBead->GetYPos() <= m_TRCoord[1] );
+	assert( m_BLCoord[2] <= pBead->GetZPos() && pBead->GetZPos() <= m_TRCoord[2] );
 	m_lBeads.push_back(pBead);
 }
 
@@ -3505,6 +3510,9 @@ bool CCNTCell::CheckBeadsinCell()
 #elif SimDimension == 3
 		iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);		
 #endif
+		assert(0 <= ix && ix < m_CNTXCellNo);
+		assert(0 <= iy && iy < m_CNTYCellNo);
+		assert(0 <= iz && iz < m_CNTZCellNo);
 
 		index1 = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix;
 
@@ -3569,8 +3577,8 @@ bool CCNTCell::CheckBeadsinCell()
 			double zpos = mod_wrap(pBead->GetZPos(), m_SimBoxZLength);
 
 			TraceInt("Fixing Bead", pBead->GetId());
+			TraceVector("  Old pos", pBead->GetXPos(), pBead->GetYPos(), pBead->GetZPos());
 			TraceVector("  New pos", xpos, ypos, zpos);
-
 
 			// Note that this will modify the array that we are iterating over, but it will only access
 			// element offset.

@@ -14,27 +14,25 @@
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
 
+template<class TCalc=float>
 struct BondInfo
 {
     struct Bond
     {
         uint32_t head_bead_id;
         uint32_t tail_bead_id;
-        float springConst;
-        float length;
+        TCalc springConst;
+        TCalc length;
     };
 
     struct BondPair
     {
         uint16_t first_bond_off;
         uint16_t second_bond_off;
-        float Modulus;
-        float m_CosPhi0;
-        float m_SinPhi0;
+        TCalc Modulus;
+        TCalc m_CosPhi0;
+        TCalc m_SinPhi0;
     };
-
-    static_assert(sizeof(Bond)==sizeof(BondPair), "Bond and BondPair are expected to be the same size.");
-
     union BondOrBondPair
     {
         Bond bond;
@@ -58,7 +56,7 @@ struct BondInfo
 
     std::vector<polymer_ptr> polymers;
     unsigned max_bonds=0;
-    std::vector<float> working_space;
+    std::vector<TCalc> working_space;
 
     /* For safe parallel updating we need to ensure that each bead is contained in exactly
         one polymer. Each polymer has a colour, and the first polymer to touch a bead gives
@@ -167,30 +165,30 @@ struct BondInfo
     }
 
     template<class TBeadSource>
-    void update_polymers_seq(TBeadSource &bead_source, float dims_float[4])
+    void update_polymers_seq(TBeadSource &bead_source, TCalc dims_float[4])
     {
-        float local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
-        float half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
+        TCalc local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
+        TCalc half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
         for(const auto &p : polymers){
             update_polymer(dims_float, half_dims_float, *p, &working_space[0], bead_source);
         }
     }
 
     template<class TBeadSource>
-    void update_polymers_tbb(TBeadSource &bead_source, float dims_float[4])
+    void update_polymers_tbb(TBeadSource &bead_source, TCalc dims_float[4])
     {
-        float local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
-        float half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
+        TCalc local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
+        TCalc half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
         
         using range_t = tbb::blocked_range<unsigned>;
         tbb::parallel_for( range_t(0, polymers.size()), [&](const range_t &rr){
-            float *local_working=0;
-            std::vector<float> local_working_space;
+            TCalc *local_working=0;
+            std::vector<TCalc> local_working_space;
             if(working_space.size() <= 1024){
                 // Allocate up to 4KB on the current stack. We should be safe for alloca here as:
                 // - We don't expect this function to be inlined into a loop, as it is launched as a task by TBB
                 // - update_polymer doesn't do anything recursive or use a lot of stack (kind of the point of passing in working space)
-                local_working = (float*)alloca(sizeof(float) * working_space.size());
+                local_working = (TCalc*)alloca(sizeof(float) * working_space.size());
             }else{
                 local_working_space.resize(working_space.size());
                 local_working = &local_working_space[0];
@@ -203,10 +201,13 @@ struct BondInfo
     }
 
     template<class TBeadSource>
-    void update_polymers(TBeadSource &bead_source, float dims_float[4])
+    void update_polymers(TBeadSource &bead_source, TCalc dims_float[4])
     {
+        if(polymers.empty()){
+            return;
+        }
+
         if(polymers_use_disjoint_beads){
-            std::cerr<<"TBB bonds\n";
             update_polymers_tbb(bead_source, dims_float);
         }else{
             update_polymers_seq(bead_source, dims_float);
@@ -219,8 +220,8 @@ struct BondInfo
     */
     template<class TBeadSource>
     void update_polymer(
-        float dims_float[4], float half_dims_float[4],
-        const Polymer &polymer, float *working, TBeadSource &bead_source
+        TCalc dims_float[4], TCalc half_dims_float[4],
+        const Polymer &polymer, TCalc *working, TBeadSource &bead_source
     )
     {
         for(unsigned i=0; i<polymer.num_bonds; i++){
@@ -228,7 +229,7 @@ struct BondInfo
             auto &head = bead_source(bond.head_bead_id);
             auto &tail = bead_source(bond.tail_bead_id);
 
-            float dx[4];
+            TCalc dx[4];
             for(int d=0; d<3; d++){
                 dx[d] = head.pos[d] - tail.pos[d];
                if(dx[d] < -half_dims_float[d]){
@@ -239,11 +240,11 @@ struct BondInfo
                 working[ 4*i + d ] = dx[d];
             }
 
-            float r=sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
+            TCalc r=sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
             assert(std::abs(r)<4);
             working[4*i+3] = r;
 
-            float fScale = bond.springConst * (bond.length - r) / r;
+            TCalc fScale = bond.springConst * (bond.length - r) / r;
 
             for(int d=0; d<3; d++){
                 head.force[d] += dx[d] * fScale;
@@ -257,34 +258,34 @@ struct BondInfo
 
         for(unsigned i=0; i<polymer.num_bond_pairs; i++){
             const BondPair &bond_pair=polymer.data[polymer.num_bonds + i].bond_pair;
-            const float *first = working + bond_pair.first_bond_off*4;
-            const float *second = working + bond_pair.second_bond_off*4;
+            const TCalc *first = working + bond_pair.first_bond_off*4;
+            const TCalc *second = working + bond_pair.second_bond_off*4;
             auto &first_head_bead = bead_source( polymer.data[bond_pair.first_bond_off].bond.head_bead_id );
             auto &first_tail_bead = bead_source( polymer.data[bond_pair.first_bond_off].bond.tail_bead_id );
-            auto &second_head_bead = bead_source( polymer.data[bond_pair.second_bond_off].bond.tail_bead_id );
+            auto &second_head_bead = bead_source( polymer.data[bond_pair.second_bond_off].bond.head_bead_id );
 
-            float FirstLength=first[3];
+            TCalc FirstLength=first[3];
             assert(std::abs(FirstLength) < 4);
-            float SecondLength=second[3];
+            TCalc SecondLength=second[3];
             assert(std::abs(SecondLength) < 4);
 
-            float magProduct = FirstLength * SecondLength;
+            TCalc magProduct = FirstLength * SecondLength;
 
-            if(magProduct > 0.0001f) {
-                float b1MagSq		= FirstLength*FirstLength;
-                float b2MagSq		= SecondLength*SecondLength;
-                float b1Dotb2		= first[0]*second[0] + first[1]*second[1] + first[2]*second[2];
-                float b1b2Overb1Sq	= b1Dotb2/b1MagSq;
-                float b1b2Overb2Sq	= b1Dotb2/b2MagSq;
-                float cosPhiSq		= b1b2Overb1Sq*b1b2Overb2Sq;
+            if(magProduct > TCalc(0.0001)) {
+                TCalc b1MagSq		= FirstLength*FirstLength;
+                TCalc b2MagSq		= SecondLength*SecondLength;
+                TCalc b1Dotb2		= first[0]*second[0] + first[1]*second[1] + first[2]*second[2];
+                TCalc b1b2Overb1Sq	= b1Dotb2/b1MagSq;
+                TCalc b1b2Overb2Sq	= b1Dotb2/b2MagSq;
+                TCalc cosPhiSq		= b1b2Overb1Sq*b1b2Overb2Sq;
 
-        		float forceMag = bond_pair.Modulus/magProduct;
+        		TCalc forceMag = bond_pair.Modulus/magProduct;
 
                 // Check that the bond angle is not exactly 90 deg but allow the cosine to be < 0
 
-                if(bond_pair.m_SinPhi0!=0 && std::fabs(b1Dotb2) > 0.000001f)
+                if(bond_pair.m_SinPhi0!=0 && std::fabs(b1Dotb2) > TCalc(0.000001))
                 {
-                    float Prefactor = sqrt(1.0f/cosPhiSq - 1.0f);
+                    TCalc Prefactor = sqrt(TCalc(1)/cosPhiSq - TCalc(1));
 
                     // phi0 > 0 -> sin(phi) > 0,   for phi in [0,pi/2)
                     // phi0 ==0 -> sin(phi)==0 && cos(phi)==1
@@ -297,7 +298,7 @@ struct BondInfo
                     assert(!std::isnan(forceMag));
                 }
 
-        		float BeadXForce[3], BeadYForce[3], BeadZForce[3];
+        		TCalc BeadXForce[3], BeadYForce[3], BeadZForce[3];
 
                 BeadXForce[0] = forceMag*(b1b2Overb1Sq*first[0] - second[0]);
                 BeadYForce[0] = forceMag*(b1b2Overb1Sq*first[1] - second[1]);

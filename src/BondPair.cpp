@@ -332,6 +332,10 @@ void CBondPair::AddForceFast()
 
 		if(fabs(b1Dotb2) > 0.000001)
 		{			
+			#ifndef NDEBUG
+			m_Prefactor=nanf("");
+			#endif
+			
 			// Add the restoring force depending on whether there is a preferred angle
 			// for the bond pair or not
 

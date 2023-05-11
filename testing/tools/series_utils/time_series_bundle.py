@@ -76,7 +76,7 @@ class TimeSeriesBundle:
             index=list(self.names).index(index)
         return index
     
-    def get_data_for_name(self, index:Union[int,str]):
+    def get_data_for_name(self, index:Union[int,str]) -> np.ndarray:
         return self.data[self.get_name_index(index), :, :]
     
     def get_rep_index(self, index:Union[int,str]):

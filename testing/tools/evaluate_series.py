@@ -8,7 +8,7 @@ from series_utils.parse_dmpcas import parse_dmpcas_to_bundle, calc_dmpci_file_ha
 from series_utils.walk_statistics import TimeSeriesBucketTransitions, TimeSeriesExcessionStatistics, TimeSeriesOutlierStatistics
 from series_utils.time_series_bundle import TimeSeriesBundle, StatisticId
 
-results_dir = sys.argv[1]
+results_dir_or_hdf5 = sys.argv[1]
 dmpci_file = sys.argv[2]
 assert os.path.exists(dmpci_file)
 
@@ -19,7 +19,22 @@ dmpci_hash = calc_dmpci_file_hash(".", dmpci_name)
 sys.stderr.write(f"Loading data/{dmpci_name}-{dmpci_hash}.h5\n")
 ref_data=TimeSeriesBundle.load_from_hdf5(f"data/{dmpci_name}-{dmpci_hash}.h5")
 
-series=parse_dmpcas_to_bundle(results_dir, f"{ref_data.dmpci_name}", dmpci_hash=dmpci_hash)
+if results_dir_or_hdf5.endswith(".h5"):
+    series=TimeSeriesBundle.load_from_hdf5(results_dir_or_hdf5)
+else:
+    series=parse_dmpcas_to_bundle(results_dir_or_hdf5, f"{ref_data.dmpci_name}", dmpci_hash=dmpci_hash)
+
+def ad_statistics(pvalues:np.ndarray) -> float:
+    n=pvalues.shape[0]
+    lp=np.log(pvalues)
+    lpn=np.log(1-pvalues)
+    stat=0
+    for i in range(n):
+        stat = stat + 2*i/n * lp[i] + lpn[-i]
+    return -n-S
+
+#def bootstrap_ad_dist(npvalues:int, repeats:int):
+
 
 
 """
@@ -40,6 +55,7 @@ def to_message_and_code(p):
     reps=p.shape[0]
     threshfail=1-(1-0.01)**(1.0/reps)
     threshwarn=1-(1-0.05)**(1.0/reps)
+    sys.stderr.write(f"threshFAIL={threshfail}\n")
     sys.stderr.write(f"threshwarn={threshwarn}\n")
     res=np.ndarray(shape=p.shape, dtype=object)
     code=np.zeros(shape=p.shape)
@@ -61,6 +77,17 @@ for (nindex,name) in enumerate(ref_data.names):
         continue
 
     data=series.get_data_for_name(name)
+
+    for rindex in range(data.shape[1]):
+        if np.any( data[:,rindex] < ref_stats[nindex,:,StatisticId.MIN] ):
+            sys.stderr.write(f"Warning : repeat {rindex} is lower than any reference for {name}\n")
+        if np.any( data[:,rindex] == ref_stats[nindex,:,StatisticId.MIN] ):
+            sys.stderr.write(f"Warning : repeat {rindex} matches minimum seen in reference for {name}\n")
+        if np.any( data[:,rindex] > ref_stats[nindex,:,StatisticId.MAX] ):
+            sys.stderr.write(f"Warning : repeat {rindex} is greater than any reference for {name}\n")
+        if np.any( data[:,rindex] == ref_stats[nindex,:,StatisticId.MAX] ):
+            sys.stderr.write(f"Warning : repeat {rindex} matches maximum seen in reference for {name}\n")
+    sys.stdout.flush()
 
     tt=TimeSeriesBucketTransitions(ref_data, nindex, 5)
     pvalues=tt.calc_pvalues(data)

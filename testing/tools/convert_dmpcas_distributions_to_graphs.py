@@ -28,6 +28,24 @@ def plot_summary_stats(tsb:TimeSeriesBundle, name, walks:Optional[TimeSeriesBund
     plt.legend()
     plt.title(name)
 
+def plot_walk_quantiles(tsb:TimeSeriesBundle, name, walks:TimeSeriesBundle):
+    ref_data=tsb.get_data_for_name(name)
+    walk_data=walks.get_data_for_name(name)
+
+    ref_data_sorted=ref_data.copy()
+    ref_data_sorted.sort(axis=1)
+
+    walk_indices=np.zeros(shape=walk_data.shape, dtype=np.float64)
+    for t in range(tsb.ntimes):
+        walk_indices[t,:]=np.digitize(walk_data[t,:],ref_data_sorted[t,:], right=True)
+    walk_quantiles=walk_indices / tsb.nreps
+    
+    for i in range(0, walk_quantiles.shape[1]):
+        plt.plot(tsb.times, walk_quantiles[:,i], label=f"Repeat {i}")
+    plt.xlabel(f"Empirical quantile (from {tsb.nreps} reference samples)")
+    plt.legend()
+    plt.title(name) 
+
 def to_colour(p,nbuckets):
     e=1.0/nbuckets
     if p < e:
@@ -37,11 +55,15 @@ def to_colour(p,nbuckets):
         r = ( p - e ) / (1-e)
         return (0,r,0)
     
-def plot_transitions_heat_v2(tsb:TimeSeriesBundle, name:str):
+def plot_transitions_heat_v2(tsb:TimeSeriesBundle, name:str, walk:Optional[TimeSeriesBundle] = None):
     nbuckets=5
     bb=TimeSeriesBucketTransitions(tsb, name, 5)
 
-    (fix,axes)=plt.subplots(nbuckets+1,1,sharex=True)
+    nsubplots=nbuckets+1
+    if walk:
+        nsubplots+=1
+
+    (fix,axes)=plt.subplots(nsubplots,1,sharex=True)
 
     axes[0].plot(bb.bucket_centres)
 
@@ -49,7 +71,15 @@ def plot_transitions_heat_v2(tsb:TimeSeriesBundle, name:str):
         probs=bb.transition_probs[:,from_bucket*nbuckets:(from_bucket+1)*nbuckets]
         axes[from_bucket+1].imshow(probs.transpose(), vmin=0, vmax=1)
 
+    if walk:
+        aa=axes[nbuckets+1]
+        data=walk.get_data_for_name(name)
+        indices=bb.calc_buckets(data)
+        for r in range(data.shape[1]):
+            aa.plot(indices[:,r])
+
     plt.title(name)
+
 
 walks=None
 
@@ -97,7 +127,7 @@ with PdfPages(dest_pdf_file) as pdf:
 
         if True:
             plt.figure(figsize=(8, 6))
-            plot_transitions_heat_v2(tsb,name)
+            plot_transitions_heat_v2(tsb,name, walks)
             pdf.savefig()
             plt.close()
         
@@ -106,3 +136,8 @@ with PdfPages(dest_pdf_file) as pdf:
         pdf.savefig()
         plt.close()
 
+        if walks:
+            plt.figure(figsize=(8,6))
+            plot_walk_quantiles(tsb, name, walks)
+            pdf.savefig()
+            plt.close()

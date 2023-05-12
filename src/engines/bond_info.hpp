@@ -188,7 +188,7 @@ struct BondInfo
                 // Allocate up to 4KB on the current stack. We should be safe for alloca here as:
                 // - We don't expect this function to be inlined into a loop, as it is launched as a task by TBB
                 // - update_polymer doesn't do anything recursive or use a lot of stack (kind of the point of passing in working space)
-                local_working = (TCalc*)alloca(sizeof(float) * working_space.size());
+                local_working = (TCalc*)alloca(sizeof(TCalc) * working_space.size());
             }else{
                 local_working_space.resize(working_space.size());
                 local_working = &local_working_space[0];

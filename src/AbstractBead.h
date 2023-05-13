@@ -40,6 +40,9 @@ class CAbstractBead
 	friend class CSimBox;
 	friend class taForceDecorator;	// Needed by command target force decorators
 
+	// This provides faster versions of CCNTCell methods, so needs direct access
+	friend class SimEngineFast;
+
 // Friend classes for parallel code
 #if EnableParallelSimBox == SimMPSEnabled
     friend class mpsCNTCell;

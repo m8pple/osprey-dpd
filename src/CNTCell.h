@@ -26,6 +26,10 @@ class CCNTCell : public CAbstractCell
 	friend class CMonitor;
     friend class CExternalCNTCell;
 
+	// This provides faster versions of the functions in CCNTCell wrapped into a SimEngine
+	// It directly accesses members of CCNTCell, but is kept seperate.
+	friend class SimEngineFast;
+
 	// ****************************************
 	// Construction/Destruction: base class has protected constructor
 public:

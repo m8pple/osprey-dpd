@@ -23,7 +23,7 @@ Bead  O
       
 Bond  O O  100.0  0.5
 
-BondPair O O O 30.0 0.0
+BondPair O O O 100.0 0.0
 
 Polymer	Water    0.95   " (W) "
 Polymer Oil      0.05   " (O O O O O O O O O O O O) "
@@ -33,7 +33,7 @@ Density		3
 Temp        1
 RNGSeed 163
 Lambda		0.5
-Step		0.005
+Step		0.02
 Time		2000
 SamplePeriod     10
 AnalysisPeriod   10
@@ -46,4 +46,3 @@ Command ToggleBeadDisplay      1   W
 Command SetCurrentStateCamera         1    0.5 -1.5 -0.5  0.5 0.5 0.5
 Command SetCurrentStateDefaultFormat  1    Paraview
 
-Command	SetTimeStepSize        100  0.02

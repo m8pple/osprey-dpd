@@ -1449,20 +1449,22 @@ void CSimBox::Run()
 				fastSteps = nextSlowTime - m_SimTime - 1;
 			}
 
+			const bool logStepReasons=false;
+
 			auto engine=ISimEngine::GetGlobalEngine();
 			if(engine && fastSteps > 0){
 				ISimBox *box=const_cast<ISimBox*>(GetISimBox());
 				if(engine->CanSupport(box).empty()){
-					fprintf(stderr, "Fast stepping from %ld to %ld with engine %s\n", m_SimTime, m_SimTime+fastSteps, engine->Name().c_str());
+					if(logStepReasons) fprintf(stderr, "Fast stepping from %ld to %ld with engine %s\n", m_SimTime, m_SimTime+fastSteps, engine->Name().c_str());
 					bool modified=true; // TODO : detect when sim box has been modified
 					engine->Run(box, modified, fastSteps);
 				}else{
-					fprintf(stderr, "Fast stepping from %ld to %ld with EvolveFast\n", m_SimTime, m_SimTime+fastSteps);
+					if(logStepReasons) fprintf(stderr, "Fast stepping from %ld to %ld with EvolveFast\n", m_SimTime, m_SimTime+fastSteps);
 					EvolveFast(fastSteps);
 				}
 				m_SimTime += fastSteps;
 			}else{
-				fprintf(stderr, "Slow step at %ld : mon=%d, feat=%d, targ=%d, nextObs=%ld\n", m_SimTime, is_monitor_active, are_features_active, are_features_active, GetNextObservationTime());
+				if(logStepReasons) fprintf(stderr, "Slow step at %ld : mon=%d, feat=%d, targ=%d, nextObs=%ld\n", m_SimTime, is_monitor_active, are_features_active, are_features_active, GetNextObservationTime());
 
 				Evolve();
 
@@ -6002,6 +6004,13 @@ AbstractBeadVector CSimBox::GetAllBeadsInCNTCells()
 	for(CNTCellIterator iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
 	{
         BeadList lBeads = (*iterCell)->GetBeads();
+		#ifndef NDEBUG
+		for(const auto b : lBeads){
+			assert( (*iterCell)->GetBLXCoord() <= b->GetXPos() && b->GetXPos() <= (*iterCell)->GetTRXCoord());
+			assert( (*iterCell)->GetBLYCoord() <= b->GetYPos() && b->GetYPos() <= (*iterCell)->GetTRYCoord());
+			assert( (*iterCell)->GetBLZCoord() <= b->GetZPos() && b->GetZPos() <= (*iterCell)->GetTRZCoord());
+		}
+		#endif
         copy(lBeads.begin(), lBeads.end(), back_inserter(vBeads));
     }
 
@@ -6350,6 +6359,7 @@ bool CSimBox::MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, doub
         }
         else
         {
+			assert(false);
             bValid = false;
         }
     }

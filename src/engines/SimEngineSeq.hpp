@@ -272,7 +272,7 @@ protected:
     // Indices of cells in order of visiting. Used for morton orderig.
     std::vector<uint32_t> cell_enum_order;
 
-    BondInfo bonds;
+    BondInfo<float> bonds;
 
     AbstractBeadVector original_beads;
     std::vector<CAbstractBead*> id_to_original_bead;
@@ -487,12 +487,14 @@ protected:
         original_beads=box->GetBeads(); // This method will create a new vector.
         any_frozen_beads = false;
 
-        std::unordered_set<long> seen_beed_ids;
+        std::set<long> seen_beed_ids;
 
         bead_round_tag_lcg = SplitMix64( box->GetRNGSeed() + SplitMix64(box->GetCurrentTime()) );
         for(CAbstractBead * b : original_beads){
             #ifndef NDEBUG
-            require(seen_beed_ids.insert(b->GetId()).second);
+            auto it=seen_beed_ids.find(b->GetId());
+            assert(it==seen_beed_ids.end());
+            seen_beed_ids.insert(b->GetId());
             #endif
             import_bead(*b);
         }
@@ -559,6 +561,7 @@ protected:
         unsigned cell_offset = cell.count;
         require( cell_offset < MAX_BEADS_PER_CELL );
         cell.count += 1;
+        cell.to_move += 1;
         cell.local[cell_offset] = c;
         cell.any_frozen |= c.frozen;
 
@@ -772,8 +775,7 @@ protected:
 
             assert( nlink.tag==EdgeTag_ForceShare_Direct || nlink.tag==EdgeTag_ForceShare_None );
             reflect_forces |= nlink.tag==EdgeTag_ForceShare_Direct;
-            assert(!reflect_forces);
-
+            
             float other_delta[4];
             if(AnyExternal){
                 for(int d=0; d<3; d++){

@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "SimDefs.h"
+#include <cassert>
 #include "CommandLineParameters.h"
 
 #include "xxCommandObject.h"

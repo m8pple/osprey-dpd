@@ -136,7 +136,7 @@ class TimeSeriesBucketTransitions:
         self.ref_stats=self.calc_statistics(data)
         self.ref_stats.sort()
 
-    def calc_statistics(self, walks):
+    def calc_buckets(self, walks:np.ndarray):
         ntimes=self.ntimes
         nbuckets=self.nbuckets
 
@@ -149,9 +149,17 @@ class TimeSeriesBucketTransitions:
             indices[t,:] = np.digitize(walks[t,:], self.bucket_boundaries[t,:], right=True)
             indices[t,:] = np.minimum(indices[t,:], nbuckets-1)
             assert (indices[t,:] < nbuckets).all(), indices[t,:]
-        
 
         assert ( 0<=indices ).all() and (indices < nbuckets).all()
+
+        return indices
+
+    def calc_statistics(self, walks:np.ndarray):
+        ntimes=self.ntimes
+        nbuckets=self.nbuckets
+        nreps=walks.shape[1]
+
+        indices=self.calc_buckets(walks)
         
         hop_indices = indices[:-1,:] * nbuckets + indices[1:,:] #type: np.ndarray
         assert hop_indices.shape == (ntimes-1,nreps)

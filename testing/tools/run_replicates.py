@@ -67,7 +67,7 @@ def do_task(params):
         dst.write(replica_dmpci_contents)
     #print(replica_dmpci_contents)
 
-    subprocess.run([osprey_path,f"{dmpci_name}-{dmpci_hash}"], cwd=replicate_dir, capture_output=True)
+    subprocess.run([osprey_path,f"{dmpci_name}-{dmpci_hash}"], cwd=replicate_dir)
 
     if i != 0:
         for x in glob.glob(os.path.join(replicate_dir,f"{dmpci_name}-{dmpci_hash}.*.vtk")):
@@ -106,6 +106,10 @@ if __name__=="__main__":
     else:
         working_root_dir=sys.argv[4]
 
+    if len(sys.argv) < 6:
+        start=0
+    else:
+        start=int(sys.argv[5])
 
     assert os.path.isdir(working_root_dir)
 
@@ -121,7 +125,7 @@ if __name__=="__main__":
 
     with multiprocessing.Pool() as pool:
         done=0
-        for _ in pool.imap_unordered(do_task,  [(i,vars) for i in range(replicates)]):
+        for _ in pool.imap_unordered(do_task,  [(i,vars) for i in range(start,start+replicates)]):
             done+=1
             if (done%10)==0:
                 sys.stderr.write(f"Done {done} of {replicates}\n")

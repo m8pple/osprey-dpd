@@ -5,7 +5,12 @@ IFS=$'\n\t'
 # Enable job control
 set -m
 
-dpd_executable=$1
+
+if [[ $# -eq 0 ]] ; then
+    dpd_executable=../../build/dpd
+else
+    dpd_executable=$1
+fi
 
 target=1000
 if [[ $# -gt 1 ]] ; then

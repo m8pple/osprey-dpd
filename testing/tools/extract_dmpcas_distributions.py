@@ -79,12 +79,18 @@ if __name__ == "__main__":
     else:
         output_dir=sys.argv[3]
 
-    sys.stderr.write(f"Looking for results for {dmpci_name}-{dmpci_hash} in directory {working_dir}\n")
-    sys.stderr.write(f"Writing to output dir {output_dir}\n")
+
+    if len(sys.argv) < 5:
+        start=0
+    else:
+        start=int(sys.argv[4])
+
+    sys.stderr.write(f"Looking for results for {dmpci_name}-{dmpci_hash} in directory {working_dir}, starting at index {start}\n")
+    sys.stderr.write(f"Writing to output dir {output_dir}")
 
     all_slices=[]
 
-    r=0
+    r=start
     while True:
         replicate_dir=f"{working_dir}/{make_dir_name(r)}"
         if not os.path.isdir(replicate_dir):

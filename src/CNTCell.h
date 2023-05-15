@@ -147,14 +147,6 @@ public:
 
 	void UpdateForceP();
 
-	// Fast version of updating function that doesn't calculate stress
-	void UpdateForceFast();
-	void UpdatePosFast();
-	void UpdateMomFast();
-	void UpdateMomFastReverse(); // Pre-correct backwards to allow loop skewing
-	void UpdateMomThenPosFast();
-	void UpdateMomThenPosFastV2();
-
     // Alternative force calculation to include the DPD density-dependent force.
 
 	void UpdateLGForce();

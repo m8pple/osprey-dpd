@@ -1,5 +1,9 @@
 #include "SimEngineSeq.hpp"
 
+// TODO: Needs adapting for changed ISimEngine interface
+#if 0
+
+
 #ifdef __AVX2__
 
 #include "immintrin.h"
@@ -470,3 +474,5 @@ private:
 static bool reg_SimEngineSeqAVX2 = SimEngineBase<SimEngineSeqAVX2>::Register();
 
 #endif // __AVX2__
+
+#endif

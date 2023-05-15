@@ -20,6 +20,10 @@
 #include "AbstractBead.h"
 #include "CNTCell.h"
 
+// TODO: Needs adapting for changed ISimEngine interface
+#if 0
+
+
 /*
 A broken simulation engine that uses the wrong dissipative parameter.
 */
@@ -74,3 +78,5 @@ public:
 };
 
 static bool reg_SimEngineTest_WrongDiss = SimEngineBase<SimEngineTest_WrongDiss>::Register();
+
+#endif

@@ -680,14 +680,6 @@ void CPolymer::AddBondForces(ISimBoxBase* const pISimBoxBase)
 	}
 }
 
-void CPolymer::AddBondForcesFast()
-{
-	for(BondVectorIterator iterBond=m_vBonds.begin(); iterBond!=m_vBonds.end(); iterBond++)
-	{
-		(*iterBond)->AddForceFast();
-	}
-}
-
 // Function to calculate the forces on this polymer's beads due to its bondpairs.
 // As above, the two overrides calculate the forces alone and send the forces
 // to the Monitor to add to the stress profile.
@@ -697,14 +689,6 @@ void CPolymer::AddBondPairForces()
 	for(BondPairVectorIterator iterBP=m_vBondPairs.begin(); iterBP!=m_vBondPairs.end(); iterBP++)
 	{
 		(*iterBP)->AddForce();
-	}
-}
-
-void CPolymer::AddBondPairForcesFast()
-{
-	for(BondPairVectorIterator iterBP=m_vBondPairs.begin(); iterBP!=m_vBondPairs.end(); iterBP++)
-	{
-		(*iterBP)->AddForceFast();
 	}
 }
 

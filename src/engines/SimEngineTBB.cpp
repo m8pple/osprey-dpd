@@ -1,5 +1,9 @@
 #include "SimEngineTBB.hpp"
 
+// TODO: Needs adapting for changed ISimEngine interface
+#if 0
+
+
 namespace{
     struct EnginePolicyTBBMorton
         : EnginePolicyTBB
@@ -11,3 +15,4 @@ namespace{
     static bool reg_SimEngineTBBMorton = SimEngineBase<SimEngineTBB<EnginePolicyTBBMorton>>::Register();
 }
 
+#endif

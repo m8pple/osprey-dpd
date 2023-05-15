@@ -20,6 +20,10 @@
 
 #include <random>
 
+// TODO: Needs adapting for changed ISimEngine interface
+#if 0
+
+
 /*
 A broken simulation engine that skips 5% of time steps
 */
@@ -55,3 +59,5 @@ public:
 };
 
 static bool reg_SimEngineTest_SkipTime = SimEngineBase<SimEngineTest_SkipTime>::Register();
+
+#endif

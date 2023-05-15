@@ -19,6 +19,9 @@
 #include "xxBase.h"
 #include "AbstractBead.h"
 
+// TODO: Needs adapting for changed ISimEngine interface
+#if 0
+
 /*
 A broken simulation engine that doesn't update 1% of the beads.
 */
@@ -64,3 +67,5 @@ public:
 };
 
 static bool reg_SimEngineTest_SkipTime = SimEngineBase<SimEngineTest_FrozenBeads>::Register();
+
+#endif

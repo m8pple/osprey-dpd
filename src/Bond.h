@@ -21,6 +21,9 @@ class CBond
 	friend class CBondPair;
 	friend class CMonitor;
 
+	// Fast engine directly accesses members
+	friend class SimEngineFast;
+
 	// ****************************************
 	// Construction/Destruction
 public:

@@ -1223,96 +1223,6 @@ void CSimBox::EvolveP()
 }
 
 
-void CSimBox::EvolveFast(unsigned nSteps)
-{
-	#if ( (SimDimension!=3)  \
-		|| (EnableStressTensorSphere == SimMiscEnabled) \
-		|| (EnableParallelSimBox != SimMPSDisabled) \
-		|| defined(UseDPDBeadRadii) )
-		ErrorTrace("Compile-time conditions for EvolveFast not met.");
-		exit(1);
-	#endif
-
-	if(!m_ActiveCommandTargets.empty()){
-		ErrorTrace("Attempt to call EvolveFast with ActiveCommandTargets\n");
-		exit(1);
-	}
-	if(!m_ActiveForceTargets.empty()){
-		ErrorTrace("Attempt to call EvolveFast with ActiveForceTargets\n");
-		exit(1);
-	}
-	if(IsEnergyOutputOn()){
-		ErrorTrace("Attempt to call EvolveFast with IsEnergyOutputOn\n");
-		exit(1);
-	}
-	if(IsActiveBondsOn() && m_pShadow && m_pShadow->IsAnyACNPresent()){
-		ErrorTrace("Attempt to call EvolveFast with IsActiveBondsOn and active ACNs\n");
-		exit(1);
-	}
-	if(IsBeadChargeOn()){
-		ErrorTrace("Attempt to call EvolveFast with IsBeadChargeOn\n");
-		exit(1);
-	}
-	if(IsGravityOn()){
-		ErrorTrace("Attempt to call EvolveFast with IsGravityOn\n");
-		exit(1);
-	}
-
-	CNTCellIterator iterCell;  // used in all three loops below
-
-	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
-	{
-		(*iterCell)->UpdateMomFastReverse();
-	}
-
-	for(unsigned i=0; i<nSteps; i++){
-
-		iterCell = m_vCNTCells.begin();
-		(*iterCell)->PrefetchHint();
-
-		while(iterCell != m_vCNTCells.end()){
-			auto curr=*iterCell;
-
-			++iterCell;
-			if(iterCell!=m_vCNTCells.end()){
-				(*iterCell)->PrefetchHint();
-			}
-
-			curr->UpdateMomThenPosFastV2();
-		}
-
-		// Next calculate the forces between all pairs of beads in NN CNT cells
-		// that can potentially interact. No monitor accumulations are performed.
-
-		iterCell = m_vCNTCells.begin();
-		(*iterCell)->PrefetchHint();
-
-		while(iterCell != m_vCNTCells.end()){
-			auto curr=*iterCell;
-
-			++iterCell;
-			if(iterCell!=m_vCNTCells.end()){
-				(*iterCell)->PrefetchHint();
-			}
-
-			curr->UpdateForceFast();
-		}
-
-		// Add in the forces between bonded beads and the stiff bond force. Note that
-		// AddBondPairForces() must be called after AddBondForces() because it relies
-		// on the bond lengths having already been calculated in CBond::AddForce().
-
-		AddBondForcesFast();
-		AddBondPairForcesFast();
-	}
-
-	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
-	{
-		(*iterCell)->UpdateMomFast();
-	} 
-}
-
-
 // Function to execute the simulation of the fluid system occupying the simulation
 // box. It handles both serial and parallel execution by calling distinct functions,
 // and devolving the parallel work to the nested class mpsSimBox.
@@ -1423,6 +1333,9 @@ void CSimBox::Run()
 			bool are_features_active = IsEnergyOutputOn() || IsBeadChargeOn() || IsGravityOn() || IsRenormalisationOn();
 			are_features_active |= (IsActiveBondsOn() && m_pShadow && m_pShadow->IsAnyACNPresent());
 			are_features_active |= CCNTCell::GetLambda() != 0.5;
+			are_features_active |= !m_Nanoparticles.empty();
+			are_features_active |= !GetAllPolymerisedBonds().empty();
+
 			bool are_targets_active = !m_ActiveCommandTargets.empty() || !m_ActiveForceTargets.empty();
 			bool something_slow_active = is_non_fast_compile || is_monitor_active || are_features_active || are_targets_active;
 
@@ -1449,61 +1362,75 @@ void CSimBox::Run()
 				fastSteps = nextSlowTime - m_SimTime - 1;
 			}
 
+			//////////////////////////////////////////////
+			// Try to do a full step
+
 			const bool logStepReasons=false;
 
 			auto engine=ISimEngine::GetGlobalEngine();
+			ISimBox *box=const_cast<ISimBox*>(GetISimBox());
 			if(engine && fastSteps > 0){
-				ISimBox *box=const_cast<ISimBox*>(GetISimBox());
-				if(engine->CanSupport(box).empty()){
-					if(logStepReasons) fprintf(stderr, "Fast stepping from %ld to %ld with engine %s\n", m_SimTime, m_SimTime+fastSteps, engine->Name().c_str());
-					bool modified=true; // TODO : detect when sim box has been modified
-					engine->Run(box, modified, fastSteps);
-				}else{
-					if(logStepReasons) fprintf(stderr, "Fast stepping from %ld to %ld with EvolveFast\n", m_SimTime, m_SimTime+fastSteps);
-					EvolveFast(fastSteps);
+				if(logStepReasons) fprintf(stderr, "Fast stepping from %ld to %ld with engine %s\n", m_SimTime, m_SimTime+fastSteps, engine->Name().c_str());
+				bool modified=true;
+				auto res = engine->Run(box, modified, fastSteps);
+				m_SimTime += res.completed_steps;
+				switch(res.status){
+				case ISimEngineCapabilities::Supported:
+					break;
+				case ISimEngineCapabilities::TransientProblemStep:
+					if(logStepReasons) fprintf(stderr, "Fast stepping stopped early due to step transient : %s\n", res.reason.c_str());
+					break;
+				case ISimEngineCapabilities::TransientProblemFlags:
+					if(logStepReasons) fprintf(stderr, "Fast stepping stopped early due to flags transient : %s\n", res.reason.c_str());
+					// TODO: This really needs some way of checking when simbox/command stuff has changed the simbox 
+				case ISimEngineCapabilities::PermanentProblem:
+					if(logStepReasons) fprintf(stderr, "Fast stepping stopped early due to permanent problem; clearing engine : %s\n", res.reason.c_str());
+					ISimEngine::SetGlobalEngine(nullptr);
 				}
-				m_SimTime += fastSteps;
 			}else{
-				if(logStepReasons) fprintf(stderr, "Slow step at %ld : mon=%d, feat=%d, targ=%d, nextObs=%ld\n", m_SimTime, is_monitor_active, are_features_active, are_features_active, GetNextObservationTime());
-
-				Evolve();
-
-				// Standard full-featured path
-
-				CNTCellCheck();		// check beads are in correct CNT cells
-
-				// Sample the simulation state to construct observables, check if any
-				// events have happened and update the state of all processes.
-				// Note that events that happen faster than SamplePeriod steps
-				// may not be noticed by the analysis until the next time the sampling
-				// is performed.
-
-				if(TimeToSample())
-				{
-					Sample();
-
-					ExecuteEvents();
-
-					// Call the Monitor to update the state of processes that depend on
-					// aggregates and events
-
-					SampleProcess();
-
-					SaveProcessState();
-				}
-
-				if(TimeToDisplay())
-				{
-					SaveCurrentState();
-				}
-
-				if(TimeToRestart())
-				{
-					SaveRestartState();
-				}
-
-				m_SimTime++;
+				if(logStepReasons && engine) fprintf(stderr, "Slow step at %ld : mon=%d, feat=%d, targ=%d, nextObs=%ld\n", m_SimTime, is_monitor_active, are_features_active, are_features_active, GetNextObservationTime());
 			}
+
+			//////////////////////////////////////////////
+			// Do a full step.
+
+			Evolve();
+
+			// Standard full-featured path
+
+			CNTCellCheck();		// check beads are in correct CNT cells
+
+			// Sample the simulation state to construct observables, check if any
+			// events have happened and update the state of all processes.
+			// Note that events that happen faster than SamplePeriod steps
+			// may not be noticed by the analysis until the next time the sampling
+			// is performed.
+
+			if(TimeToSample())
+			{
+				Sample();
+
+				ExecuteEvents();
+
+				// Call the Monitor to update the state of processes that depend on
+				// aggregates and events
+
+				SampleProcess();
+
+				SaveProcessState();
+			}
+
+			if(TimeToDisplay())
+			{
+				SaveCurrentState();
+			}
+
+			if(TimeToRestart())
+			{
+				SaveRestartState();
+			}
+
+			m_SimTime++;
         }
 	}
 }
@@ -1569,32 +1496,6 @@ void CSimBox::AddBondForces()
 	}
 }
 
-void CSimBox::AddBondForcesFast()
-{
-	for(PolymerVectorIterator iterPoly=m_vAllPolymers.begin(); iterPoly!=m_vAllPolymers.end(); iterPoly++)
-	{
-		(*iterPoly)->AddBondForcesFast();
-	}
-    
-    // Add bond forces that bind polymers into nanoparticles. These are dynamically-created but stored in 
-    // their owning CNanoparticle instances instead of in the general polymerised bond container.
-
-	for(NanoparticleIterator iterNano=m_Nanoparticles.begin(); iterNano!=m_Nanoparticles.end(); iterNano++)
-    {
-        (*iterNano)->AddBondForces();
-    }    
-
-	// Next add in the forces due to dynamically-created bonds that are not contained
-	// in any single polymer or nanoparticle. Note that we should check whether the bond stress is to
-	// be added to the analysis of the stress profile.
-
-	const BondVector &vBonds = GetAllPolymerisedBonds();
-	for(cBondVectorIterator iterBond=vBonds.begin(); iterBond!=vBonds.end(); iterBond++)
-	{
-		(*iterBond)->AddForce();
-	}
-}
-
 // Function to add the 3-body forces due to stiff bonds to those beads that are 
 // in polymers containing CBondPairs. We loop over the polymer vector similarly to
 // the bond force calculation above.
@@ -1614,14 +1515,6 @@ void CSimBox::AddBondPairForces()
 		{
 			(*iterPoly)->AddBondPairForces();
 		}
-	}
-}
-
-void CSimBox::AddBondPairForcesFast()
-{
-	for(PolymerVectorIterator iterPoly=m_vAllPolymers.begin(); iterPoly!=m_vAllPolymers.end(); iterPoly++)
-	{
-		(*iterPoly)->AddBondPairForcesFast();
 	}
 }
 

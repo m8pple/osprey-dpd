@@ -417,6 +417,7 @@ class CSimBox : public ISimState,
 	friend class ccToggleDPDBeadForcesImpl;
 	friend class ccToggleDPDBeadThermostatImpl;
 #endif
+	friend class ISimEngineCapabilities;
 	friend class SimEngineFast;
 	friend class SimEngineRef;
 	friend class SimEngineTest_SkipTime;
@@ -661,10 +662,6 @@ private:
 
     // Functions to evolve a parallel simulation
     void EvolveP();
-
-	void EvolveFast(unsigned numSteps);	// Fast evolution when there is no monitoring active
-	void AddBondForcesFast();			// Add bond forces to the beads in polymers without calculating stress
-	void AddBondPairForcesFast();		// Add 3-body bond forces to the beads in polymers without calculating stress
 
 private:
 

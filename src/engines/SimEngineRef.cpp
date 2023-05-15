@@ -18,7 +18,7 @@
 #include "ISimBox.h"
 #include "xxBase.h"
 
-struct SimEngineRef
+class SimEngineRef
     : public ISimEngine
 {
 public:
@@ -27,20 +27,16 @@ public:
         return "SimEngineRef";
     }
 
-    std::string CanSupport(const ISimBox *box) const override
-    {
-        return {};
-    }
-
     bool IsParallel() const override
     { return false; }
 
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override 
+    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override 
     {
         CSimBox *cbox=const_cast<CSimBox*>(box->GetSimBox());
         for(unsigned i=0; i<num_steps; i++){
            cbox->Evolve();
         }
+        return {Supported, {}, num_steps};
     }
 };
 

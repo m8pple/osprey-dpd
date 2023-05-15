@@ -21,9 +21,6 @@
 
 #include "ISimEngine.h"
 
-#include "immintrin.h"
-#include "pmmintrin.h"
-
 #include "morton_codec.hpp"
 
 #include "bond_info.hpp"
@@ -60,24 +57,13 @@ public:
     { return false; }
 
 
-
-    std::string CanSupport(const ISimBox *box) const override
+    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override
     {
-        if(box->GetSimBoxXOrigin()!=0 || box->GetSimBoxXOrigin()!=0 || box->GetSimBoxZOrigin()!=0){
-            return "Sim box origin is not at zero."; // Actually fairly easy to support
-        }
-        if( std::round(box->GetSimBoxXLength()) != box->GetSimBoxXLength() || std::round(box->GetSimBoxYLength()) != box->GetSimBoxYLength() || std::round(box->GetSimBoxZLength()) != box->GetSimBoxZLength()){
-            return "Sim box does not have integer dimensions.";
-        }
-        if(box->GetLambda() != 0.5){
-            return "Lambda != 0.5";
+        support_result tmp=CanSupport(box);
+        if(tmp.status!=Supported){
+            return {tmp.status, tmp.reason, 0};
         }
 
-        return {};
-    }
-
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override
-    {
         import_all(box);
 
         auto bead_source=[&](uint32_t bead_id) -> Bead &{
@@ -117,6 +103,8 @@ public:
         #endif
 
         export_all(box);
+
+        return {Supported, {}, num_steps};
     }
 
 protected:
@@ -259,9 +247,9 @@ protected:
 
     void import_all(ISimBox *box)
     {
-        auto err=CanSupport(box);
-        if(!err.empty()){
-            fprintf(stderr, "%s\n", err.c_str());
+        ISimEngineCapabilities::support_result err=CanSupport(box);
+        if(err.status!=Supported){
+            fprintf(stderr, "%s\n", err.reason.c_str());
             exit(1);
         }
 

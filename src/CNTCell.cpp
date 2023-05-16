@@ -2778,6 +2778,9 @@ bool CCNTCell::CheckBeadsinCell()
 
 			TraceInt("Fixing Bead", pBead->GetId());
 			TraceVector("  Old pos", pBead->GetXPos(), pBead->GetYPos(), pBead->GetZPos());
+			TraceVector("  Old cell", m_BLIndex[0], m_BLIndex[1], m_BLIndex[2]);
+			TraceVector("  Mom", pBead->GetXMom(), pBead->GetYMom(), pBead->GetZMom());
+			TraceVector("  Force", pBead->GetXForce(), pBead->GetYForce(), pBead->GetZForce());
 			TraceVector("  New pos", xpos, ypos, zpos);
 
 			// Note that this will modify the array that we are iterating over, but it will only access

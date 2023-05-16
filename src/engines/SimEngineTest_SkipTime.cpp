@@ -20,14 +20,10 @@
 
 #include <random>
 
-// TODO: Needs adapting for changed ISimEngine interface
-#if 0
-
-
 /*
 A broken simulation engine that skips 5% of time steps
 */
-struct SimEngineTest_SkipTime
+class SimEngineTest_SkipTime
     : public ISimEngine
 {
     std::mt19937 rng;
@@ -38,15 +34,10 @@ public:
         return "SimEngineTest_SkipTime";
     }
 
-    std::string CanSupport(const ISimBox *box) const override
-    {
-        return {};
-    }
-
     bool IsParallel() const override
     { return false; }
 
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override 
+    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override 
     {
         CSimBox *cbox=const_cast<CSimBox*>(box->GetSimBox());
         
@@ -55,9 +46,8 @@ public:
                cbox->Evolve();
             }
         }
+        return {Supported, {}, num_steps};
     }
 };
 
 static bool reg_SimEngineTest_SkipTime = SimEngineBase<SimEngineTest_SkipTime>::Register();
-
-#endif

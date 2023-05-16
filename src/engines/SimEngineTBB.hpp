@@ -53,9 +53,12 @@ public:
     bool IsParallel() const override
     { return true; }
 
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override
+    ISimEngine::run_result Run(ISimBox *box, bool modified, unsigned num_steps) override
     {
-        base_t::import_all(box);
+        auto err=base_t::import_all(box);
+        if(err.status!=ISimEngine::Supported){
+            return err;
+        }
 
         auto bead_source=[&](uint32_t bead_id) -> Bead &{
             return find(bead_id);
@@ -95,6 +98,8 @@ public:
         #endif
 
         base_t::export_all(box);
+    
+        return {ISimEngine::Supported, {}, num_steps};
     }
 protected:
 

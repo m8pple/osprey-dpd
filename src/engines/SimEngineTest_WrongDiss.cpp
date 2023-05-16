@@ -20,10 +20,6 @@
 #include "AbstractBead.h"
 #include "CNTCell.h"
 
-// TODO: Needs adapting for changed ISimEngine interface
-#if 0
-
-
 /*
 A broken simulation engine that uses the wrong dissipative parameter.
 */
@@ -36,15 +32,10 @@ public:
         return "SimEngineTest_WrongDiss";
     }
 
-    std::string CanSupport(const ISimBox *box) const override
-    {
-        return {};
-    }
-
     bool IsParallel() const override
     { return false; }
 
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override 
+    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override 
     {
         CSimBox *cbox=const_cast<CSimBox*>(box->GetSimBox());
 
@@ -74,9 +65,9 @@ public:
                 CCNTCell::SetDPDBeadConsInt(i,j, original[i][j]);
             }
         }
+
+        return {Supported, {}, num_steps};
     }
 };
 
 static bool reg_SimEngineTest_WrongDiss = SimEngineBase<SimEngineTest_WrongDiss>::Register();
-
-#endif

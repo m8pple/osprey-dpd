@@ -1,8 +1,5 @@
 #include "SimEngineSeq.hpp"
 
-// TODO: Needs adapting for changed ISimEngine interface
-#if 0
-
 
 #ifdef __AVX2__
 
@@ -10,7 +7,7 @@
 #include "pmmintrin.h"
 
 
-struct SimEngineSeqAVX2
+class SimEngineSeqAVX2
     : public SimEngineSeq
 {
 public:
@@ -23,7 +20,7 @@ private:
 
     __m256i rng_state_avx2;
 
-    void on_import(ISimBox *box) override 
+    support_result on_import(ISimBox *box) override 
     {
         rng_state_avx2 = _mm256_set_epi64x(
             rng_state=6364136223846793005ull * rng_state + 1,
@@ -31,6 +28,8 @@ private:
             rng_state=6364136223846793005ull * rng_state + 1,
             rng_state=6364136223846793005ull * rng_state + 1
           );
+
+        return {Supported};
     }
 
     __m256 RandUnifScaledAVX2(__m256i &state)
@@ -72,7 +71,7 @@ private:
         const __m256 home_pos[3],
         const __m256 home_mom[3],
         __m256 home_force[3],
-        __m256i home_id,
+        __m256i home_type,
 
         Bead &other,
         float other_x[4]
@@ -113,8 +112,8 @@ private:
 
         const float *coeff_row = (float*)&coefficients[other.type * num_bead_types]; // Note we are type-punning from std::pair<float> to float
         
-        __m256 conservative_coeff = _mm256_i32gather_ps(coeff_row, home_id, 8);    // Coeffs appear at 64-bit offsets
-        __m256 dissipative_coeff = _mm256_i32gather_ps(coeff_row + 1, home_id, 8); // Then they are offset by 1 float into the array
+        __m256 conservative_coeff = _mm256_i32gather_ps(coeff_row, home_type, 8);    // Coeffs appear at 64-bit offsets
+        __m256 dissipative_coeff = _mm256_i32gather_ps(coeff_row + 1, home_type, 8); // Then they are offset by 1 float into the array
 
         __m256 conForce = conservative_coeff * wr;
 
@@ -166,7 +165,7 @@ private:
         const __m256 home_pos[3],
         const __m256 home_mom[3],
         __m256 home_force[3],
-        __m256i home_id,
+        __m256i home_type,
 
         Bead &other_a,
         float other_x_a[4],
@@ -210,7 +209,7 @@ private:
         __m256 inv_dr = _mm256_rsqrt_ps(dr2); // ONE / dr;
 
         __m256i coeff_offset = _mm256_set_m128i(_mm_set1_epi32(other_b.type*num_bead_types),_mm_set1_epi32(other_a.type*num_bead_types));
-        coeff_offset = _mm256_add_epi32(coeff_offset, home_id);
+        coeff_offset = _mm256_add_epi32(coeff_offset, home_type);
 
         const float *coeff_root = (float*)&coefficients[0]; // Note we are type-punning from std::pair<float> to float
         
@@ -267,20 +266,20 @@ private:
 
         float home_pos_f[3][8] = {{0}};
         float home_mom_f[3][8] = {{0}};
-        uint32_t home_id_u[8] = {0}; // Must be zero initialise to avoid invalid indexing for un-unused bead slots
+        uint32_t home_type_u[8] = {0}; // Must be zero initialise to avoid invalid indexing for un-unused bead slots
 
         for(unsigned i=0; i<home_cell.count; i++){
             for(int d=0; d<3; d++){
                 home_pos_f[d][i] = home_cell.local[i].pos[d];
                 home_mom_f[d][i] = home_cell.local[i].mom[d];
             }
-            home_id_u[i] = home_cell.local[i].type;
+            home_type_u[i] = home_cell.local[i].type;
         }
 
         __m256 home_pos[3];
         __m256 home_mom[3];
         __m256 home_force[3];
-        __m256i home_type = _mm256_loadu_si256((__m256i*)home_id_u);
+        __m256i home_type = _mm256_loadu_si256((__m256i*)home_type_u);
         for(int d=0; d<3; d++){
             home_pos[d] = _mm256_loadu_ps(home_pos_f[d]);
             home_mom[d] = _mm256_loadu_ps(home_mom_f[d]);
@@ -355,7 +354,7 @@ private:
 
         float home_pos_f[3][8] = {{0}};
         float home_mom_f[3][8] = {{0}};
-        uint32_t home_id_u[8] = {0}; // Must be zero initialise to avoid invalid indexing for un-unused bead slots
+        uint32_t home_type_u[8] = {0}; // Must be zero initialise to avoid invalid indexing for un-unused bead slots
 
         for(unsigned i=0; i<home_cell.count; i++){
             for(int d=0; d<3; d++){
@@ -364,14 +363,14 @@ private:
                 home_pos_f[d][i+4] = home_cell.local[i].pos[d];
                 home_mom_f[d][i+4] = home_cell.local[i].mom[d];
             }
-            home_id_u[i] = home_cell.local[i].type;
-            home_id_u[i+4] = home_cell.local[i].type;
+            home_type_u[i] = home_cell.local[i].type;
+            home_type_u[i+4] = home_cell.local[i].type;
         }
 
         __m256 home_pos[3];
         __m256 home_mom[3];
         __m256 home_force[3];
-        __m256i home_type = _mm256_loadu_si256((__m256i*)home_id_u);
+        __m256i home_type = _mm256_loadu_si256((__m256i*)home_type_u);
         for(int d=0; d<3; d++){
             home_pos[d] = _mm256_loadu_ps(home_pos_f[d]);
             home_mom[d] = _mm256_loadu_ps(home_mom_f[d]);
@@ -474,5 +473,3 @@ private:
 static bool reg_SimEngineSeqAVX2 = SimEngineBase<SimEngineSeqAVX2>::Register();
 
 #endif // __AVX2__
-
-#endif

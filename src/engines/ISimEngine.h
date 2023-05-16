@@ -44,7 +44,7 @@ public:
         support_result(SupportStatus _status)
             : status(_status)
         {
-            assert(_stats==Supported);
+            assert(_status==Supported);
         }
 
         support_result(SupportStatus _status, const std::string &_reason)
@@ -122,7 +122,7 @@ public:
             , reason(res.reason)
             , completed_steps(0)
         {
-            assert( (_status != Supported) == _reason.size()!=0 );
+            assert( (status != Supported) == reason.size()!=0 );
         }
 
         SupportStatus status;

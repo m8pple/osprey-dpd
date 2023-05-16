@@ -56,7 +56,7 @@ public:
 private:
     void ImportGlobals(CSimBox *mbox)
     {
-        assert(CanSupport(box).status==Supported);
+        assert(CanSupport(mbox->GetISimBox()).status==Supported);
 
         m_dt=CCNTCell::m_dt;
         m_halfdt=CCNTCell::m_halfdt;

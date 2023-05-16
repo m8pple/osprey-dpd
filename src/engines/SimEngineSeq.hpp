@@ -373,7 +373,9 @@ protected:
     }
 
     virtual support_result on_import(ISimBox *box)
-    {}
+    {
+        return {Supported};   
+    }
 
     support_result import_all(ISimBox *box)
     {
@@ -535,7 +537,7 @@ protected:
             err.reason="Bead ids do not start at 1.";
             return;
         }
-        if(b.GetId() <= UINT32_MAX){
+        if(b.GetId() >= UINT32_MAX){
             err.status=PermanentProblem;
             err.reason="Bead id is more than 32-bit.";
             return;
@@ -563,6 +565,11 @@ protected:
             err.reason="At least one bead is not currently in side the sim box";
             return;
         }
+
+        #ifndef NDEBUG
+            double unPBC=b.GetunPBCXPos(), PBC=b.GetXPos();
+            assert( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+        #endif
 
         if( wrapped_distance( b.GetXPos(), fmod(b.GetunPBCXPos() , dims_float[0] ), dims_float[0]) > UNPBC_DRIFT_TOLERANCE ){
             err.status=PermanentProblem; // Is anyone else going to fix this?
@@ -595,7 +602,7 @@ protected:
         assert(cell_index < cells.size());
         auto &cell = cells[cell_index];
         unsigned cell_offset = cell.count;
-        if( cell_offset < MAX_BEADS_PER_CELL){
+        if( cell_offset >= MAX_BEADS_PER_CELL){
             err.status = TransientProblemStep;
             err.reason = "Currently there are more than MAX_BEADS_PER_CELL in at least one cell";
             return;
@@ -647,13 +654,14 @@ protected:
                 assert( 0<=ib.pos[d] && ib.pos[d]<dims_float[d] );
             }
 
-            simstate->MoveBeadBetweenCNTCells(b, ib.pos[0], ib.pos[1], ib.pos[2]);
-
-            // Our assumption is that fmod(unPBC,dims) and original pos were very close  
-            for(int d=0; d<3; d++){
-                assert( wrapped_distance( b->GetXPos(), fmod(b->GetunPBCXPos() , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+            #ifndef NDEBUG
+            {
+                double unPBC=b->GetunPBCXPos(), PBC=b->GetXPos();
+                assert( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
             }
+            #endif
 
+            simstate->MoveBeadBetweenCNTCells(b, ib.pos[0], ib.pos[1], ib.pos[2]);
             // Recover the complete number of wraps
             int pbc_offset[3];
             for(int d=0; d<3; d++ ){
@@ -666,14 +674,17 @@ protected:
             // be close to equilibrium for both DPD and bond forces. Trying to
             // snap back to unPBC would potentially jerk all the beads around
             // and disrupt that.
-            b->SetunPBCXPos( fmod(b->GetunPBCXPos(), dims_float[0]) + ib.pos[0] );
-            b->SetunPBCXPos( fmod(b->GetunPBCYPos(), dims_float[1]) + ib.pos[1] );
-            b->SetunPBCXPos( fmod(b->GetunPBCZPos(), dims_float[2]) + ib.pos[2] );
+            b->SetunPBCXPos( b->GetunPBCXPos() - fmod(b->GetunPBCXPos(), dims_float[0]) + pbc_offset[0]*dims_float[0] + ib.pos[0] );
+            b->SetunPBCYPos( b->GetunPBCYPos() - fmod(b->GetunPBCYPos(), dims_float[1]) + pbc_offset[1]*dims_float[1]+ ib.pos[1] );
+            b->SetunPBCZPos( b->GetunPBCZPos() - fmod(b->GetunPBCZPos(), dims_float[2]) + pbc_offset[2]*dims_float[2]+ ib.pos[2] );
 
             // Check we preserve the invariant
-            for(int d=0; d<3; d++){
-                assert( wrapped_distance( b->GetXPos(), fmod(b->GetunPBCXPos() , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+            #ifndef NDEBUG
+            {
+                double unPBC=b->GetunPBCXPos(), PBC=b->GetXPos();
+                assert( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
             }
+            #endif
         }
     }
 

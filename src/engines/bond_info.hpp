@@ -243,6 +243,10 @@ struct BondInfo
             }
 
             TCalc r=sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
+            /*if(std::abs(r) > 4){
+                fprintf(stderr, "Bond has snapped.\n");
+                exit(1);
+            }*/
             assert(std::abs(r)<4);
             working[4*i+3] = r;
 

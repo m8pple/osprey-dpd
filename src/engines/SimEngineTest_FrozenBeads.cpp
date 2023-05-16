@@ -19,9 +19,6 @@
 #include "xxBase.h"
 #include "AbstractBead.h"
 
-// TODO: Needs adapting for changed ISimEngine interface
-#if 0
-
 /*
 A broken simulation engine that doesn't update 1% of the beads.
 */
@@ -34,15 +31,10 @@ public:
         return "SimEngineTest_FrozenBeads";
     }
 
-    std::string CanSupport(const ISimBox *box) const override
-    {
-        return {};
-    }
-
     bool IsParallel() const override
     { return false; }
 
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override 
+    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override 
     {
         CSimBox *cbox=const_cast<CSimBox*>(box->GetSimBox());
 
@@ -63,9 +55,9 @@ public:
         for(auto b : frozen){
             b->SetNotFrozen();
         }
+
+        return {Supported, {}, num_steps};
     }
 };
 
 static bool reg_SimEngineTest_SkipTime = SimEngineBase<SimEngineTest_FrozenBeads>::Register();
-
-#endif

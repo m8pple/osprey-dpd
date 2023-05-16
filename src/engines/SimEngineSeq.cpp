@@ -1,8 +1,5 @@
 #include "SimEngineSeq.hpp"
 
-// TODO: Needs adapting for changed ISimEngine interface
-#if 0
-
 
 namespace {
     struct EnginePolicyRNG
@@ -34,5 +31,3 @@ namespace {
     static bool reg_SimEngineSeqHashBeadTag = SimEngineBase<SimEngineSeq<EnginePolicyHashBeadTag>>::Register();
     static bool reg_SimEngineSeqHashBeadTagMorton = SimEngineBase<SimEngineSeq<EnginePolicyHashBeadTagMorton>>::Register();
 };
-
-#endif

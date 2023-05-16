@@ -136,7 +136,7 @@ struct BondInfo
         return res;
     }
 
-    void import_all(ISimBox *box)
+    ISimEngineCapabilities::support_result import_all(ISimBox *box)
     {
         const auto &src_polymers=box->GetPolymers();
 
@@ -162,6 +162,8 @@ struct BondInfo
         }
 
         working_space.resize(max_bonds*4);
+
+        return {ISimEngineCapabilities::Supported};
     }
 
     template<class TBeadSource>

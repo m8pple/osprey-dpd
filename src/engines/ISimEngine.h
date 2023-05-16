@@ -36,6 +36,22 @@ public:
 
     struct support_result
     {
+        support_result(const support_result &) = default;
+        support_result(support_result &&) = default;
+        support_result &operator=(const support_result &) = default;
+        support_result &operator=(support_result &&) = default;
+
+        support_result(SupportStatus _status)
+            : status(_status)
+        {
+            assert(_stats==Supported);
+        }
+
+        support_result(SupportStatus _status, const std::string &_reason)
+            : status(_status)
+            , reason(_reason)
+        {}
+
         SupportStatus status;
         std::string reason; 
     };
@@ -88,6 +104,27 @@ public:
 
     struct run_result
     {
+        run_result(SupportStatus _status, std::string _reason, unsigned _steps)
+            : status(_status)
+            , reason(_reason)
+            , completed_steps(_steps)
+        {
+            assert( (_status != Supported) == _reason.size()!=0 );
+        }
+
+        run_result(unsigned _steps)
+            : status(Supported)
+            , completed_steps(_steps)
+        {}
+
+        run_result(support_result res)
+            : status(res.status)
+            , reason(res.reason)
+            , completed_steps(0)
+        {
+            assert( (_status != Supported) == _reason.size()!=0 );
+        }
+
         SupportStatus status;
         std::string reason; 
         unsigned completed_steps;

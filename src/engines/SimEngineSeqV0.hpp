@@ -6,7 +6,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include <cassert>
+#include "DebugAssert.hpp"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -31,7 +31,7 @@
 static bool require_fail_impl(const char *file, int line, const char *cond)
 {
     fprintf(stderr, "%s:%d: requirement failed : %s\n", file, line, cond);
-    assert(0);
+    DEBUG_ASSERT(0);
     exit(1);
 }
 
@@ -41,7 +41,7 @@ static bool require_fail_impl(const char *file, int line, const char *cond)
 static void declare(bool cond)
 {
     if(!cond){
-        assert(0);
+        DEBUG_ASSERT(0);
         __builtin_unreachable();
     }
 }
@@ -155,7 +155,7 @@ protected:
             }else if(delta==dims[d]-1){
                 local[d]=2;
             }else{
-                assert(0);
+                DEBUG_ASSERT(0);
                 fprintf(stderr, "Logic violation in make_edge_tag");
                 exit(1);
             }
@@ -205,7 +205,7 @@ protected:
         int parts[3];
         for(int d=0; d<3; d++){
             parts[d] = std::floor(pos[d]);
-            assert( 0 <= parts[d] && parts[d] <dims_int[d]);
+            DEBUG_ASSERT( 0 <= parts[d] && parts[d] <dims_int[d]);
         }
         return pos_to_cell_index(parts);
     }
@@ -213,12 +213,12 @@ protected:
     unsigned pos_to_cell_index(const int *parts)
     {
         for(int d=0; d<3; d++){
-            assert( 0 <= parts[d] && parts[d] <dims_int[d]);
+            DEBUG_ASSERT( 0 <= parts[d] && parts[d] <dims_int[d]);
         }
         unsigned index = parts[0] + dims_int[0]*parts[1] + dims_int[0]*dims_int[1]*parts[2];
-        assert(index < cells.size());
+        DEBUG_ASSERT(index < cells.size());
         for(int d=0; d<3; d++){
-            assert(cells[index].origin[d]==parts[d]);
+            DEBUG_ASSERT(cells[index].origin[d]==parts[d]);
         }
         return index;
     }
@@ -330,7 +330,7 @@ protected:
                         cell.origin[d] = cell_pos[d];
                     }
                     cell.cell_index = cell_index;
-                    assert( pos_to_cell_index(cell.origin) == cell_index );
+                    DEBUG_ASSERT( pos_to_cell_index(cell.origin) == cell_index );
                     cell_index += 1;
                 }
             }
@@ -480,26 +480,26 @@ protected:
     const Bead &find(uint32_t bead_id) const
     {
         int32_t loc=bead_locations[bead_id];
-        assert(0 <= loc);
+        DEBUG_ASSERT(0 <= loc);
 
         unsigned cell_index=loc/MAX_BEADS_PER_CELL;
         unsigned cell_offset=loc%MAX_BEADS_PER_CELL;
         auto &cell=cells[cell_index];
         auto &res=cell.local[cell_offset];
-        assert(res.bead_id==bead_id);
+        DEBUG_ASSERT(res.bead_id==bead_id);
         return res;
     }
 
     Bead &find(uint32_t bead_id)
     {
         int32_t loc=bead_locations[bead_id];
-        assert(0 <= loc);
+        DEBUG_ASSERT(0 <= loc);
 
         unsigned cell_index=loc/MAX_BEADS_PER_CELL;
         unsigned cell_offset=loc%MAX_BEADS_PER_CELL;
         auto &cell=cells[cell_index];
         auto &res=cell.local[cell_offset];
-        assert(res.bead_id==bead_id);
+        DEBUG_ASSERT(res.bead_id==bead_id);
         return res;
     }
 
@@ -522,7 +522,7 @@ protected:
 
         for(int d=0; d<3; d++){
             dx[d] = home.pos[d] - other_x[d];
-            assert( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
+            DEBUG_ASSERT( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
 
             dx2[d] = dx[d] * dx[d];
         }
@@ -650,17 +650,17 @@ protected:
     void update_mom_and_move(Cell &cell)
     {
         for(unsigned i=0; i<cell.to_move; i++){
-            assert(cell.local[i].generation==m_generation);
+            DEBUG_ASSERT(cell.local[i].generation==m_generation);
         }
         for(unsigned i=cell.to_move; i<cell.count; i++){
-            assert(cell.local[i].generation==m_generation+1);
+            DEBUG_ASSERT(cell.local[i].generation==m_generation+1);
         }
 
         unsigned i=0;
         while(i<cell.to_move){
             Bead &bead=cell.local[i];
 
-            assert(bead.generation==m_generation);
+            DEBUG_ASSERT(bead.generation==m_generation);
             bead.generation += 1;
 
             if(bead.frozen){
@@ -722,7 +722,7 @@ protected:
 
             if(i+1 == cell.count){
                 // The gap is the last thing in the array
-                assert(i+1 == cell.to_move && cell.to_move == cell.count);
+                DEBUG_ASSERT(i+1 == cell.to_move && cell.to_move == cell.count);
                 cell.count -= 1;
                 // We are finished
                 break;
@@ -740,7 +740,7 @@ protected:
                 // We need to move past this bead, as it is already processed in another cell
                 ++i;
             }else{
-                assert(i+1 < cell.to_move && cell.to_move == cell.count); 
+                DEBUG_ASSERT(i+1 < cell.to_move && cell.to_move == cell.count); 
                 // We still have at least one more bead, but nothing new
                 // Use the last todo bead to fill the gap and don't advance i
                 cell.to_move -= 1;
@@ -754,7 +754,7 @@ protected:
         }
 
         for(unsigned i=0; i<cell.count; i++){
-            assert(cell.local[i].generation==m_generation+1);
+            DEBUG_ASSERT(cell.local[i].generation==m_generation+1);
         }
     
         cell.to_move=0;

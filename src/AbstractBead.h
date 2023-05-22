@@ -10,7 +10,7 @@
 #define AFX_ABSTRACTBEAD_H__12767EC0_3849_11D3_820E_0060088AD300__INCLUDED_
 
 #include <cstdint>
-#include <cassert>
+#include "DebugAssert.hpp"
 
 // Forward declarations
 
@@ -170,8 +170,8 @@ public:
 
 	// Public functions to set bead state and coordinates
 
-	inline void   SetId(long id)			{ assert(id < INT32_MAX);  m_id = id;}
-	inline void   SetType(long type)		{ assert(type <= UINT8_MAX); m_Type	= type;}
+	inline void   SetId(long id)			{ DEBUG_ASSERT(id < INT32_MAX);  m_id = id;}
+	inline void   SetType(long type)		{ DEBUG_ASSERT(type <= UINT8_MAX); m_Type	= type;}
 	inline void   SetInvisible()			{m_bIsVisible	= false;}
 	inline void   SetVisible()				{m_bIsVisible	= true;}
 	inline void   SetVisible(bool bVisible)	{m_bIsVisible	= bVisible;}

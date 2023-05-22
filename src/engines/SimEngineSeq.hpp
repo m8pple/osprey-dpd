@@ -6,7 +6,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include <cassert>
+#include "DebugAssert.hpp"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -31,7 +31,7 @@
 static inline bool require_fail_impl(const char *file, int line, const char *cond)
 {
     fprintf(stderr, "%s:%d: requirement failed : %s\n", file, line, cond);
-    assert(0);
+    DEBUG_ASSERT(0);
     exit(1);
 }
 
@@ -41,7 +41,7 @@ static inline bool require_fail_impl(const char *file, int line, const char *con
 static inline void declare(bool cond)
 {
     if(!cond){
-        assert(0);
+        DEBUG_ASSERT(0);
         __builtin_unreachable();
     }
 }
@@ -200,7 +200,7 @@ protected:
             }else if(delta==dims[d]-1){
                 local.offsets[d]=2;
             }else{
-                assert(0);
+                DEBUG_ASSERT(0);
                 fprintf(stderr, "Logic violation in make_edge_tag");
                 exit(1);
             }
@@ -295,7 +295,7 @@ protected:
         int parts[3];
         for(int d=0; d<3; d++){
             parts[d] = std::floor(pos[d]);
-            assert( 0 <= parts[d] && parts[d] <dims_int[d]);
+            DEBUG_ASSERT( 0 <= parts[d] && parts[d] <dims_int[d]);
         }
         return pos_to_cell_index(parts);
     }
@@ -303,10 +303,10 @@ protected:
     unsigned pos_to_cell_index(const int *parts)
     {
         for(int d=0; d<3; d++){
-            assert( 0 <= parts[d] && parts[d] <dims_int[d]);
+            DEBUG_ASSERT( 0 <= parts[d] && parts[d] <dims_int[d]);
         }
         unsigned index = parts[0] + dims_int[0]*parts[1] + dims_int[0]*dims_int[1]*parts[2];
-        assert(index < cells.size());
+        DEBUG_ASSERT(index < cells.size());
         return index;
     }
 
@@ -444,7 +444,7 @@ protected:
                         cell.origin[d] = 0;
                     }
                     cell.cell_index = cell_index;
-                    assert( pos_to_cell_index(cell.origin) == cell_index );
+                    DEBUG_ASSERT( pos_to_cell_index(cell.origin) == cell_index );
 
                     cell.any_external=false;
 
@@ -503,7 +503,7 @@ protected:
         for(CAbstractBead * b : original_beads){
             #ifndef NDEBUG
             auto it=seen_beed_ids.find(b->GetId());
-            assert(it==seen_beed_ids.end());
+            DEBUG_ASSERT(it==seen_beed_ids.end());
             seen_beed_ids.insert(b->GetId());
             #endif
             import_bead(*b, err);
@@ -542,7 +542,7 @@ protected:
             err.reason="Bead id is more than 32-bit.";
             return;
         }
-        assert(0 <= b.GetType() && b.GetType() <= UINT8_MAX);
+        DEBUG_ASSERT(0 <= b.GetType() && b.GetType() <= UINT8_MAX);
 
         Bead c;
         c.pos[0]=b.GetXPos();
@@ -568,7 +568,7 @@ protected:
 
         #ifndef NDEBUG
             double unPBC=b.GetunPBCXPos(), PBC=b.GetXPos();
-            assert( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+            DEBUG_ASSERT( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
         #endif
 
         if( wrapped_distance( b.GetXPos(), fmod(b.GetunPBCXPos() , dims_float[0] ), dims_float[0]) > UNPBC_DRIFT_TOLERANCE ){
@@ -599,7 +599,7 @@ protected:
         }
 
         unsigned cell_index = pos_to_cell_index( c.pos );
-        assert(cell_index < cells.size());
+        DEBUG_ASSERT(cell_index < cells.size());
         auto &cell = cells[cell_index];
         unsigned cell_offset = cell.count;
         if( cell_offset >= MAX_BEADS_PER_CELL){
@@ -651,13 +651,13 @@ protected:
             b->SetZForce( ib.force[2] );
 
             for(int d=0; d<3; d++){
-                assert( 0<=ib.pos[d] && ib.pos[d]<dims_float[d] );
+                DEBUG_ASSERT( 0<=ib.pos[d] && ib.pos[d]<dims_float[d] );
             }
 
             #ifndef NDEBUG
             {
                 double unPBC=b->GetunPBCXPos(), PBC=b->GetXPos();
-                assert( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+                DEBUG_ASSERT( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
             }
             #endif
 
@@ -682,7 +682,7 @@ protected:
             #ifndef NDEBUG
             {
                 double unPBC=b->GetunPBCXPos(), PBC=b->GetXPos();
-                assert( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+                DEBUG_ASSERT( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
             }
             #endif
         }
@@ -716,26 +716,26 @@ protected:
     const Bead &find(uint32_t bead_id) const
     {
         int32_t loc=bead_locations[bead_id];
-        assert(0 <= loc);
+        DEBUG_ASSERT(0 <= loc);
 
         unsigned cell_index=loc/MAX_BEADS_PER_CELL;
         unsigned cell_offset=loc%MAX_BEADS_PER_CELL;
         auto &cell=cells[cell_index];
         auto &res=cell.local[cell_offset];
-        assert(res.bead_id==bead_id);
+        DEBUG_ASSERT(res.bead_id==bead_id);
         return res;
     }
 
     Bead &find(uint32_t bead_id)
     {
         int32_t loc=bead_locations[bead_id];
-        assert(0 <= loc);
+        DEBUG_ASSERT(0 <= loc);
 
         unsigned cell_index=loc/MAX_BEADS_PER_CELL;
         unsigned cell_offset=loc%MAX_BEADS_PER_CELL;
         auto &cell=cells[cell_index];
         auto &res=cell.local[cell_offset];
-        assert(res.bead_id==bead_id);
+        DEBUG_ASSERT(res.bead_id==bead_id);
         return res;
     }
 
@@ -750,7 +750,7 @@ protected:
 
         for(int d=0; d<CALC_DIM; d++){
             dx[d] = home.pos[d] - other_x[d];
-            assert( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
+            DEBUG_ASSERT( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
 
             dx2[d] = dx[d] * dx[d];
         }
@@ -840,7 +840,7 @@ protected:
             Cell &other_cell=cells[nlink.index];
             bool reflect_forces = (NHOOD_TYPE & NhoodType_ForceShare_Mask) == NHoodType_ForceShare_Direct;
 
-            assert( nlink.tag==EdgeTag_ForceShare_Direct || nlink.tag==EdgeTag_ForceShare_None );
+            DEBUG_ASSERT( nlink.tag==EdgeTag_ForceShare_Direct || nlink.tag==EdgeTag_ForceShare_None );
             reflect_forces |= nlink.tag==EdgeTag_ForceShare_Direct;
             
             float other_delta[4];
@@ -921,7 +921,7 @@ protected:
     template<bool AnyFrozen>
     void update_mom_and_move(rng_t &rng, Cell &cell)
     {
-        assert(AnyFrozen ? any_frozen_beads : true);
+        DEBUG_ASSERT(AnyFrozen ? any_frozen_beads : true);
         
         unsigned i=0;
         while(i<cell.to_move){
@@ -995,7 +995,7 @@ protected:
 
             if(i+1 == cell.count){
                 // The gap is the last thing in the array
-                assert(i+1 == cell.to_move && cell.to_move == cell.count);
+                DEBUG_ASSERT(i+1 == cell.to_move && cell.to_move == cell.count);
                 cell.count -= 1;
                 // We are finished
                 break;
@@ -1013,7 +1013,7 @@ protected:
                 // We need to move past this bead, as it is already processed in another cell
                 ++i;
             }else{
-                assert(i+1 < cell.to_move && cell.to_move == cell.count); 
+                DEBUG_ASSERT(i+1 < cell.to_move && cell.to_move == cell.count); 
                 // We still have at least one more bead, but nothing new
                 // Use the last todo bead to fill the gap and don't advance i
                 cell.to_move -= 1;
@@ -1089,7 +1089,7 @@ protected:
             cell.count -= 1;
             if(i == cell.count){
                 // The gap is the last thing in the array
-                assert(i+1 == cell.to_move && cell.to_move == cell.count+1);
+                DEBUG_ASSERT(i+1 == cell.to_move && cell.to_move == cell.count+1);
                 // We are finished
                 break;
             }else{
@@ -1098,7 +1098,7 @@ protected:
                     // A new bead has been moved in. Use it to fill the gap
                     src = cell.count;
                 }else{
-                    assert(i+1 < cell.to_move && cell.to_move == cell.count+1); 
+                    DEBUG_ASSERT(i+1 < cell.to_move && cell.to_move == cell.count+1); 
                     // We still have at least one more bead, but nothing new
                     // Use the last todo bead to fill the gap
                     cell.to_move -= 1;

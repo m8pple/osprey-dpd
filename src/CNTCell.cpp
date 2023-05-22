@@ -37,7 +37,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "StateLogger.hpp"
 
-#include <cassert>
+#include "DebugAssert.hpp"
 
 //////////////////////////////////////////////////////////////////////
 // Static member variable and function definitions

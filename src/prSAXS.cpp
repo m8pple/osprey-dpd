@@ -490,7 +490,7 @@ void prSAXS::UpdateState_InnerLoop_v1(CSimState& rSimState, const ISimBox* const
     std::vector<double> enoCache(bead_types.size());
     for(unsigned i=0; i<bead_types.size(); i++){
         const auto pbt=bead_types[i];
-        assert(pbt->GetType()==i);
+        DEBUG_ASSERT(pbt->GetType()==i);
         enoCache[i]=m_mElectronNo.at(i);
     }
     
@@ -538,7 +538,7 @@ void prSAXS::UpdateState_InnerLoop_v2(CSimState& rSimState, const ISimBox* const
     std::vector<float> enoCache(bead_types.size());
     for(unsigned i=0; i<bead_types.size(); i++){
         const auto pbt=bead_types[i];
-        assert(pbt->GetType()==i);
+        DEBUG_ASSERT(pbt->GetType()==i);
         auto it= m_mElectronNo.find(i);
         if(it!=m_mElectronNo.end()){
             enoCache[i]=it->second;
@@ -667,7 +667,7 @@ void prSAXS::UpdateState_InnerLoop_v3(CSimState& rSimState, const ISimBox* const
     std::vector<float> enoCache(bead_types.size());
     for(unsigned i=0; i<bead_types.size(); i++){
         const auto pbt=bead_types[i];
-        assert(pbt->GetType()==i);
+        DEBUG_ASSERT(pbt->GetType()==i);
         auto it= m_mElectronNo.find(i);
         if(it!=m_mElectronNo.end()){
             enoCache[i]=it->second;
@@ -752,7 +752,7 @@ void prSAXS::UpdateState_InnerLoop_v4(CSimState& rSimState, const ISimBox* const
     std::vector<float> enoCache(bead_types.size());
     for(unsigned i=0; i<bead_types.size(); i++){
         const auto pbt=bead_types[i];
-        assert(pbt->GetType()==i);
+        DEBUG_ASSERT(pbt->GetType()==i);
         auto it= m_mElectronNo.find(i);
         if(it!=m_mElectronNo.end()){
             enoCache[i]=it->second;
@@ -848,7 +848,7 @@ void prSAXS::UpdateState_InnerLoop_v4_omp(CSimState& rSimState, const ISimBox* c
     std::vector<float> enoCache(bead_types.size());
     for(unsigned i=0; i<bead_types.size(); i++){
         const auto pbt=bead_types[i];
-        assert(pbt->GetType()==i);
+        DEBUG_ASSERT(pbt->GetType()==i);
         auto it= m_mElectronNo.find(i);
         if(it!=m_mElectronNo.end()){
             enoCache[i]=it->second;
@@ -950,7 +950,7 @@ void prSAXS::UpdateState_InnerLoop_v4_stl_parallel(CSimState& rSimState, const I
     std::vector<float> enoCache(bead_types.size());
     for(unsigned i=0; i<bead_types.size(); i++){
         const auto pbt=bead_types[i];
-        assert(pbt->GetType()==i);
+        DEBUG_ASSERT(pbt->GetType()==i);
         auto it= m_mElectronNo.find(i);
         if(it!=m_mElectronNo.end()){
             enoCache[i]=it->second;
@@ -1075,7 +1075,7 @@ void prSAXS::UpdateState_InnerLoop_v4_threads(CSimState& rSimState, const ISimBo
     std::vector<float> enoCache(bead_types.size());
     for(unsigned i=0; i<bead_types.size(); i++){
         const auto pbt=bead_types[i];
-        assert(pbt->GetType()==i);
+        DEBUG_ASSERT(pbt->GetType()==i);
         auto it= m_mElectronNo.find(i);
         if(it!=m_mElectronNo.end()){
             enoCache[i]=it->second;
@@ -1210,7 +1210,7 @@ void prSAXS::UpdateState_InnerLoop_v3(CSimState& rSimState, const ISimBox* const
     std::vector<float> enoCache(ntypes);
     for(unsigned i=0; i<ntypes; i++){
         const auto pbt=bead_types[i];
-        assert(pbt->GetType()==i);
+        DEBUG_ASSERT(pbt->GetType()==i);
         enoCache[i]=m_mElectronNo.at(i);
     }
 

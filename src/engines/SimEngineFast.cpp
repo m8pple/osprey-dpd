@@ -2,7 +2,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include <cassert>
+#include "DebugAssert.hpp"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -57,7 +57,7 @@ public:
 private:
     void ImportGlobals(CSimBox *mbox)
     {
-        assert(CanSupport(mbox->GetISimBox()).status==Supported);
+        DEBUG_ASSERT(CanSupport(mbox->GetISimBox()).status==Supported);
 
         m_dt=CCNTCell::m_dt;
         m_halfdt=CCNTCell::m_halfdt;
@@ -277,7 +277,7 @@ private:
 
     // Divide the local cell-cell counter by the number of beads in this cell and add the result to the global cell-cell counter
         
-        assert(m_lBeads.size() > 0);
+        DEBUG_ASSERT(m_lBeads.size() > 0);
         localCellCellCounter /= m_lBeads.size();
         
         mpsSimBox::GlobalCellCellIntCounter += localCellCellCounter;
@@ -307,7 +307,7 @@ private:
         int index=m_lBeads.size()-1;
 
         while(index >= 0){
-            assert(!m_lBeads.empty() && index < m_lBeads.size() );
+            DEBUG_ASSERT(!m_lBeads.empty() && index < m_lBeads.size() );
 
             CAbstractBead *bead=m_lBeads[index];
 
@@ -321,8 +321,8 @@ private:
             }
             
             /*for(int d=0; d<3; d++){
-                assert( m_BLCoord[d] <= bead->m_Pos[d] );
-                assert( m_TRCoord[d] >= bead->m_Pos[d] );
+                DEBUG_ASSERT( m_BLCoord[d] <= bead->m_Pos[d] );
+                DEBUG_ASSERT( m_TRCoord[d] >= bead->m_Pos[d] );
             }*/
 
             bead->SetNotMovable();
@@ -368,7 +368,7 @@ private:
             // Update intermediate velocity
 
             // We know that lambda=0.5 for fast path
-            assert(CCNTCell::m_lamdt == CCNTCell::m_halfdt);
+            DEBUG_ASSERT(CCNTCell::m_lamdt == CCNTCell::m_halfdt);
             bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt*bead->m_Force[0];
             bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt*bead->m_Force[1];
             bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt*bead->m_Force[2];
@@ -395,8 +395,8 @@ private:
             }
             if(!moved){
                 for(int d=0; d<3; d++){
-                    assert( cell->m_BLCoord[d] <= bead->m_Pos[d] );
-                    assert( cell->m_TRCoord[d] >= bead->m_Pos[d] );
+                    DEBUG_ASSERT( cell->m_BLCoord[d] <= bead->m_Pos[d] );
+                    DEBUG_ASSERT( cell->m_TRCoord[d] >= bead->m_Pos[d] );
                 }
 
                 // If the bead did not change cells increment the
@@ -476,7 +476,7 @@ private:
 
     void AddForceFast(CSimBox *mbox, CBond *bond)
     {
-        assert( EnableParallelSimBox != SimMPSEnabled);
+        DEBUG_ASSERT( EnableParallelSimBox != SimMPSEnabled);
         // Serial code uses the unPBC coordinates to ensure bonds that span the SimBox boundaries have the correct length
 
         auto &m_pHead=bond->m_pHead;

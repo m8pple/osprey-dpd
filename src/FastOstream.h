@@ -3,7 +3,7 @@
 
 #include <cmath>
 #include <vector>
-#include <cassert>
+#include "DebugAssert.hpp"
 #include "xxState.h"
 
 
@@ -70,7 +70,7 @@ struct FastOstream
 				x = x/10; 
 			}
 
-            assert(begin < end);
+            DEBUG_ASSERT(begin < end);
             memcpy(curr, begin, end-begin);
             curr += end-begin;
 		}
@@ -103,7 +103,7 @@ struct FastOstream
             *curr++ = '0';
 			return *this;
         default:
-            assert(0);
+            DEBUG_ASSERT(0);
             if(context){    
     			context->FatalTrace("Invalid floating point classification.");
             }else{

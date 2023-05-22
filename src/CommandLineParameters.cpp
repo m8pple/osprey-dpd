@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 #include "SimDefs.h"
-#include <cassert>
+#include "DebugAssert.hpp"
 #include "CommandLineParameters.h"
 
 #include "xxCommandObject.h"
@@ -65,7 +65,7 @@ void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<vo
 {
     auto consume_args = [&](unsigned n)
     {
-        assert( n < argc );
+        DEBUG_ASSERT( n < argc );
         for(unsigned i=1; i<argc-n; i++){
             argv[i] = argv[i+n];
         }

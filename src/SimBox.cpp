@@ -33,7 +33,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "IModifySimStatePolymers.h"
 
 
-#include <cassert>
+#include "DebugAssert.hpp"
 
 // Force target base class needed for some functions
 

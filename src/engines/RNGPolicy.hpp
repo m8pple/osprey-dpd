@@ -3,7 +3,7 @@
 #define RNGPolicy_hpp
 
 #include <cstdint>
-#include <cassert>
+#include "DebugAssert.hpp"
 
 #include "BeadIdHashRNG.hpp"
 
@@ -80,7 +80,7 @@ struct RNGImpl<RNGPolicy_Rng_LCG64>
 
     uint32_t MakeBeadTag(uint32_t /*bead_id*/)
     {
-        assert(0); // Not expected for this rng
+        DEBUG_ASSERT(0); // Not expected for this rng
         return 0;
     }
 };
@@ -179,7 +179,7 @@ struct RNGImpl<RNGPolicy_Hash_PositionXorMulSum>
 
     uint32_t MakeBeadTag(uint32_t /*bead_id*/)
     {
-        assert(0); // Not expected for this rng
+        DEBUG_ASSERT(0); // Not expected for this rng
         return 0;
     }
 };

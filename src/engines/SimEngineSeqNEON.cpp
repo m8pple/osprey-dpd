@@ -101,7 +101,7 @@ private:
         Bead &other,
         float other_x[4]
     ) {
-        assert(home_count <= 4);
+        DEBUG_ASSERT(home_count <= 4);
 
         const float32x4_t ONE = vdupq_n_f32(1.0f);
 
@@ -142,7 +142,7 @@ private:
         float32x4_t conservative_coeff=ONE;
         float32x4_t dissipative_coeff=ONE;
         for(int ci=0; ci<home_count; ci++){
-            assert(home_type[ci] < num_bead_types);
+            DEBUG_ASSERT(home_type[ci] < num_bead_types);
             conservative_coeff[ci] = coeff_row[home_type[ci]*2];
             dissipative_coeff[ci] = coeff_row[home_type[ci]*2+1];
         }
@@ -161,13 +161,13 @@ private:
         float32x4_t newForce[3];
         for(int d=0; d<3; d++){
             newForce[d] = normTotalForce * dx[d];
-            assert(!any_nan(newForce[d]));
+            DEBUG_ASSERT(!any_nan(newForce[d]));
 
             home_force[d] += newForce[d];
 
             other.force[d] -= vaddvq_f32(newForce[d]);
 
-            assert(std::abs(other.force[d]) < 10000);
+            DEBUG_ASSERT(std::abs(other.force[d]) < 10000);
         }
     }
 

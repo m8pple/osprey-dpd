@@ -76,7 +76,7 @@ private:
         Bead &other,
         float other_x[4]
     ) {
-        assert(home_count <= 8);
+        DEBUG_ASSERT(home_count <= 8);
 
         const __m256 ONE = _mm256_set1_ps(1.0f);
 
@@ -129,7 +129,7 @@ private:
         __m256 newForce[3];
         for(int d=0; d<3; d++){
             newForce[d] = normTotalForce * dx[d];
-            assert(!any_nan(newForce[d]));
+            DEBUG_ASSERT(!any_nan(newForce[d]));
 
             home_force[d] += newForce[d];
 
@@ -153,7 +153,7 @@ private:
                 }
             }
 
-            assert(std::abs(other.force[d]) < 10000);
+            DEBUG_ASSERT(std::abs(other.force[d]) < 10000);
         }
     }
 
@@ -172,7 +172,7 @@ private:
         Bead &other_b,
         float other_x_b[4]
     ) {
-        assert(home_count <= 8);
+        DEBUG_ASSERT(home_count <= 8);
 
         const __m256 ONE = _mm256_set1_ps(1.0f);
 
@@ -230,7 +230,7 @@ private:
         __m256 newForce[3];
         for(int d=0; d<3; d++){
             newForce[d] = normTotalForce * dx[d];
-            assert(!any_nan(newForce[d]));
+            DEBUG_ASSERT(!any_nan(newForce[d]));
 
             home_force[d] += newForce[d];
 
@@ -240,7 +240,7 @@ private:
             other_a.force[d] -= _mm256_cvtss_f32(newForce[d]);
             other_b.force[d] -= _mm_cvtss_f32( _mm256_extractf128_ps( newForce[d], 1 ) );
 
-            assert(std::abs(other_a.force[d]) < 10000);
+            DEBUG_ASSERT(std::abs(other_a.force[d]) < 10000);
         }
     }
     #endif
@@ -340,7 +340,7 @@ private:
     {
         home_cell.to_move = home_cell.count;
 
-        assert(home_cell.count<=4);
+        DEBUG_ASSERT(home_cell.count<=4);
 
         if(home_cell.count==0){
             return;

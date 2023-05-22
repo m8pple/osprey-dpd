@@ -39,6 +39,10 @@ public:
 	virtual bool SetFrozen();
 	virtual bool SetNotFrozen();
 
+	virtual CAbstractBead *Clone() const;
+	virtual void Assign(const CAbstractBead *src);
+
+
 	// Now provided by CAbstractBead
 	// virtual bool SetNotMovable();
 	// virtual bool SetMovable();

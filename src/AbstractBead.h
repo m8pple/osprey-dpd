@@ -254,6 +254,14 @@ public:
 	{
 		__builtin_prefetch( &this->m_Type );
 	}
+
+	// Return a fresh bead with the same state.
+	// The fresh bead will not be in any cell
+	virtual CAbstractBead *Clone() const =0;
+
+	// Assign all members of this class from the source.
+	// The source must be the same bead class as the target
+	virtual void Assign(const CAbstractBead *src) =0;
 protected:
 
 	// Convert id and type to reduce cache footprint

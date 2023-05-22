@@ -26,7 +26,7 @@
 
 #include "bond_info.hpp"
 
-#include "bead_id_hash_rng.hpp"
+#include "BeadIdHashRNG.hpp"
 
 static bool require_fail_impl(const char *file, int line, const char *cond)
 {

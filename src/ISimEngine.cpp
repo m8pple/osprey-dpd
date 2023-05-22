@@ -4,7 +4,7 @@
 #include "ISimBox.h"
 #include "aeActiveSimBox.h"
 
-#include "bead_id_hash_rng.hpp"
+#include "BeadIdHashRNG.hpp"
 #include "StateLogger.hpp"
 
 ISimEngineCapabilities::support_result ISimEngineCapabilities::StandardSupportAssumptions(const ISimBox *box)

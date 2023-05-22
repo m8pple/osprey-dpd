@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <cassert>
 
-#include "bead_id_hash_rng.hpp"
+#include "BeadIdHashRNG.hpp"
 
 enum RNGPolicy
 {

@@ -302,7 +302,7 @@ void prPairCorrelationFunction::UpdateState(CSimState& rSimState, const ISimBox*
 				//				m_vRDF.at(ir) /= (beadPairNorm*shellVolume*m_SamplesTaken);
 				
 		// Nex line is to test the I(q) calculation from Paissoni et al JCTC 2020. We simply count the number of pairs at a separation r, and
-		//normalise by the number of samples only.
+		//normalise by the number of samples only. Why am I not dividing by the total number of pairs?
 		
 				m_vRDF.at(ir) /= (m_SamplesTaken);
 				

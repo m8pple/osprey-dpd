@@ -253,10 +253,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #endif
 
 #include "StateLogger.hpp"
-
+#include <functional>
 
 	using std::cout;
-	using std::mem_fun;
+
+// Could do compile-time tricks to change alias, if compilers below C++11 need support?
+using std::mem_fn; // Covert to std::mem_fn, as mem_fun deprecated in c++17
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -1726,7 +1729,7 @@ void CSimBox::FreezeBeadsInSlice(const xxCommand *const pCommand)
 
 			BeadList beads = pCell->GetBeads();
 
-			for_each(beads.begin(), beads.end(), mem_fun(&CAbstractBead::SetFrozen));
+			for_each(beads.begin(), beads.end(), mem_fn(&CAbstractBead::SetFrozen));
 
 			beadsFrozen += beads.size();
 		}
@@ -5407,7 +5410,7 @@ void CSimBox::FreezeBeadsInTarget(const xxCommand* const pCommand)
 
 		BeadVector vBeads = pCmdTarget->GetBeads();
 
-		for_each(vBeads.begin(), vBeads.end(), mem_fun(&CAbstractBead::SetFrozen));
+		for_each(vBeads.begin(), vBeads.end(), mem_fn(&CAbstractBead::SetFrozen));
 
 		new CLogctFreezeBeadsInTarget(m_SimTime, targetLabel);
 	}
@@ -5448,7 +5451,7 @@ void CSimBox::UnFreezeBeadsInTarget(const xxCommand* const pCommand)
 
 		BeadVector vBeads = pCmdTarget->GetBeads();
 
-		for_each(vBeads.begin(), vBeads.end(), mem_fun(&CAbstractBead::SetNotFrozen));
+		for_each(vBeads.begin(), vBeads.end(), mem_fn(&CAbstractBead::SetNotFrozen));
 
 		new CLogctUnFreezeBeadsInTarget(m_SimTime, targetLabel);
 	}

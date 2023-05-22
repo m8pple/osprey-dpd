@@ -96,7 +96,7 @@ void mcSavePairCorrelationFunctionImpl::SavePairCorrelationFunction(const xxComm
         {
             if(!(*ind))
             {
-                std::cout << "INcluding polymer " << key << " " << pMon->GetISimBox()->GetPolymerNameFromType(key) << zEndl;
+                std::cout << "Including polymer " << key << " " << pMon->GetISimBox()->GetPolymerNameFromType(key) << zEndl;
                 mPolyTypes.insert(zPairLL(key, key));
             }
             ++key;

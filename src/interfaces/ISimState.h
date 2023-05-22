@@ -188,6 +188,7 @@ protected:
 	double GetkT()                const;		// Temperature
 	double GetEnergyScale()       const;		// MD energy scale
 	double GetLengthScale()       const;		// MD length scale
+	long GetRNGSeed()             const;
 
 
 	// Functions returning the number of types of bead, the numbers of

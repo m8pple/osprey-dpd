@@ -55,6 +55,10 @@ Parameters:
 
 --list-engines : Lists all available engines, then quits with error without starting simulation.
 
+--wrap-engine-with-ref-diff : (Only useful for engine development) Wraps the current engine with
+    a diff engine that compares bead state against the refernce engine output after each step.
+    If no engine is set then it is a no-op.
+
 )";
 
 void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<void(const std::string &)> on_error)
@@ -129,6 +133,9 @@ void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<vo
             ISimEngine::SetGlobalEngine(inst );
 
             consume_args(2);
+        }else if(cmd=="--wrap-engine-with-ref-diff"){
+            ISimEngine::WrapGlobalEngineWithRefDiff();
+            consume_args(1);
         }else if(cmd=="--help"){
             consume_args(1);
             return on_error(sg_usage);

@@ -73,7 +73,7 @@ INCLUDE_DIRECTORIES(
 
 add_executable(dpd ${SRC_FILES})
 target_compile_options(dpd
-  PRIVATE ${COMPILE_OPTIONS}
+  PRIVATE ${COMPILE_OPTIONS}  -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
 )
 target_link_libraries(dpd PRIVATE TBB::tbb)
 
@@ -105,8 +105,8 @@ target_compile_options(dpd-2d
 
 add_executable(dpd-debug ${SRC_FILES})
 target_compile_options(dpd-debug
-  PRIVATE ${COMPILE_OPTIONS_DEBUG} -ferror-limit=2
+  PRIVATE ${COMPILE_OPTIONS_DEBUG} -ferror-limit=2 -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
 )
-target_compile_options(dpd-debug PRIVATE -fsanitize=undefined)
-target_link_options(dpd-debug PRIVATE -fsanitize=undefined)
+target_compile_options(dpd-debug PRIVATE -fsanitize=undefined -fsanitize=address)
+target_link_options(dpd-debug PRIVATE -fsanitize=undefined -fsanitize=address)
 target_link_libraries(dpd-debug PRIVATE TBB::tbb)

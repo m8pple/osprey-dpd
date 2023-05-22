@@ -10,6 +10,7 @@
 #include "Polymer.h"
 #include "Bond.h"
 #include "BondPair.h"
+#include "StateLogger.hpp"
 
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
@@ -209,7 +210,7 @@ struct BondInfo
             return;
         }
 
-        if(polymers_use_disjoint_beads){
+        if(false && polymers_use_disjoint_beads){
             update_polymers_tbb(bead_source, dims_float);
         }else{
             update_polymers_seq(bead_source, dims_float);
@@ -258,6 +259,12 @@ struct BondInfo
             
                 assert(!std::isnan(head.force[d]));
                 assert(!std::isnan(tail.force[d]));
+            }
+
+            if(StateLogger::IsEnabled()){
+                StateLogger::LogBeadPairRefl("bond_dx", bond.head_bead_id, bond.tail_bead_id, {dx[0],dx[1],dx[2]});
+                StateLogger::LogBeadPairRefl("bond_r", bond.head_bead_id, bond.tail_bead_id, r);
+                StateLogger::LogBeadPairRefl("bond_f", bond.head_bead_id, bond.tail_bead_id, { dx[0] * fScale, dx[1] * fScale, dx[2] * fScale});
             }
             
         }

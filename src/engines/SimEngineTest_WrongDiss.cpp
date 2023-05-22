@@ -35,7 +35,7 @@ public:
     bool IsParallel() const override
     { return false; }
 
-    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override 
+    run_result Run(ISimBox *box, bool modified, unsigned start_sim_time, unsigned num_steps) override 
     {
         CSimBox *cbox=const_cast<CSimBox*>(box->GetSimBox());
 
@@ -57,7 +57,7 @@ public:
         
 
         for(unsigned i=0; i<num_steps; i++){
-           cbox->Evolve();
+           cbox->Evolve(start_sim_time+i);
         }
 
         for(unsigned i=0; i<bead_types; i++){

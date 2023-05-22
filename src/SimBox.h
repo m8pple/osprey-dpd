@@ -420,6 +420,7 @@ class CSimBox : public ISimState,
 	friend class ISimEngineCapabilities;
 	friend class SimEngineFast;
 	friend class SimEngineRef;
+	friend class SimEngineRefDiff;
 	friend class SimEngineTest_SkipTime;
 	friend class SimEngineTest_FrozenBeads;
 	friend class SimEngineTest_WrongDiss;
@@ -470,6 +471,7 @@ public:
     
     // PVFs inherited from the ISimState interface base class that change the CSimBox's internal structure
     
+	virtual void AddBeadToCNTCell(CAbstractBead* const pBead) const;
 	virtual void AddBeadToCNTCell(int cell_index, CAbstractBead* const pBead) const;
     virtual bool MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, double y, double z) const;
 
@@ -651,7 +653,7 @@ private:
 
 	// Functions to evolve a serial simulation
 
-	void Evolve();					// Calls CCNTCell functions to integrate equations of motion
+	void Evolve(unsigned simTime);	// Calls CCNTCell functions to integrate equations of motion
 	void CNTCellCheck();			// Check that beads are in the correct cells
 	void AddBodyForce();			// Add the external body force to all affected beads
 	void AddBondForces();			// Add bond forces to the beads in polymers

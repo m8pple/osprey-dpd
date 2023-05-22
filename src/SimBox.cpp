@@ -252,6 +252,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "LogToggleDPDBeadThermostat.h"
 #endif
 
+#include "StateLogger.hpp"
+
 
 	using std::cout;
 	using std::mem_fun;
@@ -975,8 +977,10 @@ CCNTCell* CSimBox::GetCNTCellFromCoords(double r[3]) const
 //
 //
 
-void CSimBox::Evolve()
+void CSimBox::Evolve(unsigned simTime)
 {
+	StateLogger::BeginStep(simTime);
+
 	CNTCellIterator iterCell;  // used in all three loops below
 
 	for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
@@ -998,6 +1002,8 @@ void CSimBox::Evolve()
     // calculate the new force instead of the standard UpdateForce().
 
 	ZeroSliceStress();
+
+	CCNTCell::PreCalculateDPDForces( GetRNGSeed(), simTime);
 
 #if EnableDPDLG == ExperimentEnabled
 
@@ -1030,9 +1036,17 @@ void CSimBox::Evolve()
 
 #endif
 
+	CCNTCell::PostCalculateDPDForces();
+
 	// Add in the forces between bonded beads and the stiff bond force. Note that
 	// AddBondPairForces() must be called after AddBondForces() because it relies
 	// on the bond lengths having already been calculated in CBond::AddForce().
+
+	if(StateLogger::IsEnabled()){
+		for(auto b : GetAllBeadsInCNTCells()){
+			StateLogger::LogBead("dpd_f_total", b->GetId()-1, b->m_Force);
+		}
+	}
 
 	AddBondForces();
 	AddBondPairForces();
@@ -1372,7 +1386,7 @@ void CSimBox::Run()
 			if(engine && fastSteps > 0){
 				if(logStepReasons) fprintf(stderr, "Fast stepping from %ld to %ld with engine %s\n", m_SimTime, m_SimTime+fastSteps, engine->Name().c_str());
 				bool modified=true;
-				auto res = engine->Run(box, modified, fastSteps);
+				auto res = engine->Run(box, modified, m_SimTime, fastSteps);
 				m_SimTime += res.completed_steps;
 				switch(res.status){
 				case ISimEngineCapabilities::Supported:
@@ -1394,7 +1408,7 @@ void CSimBox::Run()
 			//////////////////////////////////////////////
 			// Do a full step.
 
-			Evolve();
+			Evolve(m_SimTime);
 
 			// Standard full-featured path
 
@@ -6263,6 +6277,26 @@ bool CSimBox::MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, doub
 #endif
     
     return bValid;
+}
+
+// The bead must be in bounds and not currently be in any cell (including the target)
+void CSimBox::AddBeadToCNTCell(CAbstractBead* const pBead) const
+{
+#if EnableParallelSimBox == SimMPSEnabled
+    // Parallel branch not enabled yet, and we don't expect it to occur
+	FatalTraceGlobal("AddBeadToCNTCell - Not expected to be called from parallel code.");
+#endif
+    
+	assert(pBead);
+	// Get current position and the index to the owning CNT cell
+	long ix, iy, iz;
+	// Now get the new position and the index to the new CNT cel
+	ix = static_cast<long>(pBead->GetXPos()/m_CNTXCellWidth);
+	iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
+	iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);
+	const long trueIndex = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix; 
+
+	AddBeadToCNTCell(trueIndex, pBead);
 }
 
 // cell_index must be the exact index for the cell, and the bead must be in bounds

@@ -23,6 +23,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Bead.h"
 #include "Bond.h"
 
+#include "StateLogger.hpp"
+
 #if EnableShadowSimBox == SimACNEnabled
 #include "aeActiveSimBox.h" // Needed for access to SimBox side lengths
 #endif
@@ -129,6 +131,7 @@ void CBond::AddForce()
 #endif
 
 	m_Length = sqrt(m_dx*m_dx + m_dy*m_dy + m_dz*m_dz);
+	assert(std::abs(m_Length) < 4);
 	
 	// The overall minus sign is used to swap the order of m_Length - m_UnStrLen
 
@@ -144,6 +147,12 @@ void CBond::AddForce()
 	m_pTail->m_Force[1]-= m_fy;
 	m_pTail->m_Force[2]-= m_fz;
 
+	if(StateLogger::IsEnabled()){
+		StateLogger::LogBeadPairRefl("bond_dx", m_pHead->GetId()-1, m_pTail->GetId()-1, m_dx);
+		StateLogger::LogBeadPairRefl("bond_r", m_pHead->GetId()-1, m_pTail->GetId()-1, m_Length);
+		StateLogger::LogBeadPairRefl("bond_f", m_pHead->GetId()-1, m_pTail->GetId()-1, { m_fx, m_fy, m_fz});
+	}
+	
 	// Stress tensor contributions from bond force. 
 	// Removed the stress from the tail bead to avoid double counting its 
 	// contribution to the pressure. This does not affect the stress profile

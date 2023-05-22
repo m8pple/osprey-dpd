@@ -158,7 +158,7 @@ public:
         stepped in another engine it might be able to carry on
     - PermanentFault : This engine cannot support the box for some reason 
     */
-    virtual run_result Run(ISimBox *box, bool modified, unsigned num_steps) =0;
+    virtual run_result Run(ISimBox *box, bool modified, unsigned start_sim_time, unsigned num_steps) =0;
 
 
     static std::shared_ptr<ISimEngine> GetGlobalEngine()
@@ -171,6 +171,10 @@ public:
         sim_engine_backing() = engine;
     }
 
+    /*! Wraps the current engine (if any) with a diff engine that checks the results against
+        the reference engine after every time step.
+    */
+    static void WrapGlobalEngineWithRefDiff();
 private:
     static std::shared_ptr<ISimEngine> &sim_engine_backing()
     {

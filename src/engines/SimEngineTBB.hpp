@@ -53,7 +53,7 @@ public:
     bool IsParallel() const override
     { return true; }
 
-    ISimEngine::run_result Run(ISimBox *box, bool modified, unsigned num_steps) override
+    ISimEngine::run_result Run(ISimBox *box, bool modified, unsigned /*start_sim_time*/, unsigned num_steps) override
     {
         auto err=base_t::import_all(box);
         if(err.status!=ISimEngine::Supported){

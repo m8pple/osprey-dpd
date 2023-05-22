@@ -689,6 +689,11 @@ const PolymerVector& ISimState::GetPolymerTypes() const
     return m_rSimState.GetPolymerTypes();
 }
 
+long ISimState::GetRNGSeed() const
+{
+	return m_rSimState.GetRNGSeed();
+}
+
 // ****************************************
 // Functions that query the polymer structures
 

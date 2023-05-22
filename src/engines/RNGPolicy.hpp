@@ -3,12 +3,16 @@
 #define RNGPolicy_hpp
 
 #include <cstdint>
+#include <cassert>
+
+#include "bead_id_hash_rng.hpp"
 
 enum RNGPolicy
 {
     RNGPolicy_Rng_LCG64,
     RNGPolicy_Hash_BeadTagXorShiftAdd,  // r = (a.hash_tag ^ (b.hash_tag<<16)) + (b.hash_tag ^ (a.hash_tag<<16))
     RNGPolicy_Hash_PositionXorMulSum,    // r = sum( (a.x[d] + b.x[d]) * round_mul[d], d=0..2 ) 
+    RNGPolicy_Hash_BeadIdHash,           
 
     RNGPolicy_AsymmetricRng    = RNGPolicy_Rng_LCG64,                   // Requires use of newton's 3rd law
     RNGPolicy_HashBeadTag      = RNGPolicy_Hash_BeadTagXorShiftAdd,     // Can be used anywhere, requires hash_tag in bead
@@ -34,6 +38,13 @@ inline float CalcRNGScaleForU31(double stddev)
     const double uHalf_to_uNorm = 1.0 / 0.28867513459481287;         // U(-0.5,0.5) -> Uniform with stddev=1
     const double u31_to_uNorm = u31_to_uHalf * uHalf_to_uNorm;       // U(-2^31,2^32) -> Uniform with stddev=1
     return u31_to_uNorm * stddev ;                              // U(-2^31,2^32) -> Uniform with given        
+}
+
+inline float CalcRNGScaleForSymmetricUniform(double stddev)
+{
+    // StdDev(U(-0.5,0.5)) = 0.28867513459481287 = sqrt( (b-a)**2 / 12 ), where a=-0.5, b=0.5
+    const double uHalf_to_uNorm = 1.0 / 0.28867513459481287;         // U(-0.5,0.5) -> Uniform with stddev=1
+    return uHalf_to_uNorm * stddev ;                              // U(-2^31,2^32) -> Uniform with given        
 }
 
 template<>
@@ -172,5 +183,36 @@ struct RNGImpl<RNGPolicy_Hash_PositionXorMulSum>
         return 0;
     }
 };
+
+
+template<>
+struct RNGImpl<RNGPolicy_Hash_BeadIdHash>
+{
+    static const int RNG_POLICY = RNGPolicy_Hash_BeadIdHash;
+
+    static const bool USES_BEAD_ROUND_TAG = false;
+
+    uint64_t round_base;
+    float rng_scale;
+
+    static const char *Name() 
+    { return "BeadIdHash"; }
+
+    RNGImpl(double stddev, uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
+    {
+        rng_scale = CalcRNGScaleForU31(stddev);
+        round_base = bead_id_hash_rng__round_hash(global_seed, round_id);
+    }
+
+    template<class TBead>
+    float NextUnifScaled(const TBead &a, const TBead &b)
+    {
+        return rng_scale * bead_id_hash_rng__random_symmetric_uniform(round_base, a.bead_id, b.bead_id);
+    }
+};
+
+
+
+
 
 #endif

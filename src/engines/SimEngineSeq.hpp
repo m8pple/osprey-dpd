@@ -99,7 +99,7 @@ public:
         return {Supported};
     }
 
-    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override
+    run_result Run(ISimBox *box, bool modified, unsigned /*start_sim_time*/, unsigned num_steps) override
     {
         auto res=import_all(box);
         if(res.status!=Supported){

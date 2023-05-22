@@ -35,6 +35,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "mpsSimBox.h"
 
+#include "StateLogger.hpp"
+
 #include <cassert>
 
 //////////////////////////////////////////////////////////////////////
@@ -76,6 +78,12 @@ double CCNTCell::m_dispmag			    = 0.0;
 uint64_t   CCNTCell::m_RNGSeed	        = -1ull;
 long double CCNTCell::m_2Power32             =  4294967296.0l;              // 2**32
 long double CCNTCell::m_Inv2Power32          =  1.0l/CCNTCell::m_2Power32;  // Inverse of 2**32
+
+float (*CCNTCell::m_CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2) =0;
+uintptr_t CCNTCell::m_CustomRNGState = 0;
+uintptr_t (*CCNTCell::m_CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t time_step) =0;
+void (*CCNTCell::m_CustomRNGEndTimeStep)(uintptr_t state) =0;
+
 
 CMonitor* CCNTCell::m_pMonitor				 = 0;
 ISimBox* CCNTCell::m_pISimBox                = 0;
@@ -579,6 +587,17 @@ void CCNTCell::AddDPDBeadType(long oldType)
     }
 #endif
 
+}
+
+void CCNTCell::SetCustomRNGProc(
+	float (*CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2),
+	uintptr_t (*CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t step_index),
+	void (*CustomRNGEndTimeStep)(uintptr_t state)
+){
+	m_CustomRNGProc=CustomRNGProc;
+	m_CustomRNGBeginTimeStep=CustomRNGBeginTimeStep;
+	m_CustomRNGEndTimeStep=CustomRNGEndTimeStep;
+	m_CustomRNGState=0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1229,12 +1248,20 @@ void CCNTCell::UpdateForce()
 					gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*riterBead2)->GetType())*wr2;
 
 					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( *iterBead1, *riterBead2 );
 // Gauss RNG		randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 					newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
 					newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
 					newForce[2] = (conForce + dissForce + randForce)*dx[2]/dr;
+
+					if(StateLogger::IsEnabled()){
+						int id1=(*iterBead1)->GetId()-1, id2=(*riterBead2)->GetId()-1;
+						StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+						StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+						StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+						StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
+					}
 
 #elif SimIdentifier == MD
 
@@ -1442,7 +1469,7 @@ void CCNTCell::UpdateForce()
 						gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr2;
 
 						dissForce	= -gammap*rdotv;				
-						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( *iterBead1, *iterBead2 );
 // Gauss RNG		    randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 						newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
@@ -1507,6 +1534,15 @@ void CCNTCell::UpdateForce()
 						(*iterBead2)->m_Force[0] -= newForce[0];
 						(*iterBead2)->m_Force[1] -= newForce[1];
 						(*iterBead2)->m_Force[2] -= newForce[2];
+
+						if(StateLogger::IsEnabled()){
+							int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
+							StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+							StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+							StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+							StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
+						}
+
 
 						// stress tensor summation
 
@@ -2275,6 +2311,10 @@ void CCNTCell::UpdatePos()
 					(*iterBead)->SetNotMovable();
 					iterBead++;
 #endif
+
+					#ifndef NDEBUG
+					CheckPBCDrift(*iterBead);
+					#endif
 				}
 			}
 		}
@@ -2496,13 +2536,31 @@ double CCNTCell::Randf()
     return static_cast<double>(CCNTCell::lcg(CCNTCell::m_RNGSeed))*CCNTCell::m_Inv2Power32;
 }
 
-double CCNTCell::RandUnifScaled(double i31_to_r_scale)
+// Returns random force in [-0.5,0.5) between two beads
+double CCNTCell::RandUniformBetweenBeads(uint32_t bead_id1, uint32_t bead_id2)
 {
-    int32_t i31;
-	uint32_t u32=lcg(m_RNGSeed);
-	memcpy(&i31, &u32, 4); // Avoid undefined behaviour. Gets number in range [-2^31,2^31)
-	return i31 * i31_to_r_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
+	// This should be well predicted, so when m_CustomRNGProc is null it just
+	// uses inlined lcg with almost no performance loss.
+	if(m_CustomRNGProc){
+		return m_CustomRNGProc( m_CustomRNGState, bead_id1, bead_id2 );
+	}else{
+		return 0.5 - Randf();
+	}
 }
+
+// Returns random force in [-0.5,0.5) between two beads
+double CCNTCell::RandUniformBetweenBeads(const CAbstractBead *bead1, const CAbstractBead *bead2)
+{
+	// This should be well predicted, so when m_CustomRNGProc is null it just
+	// uses inlined lcg with almost no performance loss.
+	if(m_CustomRNGProc){
+		// Bead ids for RNG are assumed to  be zero indexed
+		return m_CustomRNGProc( m_CustomRNGState, bead1->GetId()-1, bead2->GetId()-1 );
+	}else{
+		return 0.5 - Randf();
+	}
+}
+
 
 // Private static helper function for the lcg RNG
 
@@ -2682,6 +2740,23 @@ double CCNTCell::GetKt()
 	return m_kT;
 }
 
+void CCNTCell::CheckPBCDrift(const CAbstractBead *bg)
+{
+	double eg[3]={
+		std::abs(fmod(bg->GetunPBCXPos(), m_SimBoxXLength) - bg->GetXPos()),
+		std::abs(fmod(bg->GetunPBCYPos(), m_SimBoxYLength) - bg->GetYPos()),
+		std::abs(fmod(bg->GetunPBCZPos(), m_SimBoxZLength) - bg->GetZPos())
+	};
+	eg[0] = std::min( eg[0], m_SimBoxXLength - eg[0]);
+	eg[1] = std::min( eg[1], m_SimBoxXLength - eg[1]);
+	eg[2] = std::min( eg[2], m_SimBoxXLength - eg[2]);
+
+	if(eg[0] > 1e-6 || eg[1] > 1e-6 || eg[2] > 1e-6){
+		fprintf(stderr, "PBC drift.\n");
+		exit(1);
+	}
+};
+
 // Function to check that all the beads in the current CNTCell have coordinates
 // within the cell's boundaries.
 
@@ -2702,6 +2777,8 @@ bool CCNTCell::CheckBeadsinCell()
 	for(int offset = m_lBeads.size()-1; offset >= 0; offset--){
 		CAbstractBead *pBead = m_lBeads[offset];
 
+		CheckPBCDrift(pBead);
+
 		ix = static_cast<long>(pBead->GetXPos()/m_CNTXCellWidth);
 		iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
 
@@ -2710,9 +2787,17 @@ bool CCNTCell::CheckBeadsinCell()
 #elif SimDimension == 3
 		iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);		
 #endif
-		assert(0 <= ix && ix < m_CNTXCellNo);
-		assert(0 <= iy && iy < m_CNTYCellNo);
-		assert(0 <= iz && iz < m_CNTZCellNo);
+		#ifndef NDEBUG
+		auto get_dist_wrapped = [](double pbc, double unpbc, double w) {
+			double dx = fmod(unpbc, w) - pbc;
+			if( dx < -w/2 ) dx += w;
+			if( dx > w/2 ) dx -= w;
+			return std::abs(dx);
+		};
+		assert( get_dist_wrapped(pBead->GetXPos(), pBead->GetunPBCXPos(), m_SimBoxXLength) < 1e-6 );
+		assert( get_dist_wrapped(pBead->GetYPos(), pBead->GetunPBCYPos(), m_SimBoxYLength) < 1e-6 );
+		assert( get_dist_wrapped(pBead->GetZPos(), pBead->GetunPBCZPos(), m_SimBoxZLength) < 1e-6 );
+		#endif
 
 		index1 = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix;
 
@@ -2783,10 +2868,20 @@ bool CCNTCell::CheckBeadsinCell()
 			TraceVector("  Force", pBead->GetXForce(), pBead->GetYForce(), pBead->GetZForce());
 			TraceVector("  New pos", xpos, ypos, zpos);
 
+			m_lBeads.erase(m_lBeads.begin()+offset);
+
+			pBead->SetXPos( xpos );
+			pBead->SetYPos( ypos );
+			pBead->SetZPos( zpos );
+
 			// Note that this will modify the array that we are iterating over, but it will only access
 			// element offset.
 			// The beads in [0,offset) will remain in place, and get processed next.
-			m_pISimBox->GetSimBox()->MoveBeadBetweenCNTCells( pBead, xpos, ypos, zpos );
+			m_pISimBox->GetSimBox()->AddBeadToCNTCell(  pBead  );
+
+			#ifndef NDEBUG
+			CheckPBCDrift(pBead);
+			#endif			
 		}
 	}
 
@@ -3418,7 +3513,7 @@ void CCNTCell::UpdateLGForce()
 					gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*riterBead2)->GetType())*wr2;
 
 					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt * RandUniformBetweenBeads( *iterBead1, *iterBead2 );
 
 					newForce[0] = (conForce + lgForce + dissForce + randForce)*dx[0]/dr;
 					newForce[1] = (conForce + lgForce + dissForce + randForce)*dx[1]/dr;
@@ -3539,7 +3634,7 @@ void CCNTCell::UpdateLGForce()
 						gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr2;
 
 						dissForce	= -gammap*rdotv;				
-						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( *iterBead1, *iterBead2 );
 
 						newForce[0] = (conForce + lgForce + dissForce + randForce)*dx[0]/dr;
 						newForce[1] = (conForce + lgForce + dissForce + randForce)*dx[1]/dr;
@@ -3943,7 +4038,7 @@ void CCNTCell::UpdateForceP()
 					gammap		= m_vvDissInt.at(pBead1->GetType()).at((*riterBead2)->GetType())*wr2;
 
 					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( pBead1, *iterBead2 );
 
 					newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
 					newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
@@ -4329,7 +4424,7 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 						gammap		= m_vvDissInt.at(pBead->GetType()).at((*iterBead2)->GetType())*wr2;
 
 						dissForce	= -gammap*rdotv;				
-						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( pBead, *iterBead2 );
 
 						newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
 						newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
@@ -4433,4 +4528,23 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 #endif
 }
 
+void CCNTCell::PreCalculateDPDForces(long global_seed, unsigned simTime)
+{
+	if(m_CustomRNGProc){
+		if(m_CustomRNGBeginTimeStep){
+			m_CustomRNGState = m_CustomRNGBeginTimeStep(std::abs(global_seed), simTime);
+		}else{
+			m_CustomRNGState=0;
+		}
+	}
+}
 
+void CCNTCell::PostCalculateDPDForces()
+{
+	if(m_CustomRNGProc){
+		if(m_CustomRNGEndTimeStep){
+			m_CustomRNGEndTimeStep(m_CustomRNGState);
+		}
+		m_CustomRNGState = 0;
+	}
+}

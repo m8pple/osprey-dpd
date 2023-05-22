@@ -18,12 +18,15 @@
 #include "Polymer.h"
 #include "Bond.h"
 #include "BondPair.h"
+#include "StateLogger.hpp"
 
 #include "ISimEngine.h"
 
 #include "morton_codec.hpp"
 
 #include "bond_info.hpp"
+
+#include "bead_id_hash_rng.hpp"
 
 static bool require_fail_impl(const char *file, int line, const char *cond)
 {
@@ -57,7 +60,7 @@ public:
     { return false; }
 
 
-    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override
+    run_result Run(ISimBox *box, bool modified, unsigned start_sim_time,unsigned num_steps) override
     {
         support_result tmp=CanSupport(box);
         if(tmp.status!=Supported){
@@ -82,7 +85,15 @@ public:
             validate_cells();
             #endif
 
+            rng_state=bead_id_hash_rng__round_hash(std::abs(box->GetRNGSeed()), start_sim_time+i);
+
             update_forces();
+
+            for(unsigned j=0; j<bead_locations.size(); j++){
+                auto &b=find(j);
+                double f[3]={b.force[0], b.force[1], b.force[2]};
+                StateLogger::LogBead("dpd_f_total", b.bead_id, f);
+            }
 
             #ifndef NDEBUG
             validate_cells();
@@ -186,7 +197,7 @@ protected:
 
     uint32_t m_generation;
 
-    uint64_t rng_state = 0;
+    uintptr_t rng_state = 0;
     calc_t rng_scale;
 
     unsigned pos_to_cell_index(const calc_t *pos)
@@ -223,6 +234,23 @@ protected:
             f( cells[i] );
         }
     }
+
+    void CheckPBCDrift(const CAbstractBead *bg)
+    {
+        double eg[3]={
+            std::abs(fmod(bg->GetunPBCXPos(), dims_float[0]) - bg->GetXPos()),
+            std::abs(fmod(bg->GetunPBCYPos(), dims_float[1]) - bg->GetYPos()),
+            std::abs(fmod(bg->GetunPBCZPos(), dims_float[2]) - bg->GetZPos())
+        };
+        eg[0] = std::min( eg[0], dims_float[0] - eg[0]);
+        eg[1] = std::min( eg[1], dims_float[1] - eg[1]);
+        eg[2] = std::min( eg[2], dims_float[2] - eg[2]);
+
+        if(eg[0] > 1e-6 || eg[1] > 1e-6 || eg[2] > 1e-6){
+            fprintf(stderr, "PBC drift.\n");
+            exit(1);
+        }
+    };
 
     std::vector<std::array<int,3>> make_forward_nhood()
     {
@@ -278,7 +306,7 @@ protected:
         halfdt2=halfdt * dt;
 
         double invrootdt = sqrt(24.0*CCNTCell::GetKt()/dt);
-        rng_scale = ldexp(invrootdt, -32);
+        rng_scale = invrootdt;
 
         const auto &bead_types=box->GetBeadTypes();
         num_bead_types = bead_types.size();
@@ -354,6 +382,8 @@ protected:
         require(1 <= b.GetId() && b.GetId() <= UINT32_MAX);
         require(0 <= b.GetType() && b.GetType() <= UINT8_MAX);
 
+        CheckPBCDrift(&b);
+
         Bead c;
         c.pos[0]=b.GetXPos();
         c.pos[1]=b.GetYPos();
@@ -421,6 +451,8 @@ protected:
             b->SetunPBCZPos( b->GetunPBCZPos() + ib.pos[2] + ib.unpbcWrap[2] * dims_float[2] );
 
             simstate->MoveBeadBetweenCNTCells(b, ib.pos[0], ib.pos[1], ib.pos[2]);
+
+            CheckPBCDrift(b);
         }
     }
 
@@ -524,7 +556,7 @@ protected:
 
             calc_t dissForce	= -gammap*rdotv;
             declare(gammap > 0);
-            calc_t rv = RandUnifScaled();
+            calc_t rv = bead_id_hash_rng__random_symmetric_uniform(rng_state, home.bead_id, other.bead_id);
 
             /*
             static double rvSum=0;
@@ -539,7 +571,7 @@ protected:
             */
 
 
-            calc_t randForce	= std::sqrt(gammap)*rv;
+            calc_t randForce	= std::sqrt(gammap) * rng_scale * rv;
             calc_t normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
             calc_t newForce[4];
@@ -547,6 +579,14 @@ protected:
                 newForce[d] = normTotalForce * dx[d];
                 home.force[d] += newForce[d];
                 other.force[d] -= newForce[d];
+            }
+
+            if(StateLogger::IsEnabled()){
+                int id1=home.bead_id, id2=other.bead_id;
+                StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+                StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+                StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+                StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
             }
         }
     }

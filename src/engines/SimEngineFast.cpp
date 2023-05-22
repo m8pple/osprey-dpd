@@ -22,6 +22,7 @@
 
 #include "ISimBox.h"
 
+#include "StateLogger.hpp"
 
 class SimEngineFast
     : public ISimEngine
@@ -35,7 +36,7 @@ public:
     virtual bool IsParallel() const override
     { return false; }
 
-    run_result Run(ISimBox *box, bool modified, unsigned num_steps) override
+    run_result Run(ISimBox *box, bool modified, unsigned start_sim_time, unsigned num_steps) override
     {
         CSimBox *mbox=const_cast<CSimBox*>(box->GetSimBox());
 
@@ -48,7 +49,7 @@ public:
      
         ImportGlobals(mbox);
      
-        EvolveFast(mbox, num_steps);
+        EvolveFast(mbox, start_sim_time, num_steps);
 
         return {Supported, {}, num_steps};
     }
@@ -77,7 +78,6 @@ private:
     double m_SimBoxZLength;
     unsigned m_CNTXCellNo, m_CNTYCellNo, m_CNTZCellNo;
 
-
     //#pragma GCC push_options
     //#pragma GCC optimize("fast-math")
     void UpdateForceFast(CCNTCell *cell)
@@ -102,7 +102,7 @@ private:
 
         cell->m_aIntNNCells[0]->PrefetchHint();
 
-        double rng_scale =  CCNTCell::m_invrootdt * CCNTCell::m_Inv2Power32;
+        double rng_scale =  CCNTCell::m_invrootdt;
 
         // DPD and MD equations of motion
 
@@ -173,8 +173,16 @@ private:
                     gammap		= CCNTCell::m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
 
                     dissForce	= -gammap*rdotv;				
-                    randForce	= sqrt(gammap)*cell->RandUnifScaled(rng_scale);
+                    randForce	= sqrt(gammap) * rng_scale * CCNTCell::RandUniformBetweenBeads(*iterBead1, *iterBead2);
                     normTotalForce = (conForce + dissForce + randForce) * inv_dr;
+
+                    if(StateLogger::IsEnabled()){
+						int id1=(*iterBead1)->GetId()-1, id2=(*iterBead1)->GetId()-1;
+						StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+						StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+						StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+						StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
+					}
 
                     for(int d=0; d<3; d++){
                         newForce[d] = normTotalForce * dx[d];
@@ -254,7 +262,7 @@ private:
                         gammap		= CCNTCell::m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
 
                         dissForce	= -gammap*rdotv;		
-                        randForce	= sqrt(gammap)*CCNTCell::RandUnifScaled(rng_scale);
+                        randForce	= sqrt(gammap) * rng_scale * CCNTCell::RandUniformBetweenBeads(*iterBead1, *iterBead2);
                         normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
                         for(int d=0; d<3; d++){
@@ -299,7 +307,7 @@ private:
         int index=m_lBeads.size()-1;
 
         while(index >= 0){
-            assert(!m_lBeads.empty());
+            assert(!m_lBeads.empty() && index < m_lBeads.size() );
 
             CAbstractBead *bead=m_lBeads[index];
 
@@ -407,14 +415,12 @@ private:
             while(bead->m_Pos[2] >= m_SimBoxZLength)	bead->m_Pos[2] -= m_SimBoxZLength;
 
             int ix=floor(bead->m_Pos[0]), iy=floor(bead->m_Pos[1]), iz=floor(bead->m_Pos[2]);
-            int cell_index = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix; 
+            int cell_index = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix;
 
-            if(index+1 < m_lBeads.size()){
-                std::swap(m_lBeads[index], m_lBeads.back());
-            }
-            m_lBeads.pop_back();
+            m_lBeads.erase( m_lBeads.begin() + index );
 
             mbox->AddBeadToCNTCell(cell_index, bead);
+            index--;
         }
     }
 
@@ -640,7 +646,7 @@ private:
         }
     }
 
-    void EvolveFast(CSimBox *box, unsigned nSteps)
+    void EvolveFast(CSimBox *box, unsigned sim_start_time, unsigned nSteps)
     {
         auto &m_vCNTCells=box->m_vCNTCells;
 
@@ -652,6 +658,8 @@ private:
         }
 
         for(unsigned i=0; i<nSteps; i++){
+
+            CCNTCell::PreCalculateDPDForces(box->GetRNGSeed(), sim_start_time);
 
             iterCell = m_vCNTCells.begin();
             (*iterCell)->PrefetchHint();
@@ -683,6 +691,8 @@ private:
 
                 UpdateForceFast(curr);
             }
+
+            CCNTCell::PostCalculateDPDForces();
 
             // Add in the forces between bonded beads and the stiff bond force. Note that
             // AddBondPairForces() must be called after AddBondForces() because it relies

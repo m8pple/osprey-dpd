@@ -111,7 +111,7 @@ public:
             , reason(_reason)
             , completed_steps(_steps)
         {
-            DEBUG_ASSERT( (_status != Supported) == _reason.size()!=0 );
+            DEBUG_ASSERT( (_status != Supported) == (_reason.size()!=0) );
         }
 
         run_result(unsigned _steps)
@@ -124,7 +124,7 @@ public:
             , reason(res.reason)
             , completed_steps(0)
         {
-            DEBUG_ASSERT( (status != Supported) == reason.size()!=0 );
+            DEBUG_ASSERT( (status != Supported) == (reason.size()!=0) );
         }
 
         SupportStatus status;

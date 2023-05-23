@@ -45,6 +45,10 @@ set(COMPILE_OPTIONS ${COMPILE_OPTIONS} -DOSPREY_DPD_ENABLE_OPENMP=1 )
 message("OpenMP found and enabled")
 endif()
 
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+set(COMPILE_OPTIONS ${COMPILE_OPTIONS} -mavx2)
+endif()
+
 
 add_executable(dpd ${SRC_FILES})
 target_compile_options(dpd
@@ -76,7 +80,7 @@ target_compile_options(dpd-2d
 
 add_executable(dpd-debug ${SRC_FILES})
 target_compile_options(dpd-debug
-  PRIVATE ${COMPILE_OPTIONS} -ferror-limit=2
+  PRIVATE ${COMPILE_OPTIONS}
   -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
   -DOSPREY_ENABLE_DEBUG_ASSERT=1
   -DTraceOn

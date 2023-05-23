@@ -78,6 +78,13 @@ private:
     double m_SimBoxZLength;
     unsigned m_CNTXCellNo, m_CNTYCellNo, m_CNTZCellNo;
 
+    void PrefetchHint(CCNTCell &cell)
+	{
+		for(unsigned i=0; i<cell.m_lBeads.size(); i++){
+			__builtin_prefetch(&cell.m_lBeads[i]->m_Type);
+		}
+	}
+
     //#pragma GCC push_options
     //#pragma GCC optimize("fast-math")
     void UpdateForceFast(CCNTCell *cell)
@@ -100,7 +107,7 @@ private:
             return;
         }
 
-        cell->m_aIntNNCells[0]->PrefetchHint();
+        PrefetchForRW( &cell->m_aIntNNCells[0]->m_type );
 
         double rng_scale =  CCNTCell::m_invrootdt;
 
@@ -207,7 +214,7 @@ private:
         for( int i=0; i<13; i++ )
         {	
             if(i<12){
-                m_aIntNNCells[i+1]->PrefetchHint();
+                PrefetchHint(*m_aIntNNCells[i+1]);
             }
 
             bool both_external = m_bExternal && m_aIntNNCells[i]->IsExternal();
@@ -662,14 +669,14 @@ private:
             CCNTCell::PreCalculateDPDForces(box->GetRNGSeed(), sim_start_time);
 
             iterCell = m_vCNTCells.begin();
-            (*iterCell)->PrefetchHint();
+            PrefetchHint(*iterCell);
 
             while(iterCell != m_vCNTCells.end()){
                 auto curr=*iterCell;
 
                 ++iterCell;
                 if(iterCell!=m_vCNTCells.end()){
-                    (*iterCell)->PrefetchHint();
+                    PrefetchHint(*iterCell);
                 }
 
                 UpdateMomThenPosFastV2(box, curr);
@@ -679,14 +686,14 @@ private:
             // that can potentially interact. No monitor accumulations are performed.
 
             iterCell = m_vCNTCells.begin();
-            (*iterCell)->PrefetchHint();
+            PrefetchHint(*iterCell);
 
             while(iterCell != m_vCNTCells.end()){
                 auto curr=*iterCell;
 
                 ++iterCell;
                 if(iterCell!=m_vCNTCells.end()){
-                    (*iterCell)->PrefetchHint();
+                    PrefetchHint(*iterCell);
                 }
 
                 UpdateForceFast(curr);

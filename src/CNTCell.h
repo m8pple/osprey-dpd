@@ -174,13 +174,6 @@ public:
 	void SetIntNNCellIndex(long index, CCNTCell* pCell);
 	bool CheckBeadsinCell();
 
-	void PrefetchHint()
-	{
-		for(unsigned i=0; i<m_lBeads.size(); i++){
-			m_lBeads[i]->PrefetchHint();
-		}
-	}
-
 	static void SetCustomRNGProc(
 		float (*CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2) = 0,
 		uintptr_t (*CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t step_index) = 0,

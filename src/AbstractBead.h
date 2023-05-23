@@ -250,11 +250,6 @@ public:
 		return m_bIsMovable;
 	}
 
-	void PrefetchHint()
-	{
-		__builtin_prefetch( &this->m_Type );
-	}
-
 	// Return a fresh bead with the same state.
 	// The fresh bead will not be in any cell
 	virtual CAbstractBead *Clone() const =0;

@@ -2,6 +2,8 @@
 #define ParallelServices_hpp
 
 #include <functional>
+#include <cstdint>
+#include <memory>
 
 /*
 These provide wrapper services around possible parallel providers, with

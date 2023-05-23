@@ -1,16 +1,22 @@
 #include "SimEngineSeq.hpp"
 
-
 #ifdef __AVX2__
 
 #include "immintrin.h"
 #include "pmmintrin.h"
 
+struct  SimEngineSeqAVX2Policy
+    : EnginePolicyConcept
+{
+};
 
 class SimEngineSeqAVX2
-    : public SimEngineSeq
+    : public SimEngineSeq<SimEngineSeqAVX2Policy>
 {
 public:
+    using ISimEngine::support_result;
+    using ISimEngine::run_result;
+
     std::string Name() const override
     {
         return "SimEngineSeqAVX2";
@@ -19,15 +25,20 @@ public:
 private:
 
     __m256i rng_state_avx2;
+    float rng_scale;
 
     support_result on_import(ISimBox *box) override 
     {
+        uint64_t rng_state = SplitMix64(SplitMix64( box->GetRNGSeed() ) + box->GetCurrentTime());
+
         rng_state_avx2 = _mm256_set_epi64x(
             rng_state=6364136223846793005ull * rng_state + 1,
             rng_state=6364136223846793005ull * rng_state + 1,
             rng_state=6364136223846793005ull * rng_state + 1,
             rng_state=6364136223846793005ull * rng_state + 1
           );
+
+        rng_scale = ldexpf(rng_stddev,-32);
 
         return {Supported};
     }
@@ -246,7 +257,7 @@ private:
     #endif
 
     template<bool AnyExternal>
-    void update_forces(Cell &home_cell)
+    void update_forces(rng_t &rng, Cell &home_cell)
     {
         home_cell.to_move = home_cell.count;
 
@@ -255,12 +266,12 @@ private:
         }
 
         if(home_cell.count > 8){
-            return SimEngineSeq::update_forces<AnyExternal>(home_cell);
+            return SimEngineSeq::update_forces<AnyExternal>(rng, home_cell);
         }
 
         for(unsigned i0=0; i0<home_cell.count-1; i0++){
             for(unsigned i1=i0+1; i1<home_cell.count; i1++){
-                calc_force( home_cell.local[i0], home_cell.local[i1], home_cell.local[i1].pos );
+                calc_force(rng, /*reflect_force*/ true, home_cell.local[i0], home_cell.local[i1], home_cell.local[i1].pos );
             }
         }
 
@@ -299,7 +310,7 @@ private:
             float other_delta[4];
             if(AnyExternal){
                 for(int d=0; d<3; d++){
-                    other_delta[d] = edge_adjustments[d][nlink.edge_tags[d]];
+                    other_delta[d] = edge_adjustments[d][nlink.offsets[d]];
                 }
                 other_delta[3]=0;
             }
@@ -457,13 +468,15 @@ private:
 
     __attribute__((noinline)) void update_forces()
     {
+        rng_t rng(rng_stddev, global_seed, round_id, 0);
+
         // TODO : branching based on any external may introduce data-dependent
         // control and bloat instruction size. Is minor saving worth it?
         for(Cell &cell : cells){
             if(cell.any_external){
-                update_forces<true>(cell);
+                update_forces<true>(rng, cell);
             }else{
-                update_forces<false>(cell);
+                update_forces<false>(rng, cell);
             }
         }
     }
@@ -472,4 +485,4 @@ private:
 
 static bool reg_SimEngineSeqAVX2 = SimEngineBase<SimEngineSeqAVX2>::Register();
 
-#endif // __AVX2__
+#endif

@@ -13,6 +13,8 @@ class CBond;
 
 class CBondPair  
 {
+	friend class SimEngineFast;
+
 public:
 	CBondPair();
 	CBondPair(long type, double strength, double phi0);
@@ -57,7 +59,6 @@ public:
 	// the potential energy of the stiff bond
 
 	void	AddForce();
-	void	AddForceFast();
 	double	AddPotentialEnergy();
 
 private:

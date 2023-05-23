@@ -16,40 +16,41 @@ from series_utils.time_series_bundle import TimeSeriesBundle
 from series_utils.parse_dmpcas import parse_dmpcas
 from run_replicates import make_dir_name, hash_text
 
-def calculate_quantised_walk_statistic(nbuckets:int, ntimes:int, nreps:int, boundaries : np.ndarray, transition_probs : np.ndarray, paths : np.ndarray):
-    assert transition_probs.shape==(ntimes,nbuckets,nbuckets)    
-    reshaped_probs=np.zeros(shape=(ntimes,nbuckets*nbuckets))
-    for b in range(nbuckets):
-        reshaped_probs[:,b*nbuckets:(b+1)*nbuckets]=nbuckets / transition_probs[:,b,:]
-    
-    assert paths.shape==(ntimes,nreps) or paths.shape==(ntimes,)
-    indices=np.zeros(shape=paths.shape,dtype=int)
-    for t in range(ntimes):
-        indices[t,:] = np.digitize(paths[t,:], boundaries[t,:], right=True)
-    
-    hop_indices = indices[:-1,:] * nbuckets + indices[1:,:] #type: np.ndarray
-    assert hop_indices.shape == (ntimes-1,nreps)
+if False:
+    def calculate_quantised_walk_statistic(nbuckets:int, ntimes:int, nreps:int, boundaries : np.ndarray, transition_probs : np.ndarray, paths : np.ndarray):
+        assert transition_probs.shape==(ntimes,nbuckets,nbuckets)    
+        reshaped_probs=np.zeros(shape=(ntimes,nbuckets*nbuckets))
+        for b in range(nbuckets):
+            reshaped_probs[:,b*nbuckets:(b+1)*nbuckets]=nbuckets / transition_probs[:,b,:]
+        
+        assert paths.shape==(ntimes,nreps) or paths.shape==(ntimes,)
+        indices=np.zeros(shape=paths.shape,dtype=int)
+        for t in range(ntimes):
+            indices[t,:] = np.digitize(paths[t,:], boundaries[t,:], right=True)
+        
+        hop_indices = indices[:-1,:] * nbuckets + indices[1:,:] #type: np.ndarray
+        assert hop_indices.shape == (ntimes-1,nreps)
 
-    walk_probs = np.zeros(shape=(ntimes-1,nreps))
-    for t in range(ntimes-1):
-        pp=reshaped_probs[t+1][hop_indices[t]]
-        assert not np.any(pp==0), f"t={t}"
-        walk_probs[t,:] = pp
+        walk_probs = np.zeros(shape=(ntimes-1,nreps))
+        for t in range(ntimes-1):
+            pp=reshaped_probs[t+1][hop_indices[t]]
+            assert not np.any(pp==0), f"t={t}"
+            walk_probs[t,:] = pp
 
-    assert not np.any(walk_probs==0)
+        assert not np.any(walk_probs==0)
 
-    log_probs = np.log(walk_probs)
-    res=np.sum(log_probs, axis=0)
-    return res
+        log_probs = np.log(walk_probs)
+        res=np.sum(log_probs, axis=0)
+        return res
 
-def calculate_extreme_value_statistic(ntimes:int, nreps:int, ul_boundaries : np.ndarray, paths : np.ndarray):
-    assert ul_boundaries.shape == (ntimes,2)
-    assert paths.shape==(ntimes,nreps)
-    assert np.sum(ul_boundaries[:,0] < ul_boundaries[:,1]) > ntimes/2, str(ul_boundaries)+"\n"+str(paths)
-    extrema = (paths < ul_boundaries[:,0].reshape((ntimes,1))) | (ul_boundaries[:,1].reshape((ntimes,1)) < paths)
-    statistics=np.sum(extrema, axis=0) / ntimes
-    assert statistics.shape==(nreps,)
-    return statistics
+    def calculate_extreme_value_statistic(ntimes:int, nreps:int, ul_boundaries : np.ndarray, paths : np.ndarray):
+        assert ul_boundaries.shape == (ntimes,2)
+        assert paths.shape==(ntimes,nreps)
+        assert np.sum(ul_boundaries[:,0] < ul_boundaries[:,1]) > ntimes/2, str(ul_boundaries)+"\n"+str(paths)
+        extrema = (paths < ul_boundaries[:,0].reshape((ntimes,1))) | (ul_boundaries[:,1].reshape((ntimes,1)) < paths)
+        statistics=np.sum(extrema, axis=0) / ntimes
+        assert statistics.shape==(nreps,)
+        return statistics
 
 if __name__ == "__main__":
 
@@ -77,6 +78,7 @@ if __name__ == "__main__":
         os.makedirs(working_dir,exist_ok=True)
     else:
         output_dir=sys.argv[3]
+
 
     if len(sys.argv) < 5:
         start=0
@@ -162,29 +164,6 @@ if __name__ == "__main__":
             stats_cube[nindex,tindex,0]=q10
             stats_cube[nindex,tindex,1]=q90
             stats={"t":t,"name":name,"mean":mean,"stddev":stddev,"skewness":skewness,"kurtosis":kurtosis,"minval":minval,"q01":q01,"q10":q10, "q50":q50, "q90":q90, "q99":q99, "maxval":maxval}
-
-    # remove any metrics that have collapsed or are constant
-    if False:
-        for nindex in range(nnames-1,-1,-1):
-            name=names[nindex]
-            assert name in res["slices"]
-            if any(stddevs[nindex,:]==0):
-                sys.stderr.write(f"Removing {name}\n")
-                slices=res["slices"]
-                del slices[name]
-                del names[nindex]
-                stddevs=np.delete(stddevs, [nindex], axis=0)
-                means=np.delete(means, [nindex], axis=0)
-                # Not needed as res["names"] is the same object as names
-                # res["names"].remove(name)
-                data_cube=np.delete(data_cube, [nindex], axis=0)
-                stats_cube=np.delete(stats_cube, [nindex], axis=0)
-                transition_probs=np.delete(transition_probs,[nindex],axis=0)
-                transition_boundaries=np.delete(transition_boundaries,[nindex],axis=0)
-                
-                nnames -= 1
-
-                assert transition_probs.shape == (nnames,ntimes,nbuckets,nbuckets)
 
     assert data_cube.shape == (nnames,ntimes,nreps)
     assert len(names) == nnames

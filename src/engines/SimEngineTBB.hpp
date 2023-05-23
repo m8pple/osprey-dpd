@@ -53,9 +53,12 @@ public:
     bool IsParallel() const override
     { return true; }
 
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override
+    ISimEngine::run_result Run(ISimBox *box, bool modified, unsigned /*start_sim_time*/, unsigned num_steps) override
     {
-        base_t::import_all(box);
+        auto err=base_t::import_all(box);
+        if(err.status!=ISimEngine::Supported){
+            return err;
+        }
 
         auto bead_source=[&](uint32_t bead_id) -> Bead &{
             return find(bead_id);
@@ -95,6 +98,8 @@ public:
         #endif
 
         base_t::export_all(box);
+    
+        return {ISimEngine::Supported, {}, num_steps};
     }
 protected:
 
@@ -156,7 +161,7 @@ protected:
         }
 
         int nhood_size=base_t::GetNhoodSize(home_cell);
-        assert(nhood_size==26);
+        DEBUG_ASSERT(nhood_size==26);
         for(unsigned nhood_index=0; nhood_index<base_t::GetNhoodSize(home_cell); nhood_index++){
             Cell &prefetch_cell = cells[home_cell.nhood[nhood_index+1].index];
             // Get the header of the cell
@@ -244,13 +249,13 @@ protected:
     template<bool AnyFrozen>
     void update_mom_and_move_locked(rng_t &rng, Cell &cell)
     {
-        assert(AnyFrozen ? base_t::any_frozen_beads : true);
+        DEBUG_ASSERT(AnyFrozen ? base_t::any_frozen_beads : true);
 
         #ifndef NDEBUG
         {
             std::unique_lock<std::mutex> lk(cell.mutex);
             for(unsigned i=0; i<cell.count; i++){
-                assert(bead_locations[cell.local[i].bead_id] == cell.cell_index*MAX_BEADS_PER_CELL+i);
+                DEBUG_ASSERT(bead_locations[cell.local[i].bead_id] == cell.cell_index*MAX_BEADS_PER_CELL+i);
             }
         }
         #endif
@@ -287,7 +292,7 @@ protected:
                 moved |= new_origin_d != cell.origin[d];
 
                 if(rng_t::USES_BEAD_ROUND_TAG){
-                    assert(0); //Needs to be thread safe
+                    DEBUG_ASSERT(0); //Needs to be thread safe
                     bead.round_tag = rng.MakeBeadTag(bead.bead_id);
                 }
             }
@@ -344,7 +349,7 @@ protected:
 
                 #ifndef NDEBUG
                 for(unsigned j=new_cell.to_move; j<new_cell.count; j++){
-                    assert( bead_locations[new_cell.local[j].bead_id] == new_cell.cell_index * MAX_BEADS_PER_CELL + j  );
+                    DEBUG_ASSERT( bead_locations[new_cell.local[j].bead_id] == new_cell.cell_index * MAX_BEADS_PER_CELL + j  );
                 }
                 #endif
 
@@ -363,8 +368,8 @@ protected:
             // Todo:      [i+1,new_to_move)
             gap += 1;
 
-            assert(bead.bead_id==UINT32_MAX); // Should be poisoned
-            assert(&bead == cell.local+i);
+            DEBUG_ASSERT(bead.bead_id==UINT32_MAX); // Should be poisoned
+            DEBUG_ASSERT(&bead == cell.local+i);
 
             if(i+1 == new_to_move){
                 // Processed: [0,i)                             This is all that is left
@@ -375,7 +380,7 @@ protected:
                 // We now exit loop and patch gaps under local lock
                 break;
             }else{
-                assert(i < new_to_move);
+                DEBUG_ASSERT(i < new_to_move);
                 // Processed: [0,i)       
                 // Gap:       [i,i+1)
                 // Todo:      [i+1,new_to_move).   i+1<new_to_move, so the set is not empty
@@ -396,7 +401,7 @@ protected:
         {
             std::unique_lock<std::mutex> lk(cell.mutex);
             for(unsigned i=0; i<new_to_move; i++){
-                assert(bead_locations[cell.local[i].bead_id] == cell.cell_index*MAX_BEADS_PER_CELL+i);
+                DEBUG_ASSERT(bead_locations[cell.local[i].bead_id] == cell.cell_index*MAX_BEADS_PER_CELL+i);
             }
         }
         #endif
@@ -406,8 +411,8 @@ protected:
             // Enter lock
             std::unique_lock<std::mutex> lk(cell.mutex);
 
-            assert(new_to_move + gap == cell.to_move);
-            assert(cell.to_move <= cell.count);
+            DEBUG_ASSERT(new_to_move + gap == cell.to_move);
+            DEBUG_ASSERT(cell.to_move <= cell.count);
 
             // Valid cells: [0,new_to_move)
             // Gap:         [new_to_move,to_move)  ==  [new_to_move,new_to_move+gap)
@@ -415,7 +420,7 @@ protected:
 
             #ifndef NDEBUG
             for(unsigned j=new_to_move; j<cell.to_move; j++){
-                assert(cell.local[j].bead_id == UINT32_MAX); // Should all be poisoned
+                DEBUG_ASSERT(cell.local[j].bead_id == UINT32_MAX); // Should all be poisoned
             }
             #endif
 
@@ -452,7 +457,7 @@ protected:
         {
             std::unique_lock<std::mutex> lk(cell.mutex);
             for(unsigned i=0; i<cell.count; i++){
-                assert(bead_locations[cell.local[i].bead_id] == cell.cell_index*MAX_BEADS_PER_CELL+i);
+                DEBUG_ASSERT(bead_locations[cell.local[i].bead_id] == cell.cell_index*MAX_BEADS_PER_CELL+i);
             }
         }
         #endif

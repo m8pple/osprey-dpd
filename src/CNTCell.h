@@ -26,6 +26,10 @@ class CCNTCell : public CAbstractCell
 	friend class CMonitor;
     friend class CExternalCNTCell;
 
+	// This provides faster versions of the functions in CCNTCell wrapped into a SimEngine
+	// It directly accesses members of CCNTCell, but is kept seperate.
+	friend class SimEngineFast;
+
 	// ****************************************
 	// Construction/Destruction: base class has protected constructor
 public:
@@ -47,7 +51,8 @@ public:
 	static double GetExponentialRandomNo();
 	static double GetGaussRandomNo();
 	static double Randf();
-	static double RandUnifScaled(double i31_to_r_scale); // Returns u * i31_to_r_scale, where u is a random number in [-2^31,2^31)
+	static double RandUniformBetweenBeads(uint32_t bead_id1, uint32_t bead_id2); // Returns random force in [-0.5,0.5) between two beads
+	static double RandUniformBetweenBeads(const CAbstractBead *bead1, const CAbstractBead *bead2); // Returns random force in [-0.5,0.5) between two beads
 	static double Gasdev();
 	static double Expdev();
 	static double GetLambda();
@@ -112,6 +117,13 @@ public:
 
 	static void AddDPDBeadType(long oldType);
 
+	// Called before calculating DPD forces in each time step.
+	// Used to do any CNTCell global setup
+	static void PreCalculateDPDForces(long global_seed, unsigned simTime);
+
+	// Called after calculating DPD forces, just in case there is any tear-down to do.
+	static void PostCalculateDPDForces();
+
 	// ****************************************
 	// PVFs that must be overridden by all derived classes
 public:
@@ -143,14 +155,6 @@ public:
 
 	void UpdateForceP();
 
-	// Fast version of updating function that doesn't calculate stress
-	void UpdateForceFast();
-	void UpdatePosFast();
-	void UpdateMomFast();
-	void UpdateMomFastReverse(); // Pre-correct backwards to allow loop skewing
-	void UpdateMomThenPosFast();
-	void UpdateMomThenPosFastV2();
-
     // Alternative force calculation to include the DPD density-dependent force.
 
 	void UpdateLGForce();
@@ -170,12 +174,11 @@ public:
 	void SetIntNNCellIndex(long index, CCNTCell* pCell);
 	bool CheckBeadsinCell();
 
-	void PrefetchHint()
-	{
-		for(unsigned i=0; i<m_lBeads.size(); i++){
-			m_lBeads[i]->PrefetchHint();
-		}
-	}
+	static void SetCustomRNGProc(
+		float (*CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2) = 0,
+		uintptr_t (*CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t step_index) = 0,
+		void (*CustomRNGEndTimeStep)(uintptr_t state) = 0
+	);
 
 	// ****************************************
 	// Protected local functions
@@ -189,6 +192,8 @@ protected:
 	// ****************************************
 	// Private functions
 private:
+
+	void CheckPBCDrift(const CAbstractBead *bg);
 
 	double GetExternalRandomNumber();  // Helper function to RNG tests
 
@@ -237,6 +242,16 @@ private:
     static long double m_2Power32;         // 2**32
     static long double m_Inv2Power32;      // Inverse of 2**32
 
+	// A hook point allowing a custom RNG to be inserted at runtime.
+	// It is only active if m_CustomRNGProc is non-null. When null
+	// it will be skipped and should be branch-predicted very accurately.
+	static float (*m_CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2);
+	static uintptr_t m_CustomRNGState;
+	// Called before the forces are calculated in the time step. 
+	static uintptr_t (*m_CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t step_index);
+	// Called after all forces are calculate in the time step, just in case state points at something dynamically allocated.
+	static void (*m_CustomRNGEndTimeStep)(uintptr_t state);
+	
 	static CMonitor* m_pMonitor;	// Pointer to CMonitor to allow on-the-fly analysis
 	static ISimBox*  m_pISimBox;	// Pointer to ISimBox to allow on-the-fly analysis
 

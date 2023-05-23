@@ -30,12 +30,15 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "mpsBorder.h"
 #include "ExternalCNTCell.h"
 
+#include "DebugAssert.hpp"
 #include "RandomNumberSequence.h"
 #include "IGlobalSimBox.h"      // Needed to see if lg interactions are used
 
 #include "mpsSimBox.h"
 
-#include <cassert>
+#include "StateLogger.hpp"
+
+#include "DebugAssert.hpp"
 
 //////////////////////////////////////////////////////////////////////
 // Static member variable and function definitions
@@ -76,6 +79,12 @@ double CCNTCell::m_dispmag			    = 0.0;
 uint64_t   CCNTCell::m_RNGSeed	        = -1ull;
 long double CCNTCell::m_2Power32             =  4294967296.0l;              // 2**32
 long double CCNTCell::m_Inv2Power32          =  1.0l/CCNTCell::m_2Power32;  // Inverse of 2**32
+
+float (*CCNTCell::m_CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2) =0;
+uintptr_t CCNTCell::m_CustomRNGState = 0;
+uintptr_t (*CCNTCell::m_CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t time_step) =0;
+void (*CCNTCell::m_CustomRNGEndTimeStep)(uintptr_t state) =0;
+
 
 CMonitor* CCNTCell::m_pMonitor				 = 0;
 ISimBox* CCNTCell::m_pISimBox                = 0;
@@ -579,6 +588,17 @@ void CCNTCell::AddDPDBeadType(long oldType)
     }
 #endif
 
+}
+
+void CCNTCell::SetCustomRNGProc(
+	float (*CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2),
+	uintptr_t (*CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t step_index),
+	void (*CustomRNGEndTimeStep)(uintptr_t state)
+){
+	m_CustomRNGProc=CustomRNGProc;
+	m_CustomRNGBeginTimeStep=CustomRNGBeginTimeStep;
+	m_CustomRNGEndTimeStep=CustomRNGEndTimeStep;
+	m_CustomRNGState=0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1229,12 +1249,20 @@ void CCNTCell::UpdateForce()
 					gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*riterBead2)->GetType())*wr2;
 
 					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( *iterBead1, *riterBead2 );
 // Gauss RNG		randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 					newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
 					newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
 					newForce[2] = (conForce + dissForce + randForce)*dx[2]/dr;
+
+					if(StateLogger::IsEnabled()){
+						int id1=(*iterBead1)->GetId()-1, id2=(*riterBead2)->GetId()-1;
+						StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+						StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+						StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+						StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
+					}
 
 #elif SimIdentifier == MD
 
@@ -1442,7 +1470,7 @@ void CCNTCell::UpdateForce()
 						gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr2;
 
 						dissForce	= -gammap*rdotv;				
-						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( *iterBead1, *iterBead2 );
 // Gauss RNG		    randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 						newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
@@ -1507,6 +1535,15 @@ void CCNTCell::UpdateForce()
 						(*iterBead2)->m_Force[0] -= newForce[0];
 						(*iterBead2)->m_Force[1] -= newForce[1];
 						(*iterBead2)->m_Force[2] -= newForce[2];
+
+						if(StateLogger::IsEnabled()){
+							int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
+							StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+							StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+							StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+							StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
+						}
+
 
 						// stress tensor summation
 
@@ -1582,210 +1619,6 @@ void CCNTCell::UpdateForce()
 
 #endif
 }
-
-//#pragma GCC push_options
-//#pragma GCC optimize("fast-math")
-void CCNTCell::UpdateForceFast()
-{
-	#if (SimDimension!=3)
-	ErrorTrace("Compile-time conditions for UpdateForceFast not met - dimensions.");
-	exit(1);
-	#elif (EnableStressTensorSphere == SimMiscEnabled)
-	ErrorTrace("Compile-time conditions for UpdateForceFast not met - EnableStressTensorSphere.");
-	exit(1);
-	#elif (EnableParallelSimBox != SimMPSDisabled)
-	ErrorTrace("Compile-time conditions for UpdateForceFast not met - parallel simb box.");
-	exit(1);
-	#elif defined(UseDPDBeadRadii)
-	ErrorTrace("Compile-time conditions for UpdateForceFast not met - bead radii.");
-	exit(1);
-	#endif
-
-	mpsSimBox::GlobalCellCounter++;  // increment the counter for intra-cell force calculations
-	
-	long  localCellCellCounter = 0;
-
-	if(m_lBeads.empty()){
-		localCellCellCounter = 13;
-		mpsSimBox::GlobalCellCellIntCounter += localCellCellCounter;
-		return;
-	}
-
-	m_aIntNNCells[0]->PrefetchHint();
-
-	double rng_scale =  CCNTCell::m_invrootdt * CCNTCell::m_Inv2Power32;
-
-    // DPD and MD equations of motion
-
-	AbstractBeadVectorIterator iterBead1;
-	AbstractBeadVectorIterator iterBead2;
-
-	double dx[3], dv[3], dx_dv[3], newForce[3];
-	double dr, dr2;
-
-	double gammap, rdotv, wr, wr2;
-	double conForce, dissForce, randForce, normTotalForce;
-
-	const double min_r2 = 0.000000001 * 0.000000001;
-
-	/*
-	for( iterBead1=m_lBeads.begin(); iterBead1!=m_lBeads.end(); iterBead1++ )
-	{
-		// First add interactions between beads in the current cell. Note that
-		// we don't have to check the PBCs here and we perform a reverse loop
-		// over the neighbouring beads until the iterators are equal. Because you can't
-		// compare a forward and reverse iterator we compare the bead ids for
-		// the terminating condition.
-		for( riterBead2=m_lBeads.rbegin(); (*riterBead2)->m_id!=(*iterBead1)->m_id; ++riterBead2 )
-		{
-	*/
-
-	// It's better to avoid the data-dependent loop termination as it leads to
-	// more branch mis-predicts. Better to loop based on size.
-	int numLocal=m_lBeads.size();
-	iterBead1=m_lBeads.begin();
-	for(int ii1=0; ii1 < numLocal-1; ii1++, iterBead1++){
-		iterBead2 = std::next(iterBead1);
-		for(int ii2=ii1+1; ii2 < m_lBeads.size(); ii2++, iterBead2++){
-
-			double dx2[3];
-			for(int d=0; d<3; d++){
-				dx[d] = ((*iterBead1)->m_Pos[d] - (*iterBead2)->m_Pos[d]);
-				dx2[d] = dx[d] * dx[d];
-			}
-	
-			dr2 = dx2[0] + dx2[1] + dx2[2];
-
-// Calculate the interactions between the two beads for each simulation type.
-// For the DPD interactions we use the flag UseDPDBeadRadii to determine whether
-// the interaction radius is bead-specific or not. Note that when we use the
-// interaction radius we have to compare the actual distance between beads
-// not its square!
-
-			if( dr2 < 1.0 && dr2 > min_r2 )
-			{		
-				for(int d=0; d<3; d++){
-					dv[d] = ((*iterBead1)->m_Mom[d] - (*iterBead2)->m_Mom[d]);
-					dx_dv[d] = dx[d] * dv[d];
-				}
-
-				dr = sqrt(dr2);
-				wr = (1.0 - dr);
-				wr2 = wr*wr;
-				double inv_dr = 1.0/dr;
-
-// Conservative force magnitude
-
-				conForce  = m_vvConsInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr;
-
-// Dissipative and random force magnitudes. Note dr factor in newForce calculation
-
-				rdotv		= (dx_dv[0] + dx_dv[1] + dx_dv[2]) * inv_dr;
-				gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
-
-				dissForce	= -gammap*rdotv;				
-				randForce	= sqrt(gammap)*RandUnifScaled(rng_scale);
-				normTotalForce = (conForce + dissForce + randForce) * inv_dr;
-
-				for(int d=0; d<3; d++){
-					newForce[d] = normTotalForce * dx[d];
-					(*iterBead1)->m_Force[d] += newForce[d];
-					(*iterBead2)->m_Force[d] -= newForce[d];
-				}
-			}
-		}
-	}
-
-	// This is pulled in from SetMom
-	// We do it here as (hopefully) the beads will now all
-	// be sat in the cache.
-	for(unsigned i=0; i<m_lBeads.size(); i++){
-		m_lBeads[i]->SetMovable();
-	}
-
-	// Next add in interactions with beads in neighbouring cells taking the
-	// PBCs into account and the presence of a wall. The PBCs are only applied
-	// if both the current CNT cell and the neighbouring one are external.
-
-	for( int i=0; i<13; i++ )
-	{	
-		if(i<12){
-			m_aIntNNCells[i+1]->PrefetchHint();
-		}
-
-		bool both_external = m_bExternal && m_aIntNNCells[i]->IsExternal();
-
-		iterBead2=m_aIntNNCells[i]->m_lBeads.begin();
-		for(int jj1=0; jj1<m_aIntNNCells[i]->m_lBeads.size(); jj1++, iterBead2++){
-
-			iterBead1=m_lBeads.begin();
-			for(int jj2=0; jj2<numLocal; jj2++, iterBead1++){
-				localCellCellCounter++;  // Increment the local cell-cell inteaction counter
-
-				for(int d=0; d<3; d++){
-					dx[d] = ((*iterBead1)->m_Pos[d] - (*iterBead2)->m_Pos[d]);
-				}
-
-				if( both_external )
-				{
-					if( dx[0] > CCNTCell::m_HalfSimBoxXLength )
-						dx[0] = dx[0] - CCNTCell::m_SimBoxXLength;
-					else if( dx[0] < -CCNTCell::m_HalfSimBoxXLength )
-						dx[0] = dx[0] + CCNTCell::m_SimBoxXLength;
-
-					if( dx[1] > CCNTCell::m_HalfSimBoxYLength )
-						dx[1] = dx[1] - CCNTCell::m_SimBoxYLength;
-					else if( dx[1] < -CCNTCell::m_HalfSimBoxYLength )
-						dx[1] = dx[1] + CCNTCell::m_SimBoxYLength;
-
-					if( dx[2] > CCNTCell::m_HalfSimBoxZLength )
-						dx[2] = dx[2] - CCNTCell::m_SimBoxZLength;
-					else if( dx[2] < -CCNTCell::m_HalfSimBoxZLength )
-						dx[2] = dx[2] + CCNTCell::m_SimBoxZLength;
-
-				}
-
-				dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
-
-				if( dr2 < 1.0 && dr2 > min_r2)
-				{		
-					for(int d=0; d<3; d++){
-						dv[d] = ((*iterBead1)->m_Mom[d] - (*iterBead2)->m_Mom[d]);
-					}
-
-					dr = sqrt(dr2);
-				
-					wr = (1.0 - dr);
-					wr2 = wr*wr;
-					double inv_dr = 1.0/dr;
-
-					conForce	= m_vvConsInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr;
-
-					rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2]) * inv_dr;
-					gammap		= m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
-
-					dissForce	= -gammap*rdotv;		
-					randForce	= sqrt(gammap)*RandUnifScaled(rng_scale);
-					normTotalForce = (conForce + dissForce + randForce) * inv_dr;
-
-					for(int d=0; d<3; d++){
-						newForce[d] = normTotalForce * dx[d];
-						(*iterBead1)->m_Force[d] += newForce[d];
-						(*iterBead2)->m_Force[d] -= newForce[d];
-					}
-				}
-			}
-		}
-	}
-
-   // Divide the local cell-cell counter by the number of beads in this cell and add the result to the global cell-cell counter
-	
-	assert(m_lBeads.size() > 0);
-	localCellCellCounter /= m_lBeads.size();
-	
-    mpsSimBox::GlobalCellCellIntCounter += localCellCellCounter;
-}
-//#pragma GCC pop_options
 
 // Function to update the position and intermediate velocity of the beads 
 // from the old values for position, velocity and force. 
@@ -1940,9 +1773,9 @@ void CCNTCell::UpdatePos()
 
 			// This is not strictly illegal, but usually means something has
 			// gone very wrong. It's a useful break-point in debug mode.
-			assert( std::abs(dx[0]) < m_HalfSimBoxXLength);
-			assert( std::abs(dx[1]) < m_HalfSimBoxYLength);
-			assert( std::abs(dx[2]) < m_HalfSimBoxZLength);
+			DEBUG_ASSERT( std::abs(dx[0]) < m_HalfSimBoxXLength);
+			DEBUG_ASSERT( std::abs(dx[1]) < m_HalfSimBoxYLength);
+			DEBUG_ASSERT( std::abs(dx[2]) < m_HalfSimBoxZLength);
 
 			(*iterBead)->m_Pos[0] += dx[0];
 			(*iterBead)->m_Pos[1] += dx[1];
@@ -1989,9 +1822,9 @@ void CCNTCell::UpdatePos()
 
 			// used to debug final position
 			CAbstractBead *working = *iterBead;
-			assert( -m_SimBoxXLength/2 < working->GetXPos() && working->GetXPos() <= m_SimBoxXLength*1.5);
-			assert( -m_SimBoxYLength/2 < working->GetYPos() && working->GetYPos() <= m_SimBoxYLength*1.5);
-			assert( -m_SimBoxZLength/2 < working->GetZPos() && working->GetZPos() <= m_SimBoxZLength*1.5);
+			DEBUG_ASSERT( -m_SimBoxXLength/2 < working->GetXPos() && working->GetXPos() <= m_SimBoxXLength*1.5);
+			DEBUG_ASSERT( -m_SimBoxYLength/2 < working->GetYPos() && working->GetYPos() <= m_SimBoxYLength*1.5);
+			DEBUG_ASSERT( -m_SimBoxZLength/2 < working->GetZPos() && working->GetZPos() <= m_SimBoxZLength*1.5);
 			double pre_pos[3]={working->m_Pos[0], working->m_Pos[1], working->m_Pos[2]};
 
 			if( (*iterBead)->m_Pos[0] > m_TRCoord[0] )
@@ -2479,6 +2312,10 @@ void CCNTCell::UpdatePos()
 					(*iterBead)->SetNotMovable();
 					iterBead++;
 #endif
+
+					#ifndef NDEBUG
+					CheckPBCDrift(*iterBead);
+					#endif
 				}
 			}
 		}
@@ -2490,542 +2327,6 @@ void CCNTCell::UpdatePos()
 // **********************************************************************
 	}
 }
-#if 0
-void CCNTCell::UpdatePosFast()
-{
-	#ifndef NDEBUG
-	if(m_lambda!=0.5){
-		ErrorTrace("Attempt to call UpdatePosFast with lambda!=0.5");
-		exit(1);
-	}
-	#endif
-
-	enum DirIndex : char{
-		UTR = 26,
-		DTR = 8,
-		_TR = 17,
-		UBR = 20,
-		DBR = 2,
-		_BR = 11,
-		U_R = 23,
-		D_R = 5,
-		__R = 14,
-		UTL = 24,
-		DTL = 6,
-		_TL = 15,
-		UBL = 18,
-		DBL = 0,
-		_BL = 9,
-		U_L = 21,
-		D_L = 3,
-		__L = 12,
-		UT_ = 25,
-		DT_ = 7,
-		_T_ = 16,
-		UB_ = 19,
-		DB_ = 1,
-		_B_ = 10,
-		U__ = 22,
-		D__ = 4,
-		___ = -1
-	};
-
-	double dx[3];
-
-	unsigned index=0;
-
-	while(index < m_lBeads.size()){
-		assert(!m_lBeads.empty());
-
-		CAbstractBead *bead=m_lBeads[index];
-
-		// Only allow bead to move if its IsMovable flag is true. This allows
-		// us to indicate when a bead has already crossed a cell boundary and
-		// should not be moved again in this timestep.
-
-		if(!bead->GetMovable()){
-			index++;
-			continue;
-		}
-		
-		/*for(int d=0; d<3; d++){
-			assert( m_BLCoord[d] <= bead->m_Pos[d] );
-			assert( m_TRCoord[d] >= bead->m_Pos[d] );
-		}*/
-
-		bead->SetNotMovable();
-
-		// DPD and MD simulations
-		// Store current values of position, velocity and force for later use
-
-		// We do not write to m_oldPos, m_oldMom, or m_oldForce, as it is not needed in fast path (causes extra memory traffic)
-#ifndef NDEBUG
-		bead->m_oldPos[0] = nanf("");
-		bead->m_oldMom[0] = nanf("");
-		bead->m_oldForce[0] = nanf("");
-#endif		
-
-		// Update position coordinates
-
-		dx[0] = m_dt*bead->m_Mom[0] + m_halfdt2*bead->m_Force[0];
-		dx[1] = m_dt*bead->m_Mom[1] + m_halfdt2*bead->m_Force[1];
-		dx[2] = m_dt*bead->m_Mom[2] + m_halfdt2*bead->m_Force[2];
-
-		bead->m_Pos[0] += dx[0];
-		bead->m_Pos[1] += dx[1];
-		bead->m_Pos[2] += dx[2];
-
-		// Update the unPBC coordinates for use in calculating bond lengths
-		// where we don't want to have to check for beads at opposite side
-		// of the simulation box.
-
-		bead->m_unPBCPos[0] += dx[0];
-		bead->m_unPBCPos[1] += dx[1];
-		bead->m_unPBCPos[2] += dx[2];
-
-		// We do not update m_dPos
-#ifndef NDEBUG
-		bead->m_dPos[0] = nanf("");
-#endif
-
-		// Update intermediate velocity
-
-		// We know that lambda=0.5 for fast path
-		assert(m_lamdt == m_halfdt);
-		bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt*bead->m_Force[0];
-		bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt*bead->m_Force[1];
-		bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt*bead->m_Force[2];
-
-		// Zero current force on beads so that UpdateForce() just has to form
-		// a sum of all bead-bead interactions
-
-		// Force counting is not tracked in fast mode
-#ifndef NDEBUG
-		bead->m_ForceCounter = -1000;
-#endif
-
-		bead->m_Force[0] = 0.0;
-		bead->m_Force[1] = 0.0;
-		bead->m_Force[2] = 0.0;
-
-		/* 
-		Idea here is to make it a branchless as possible. Expected case is that beads
-		mostly stay in the same cell, so all boundary conditions need to be evaluated.
-		*/
-		int deltaParts[3];
-		int moved=0;
-		for(int d=0; d<3; d++){
-			deltaParts[d] = (bead->m_Pos[d] > m_TRCoord[d]) - (bead->m_Pos[d] < m_BLCoord[d]);
-			moved |= deltaParts[d];
-		}
-		if(!moved){
-			for(int d=0; d<3; d++){
-				assert( m_BLCoord[d] <= bead->m_Pos[d] );
-				assert( m_TRCoord[d] >= bead->m_Pos[d] );
-			}
-
-			// If the bead did not change cells increment the
-			// iterator by hand.
-			index++;
-			continue;
-		}
-
-		// delta[0] : 1 = R, -1 = L
-		// delta[1] : 1 = T, -1 = B
-		// delta[2] : 1 = U, -1 = D
-		//int deltaFull=1 + deltaParts[0] + 3 + 3*deltaParts[1] + 9 + 9*deltaParts[2];
-		int deltaFull=(1+3+9) + deltaParts[0] + 3*deltaParts[1] + 9*deltaParts[2];
-		static const DirIndex indexMapping[27] = {
-			DBL, DB_, DBR,
-			D_L, D__, D_R,
-			DTL, DT_, DTR,
-
-			_BL, _B_, _BR,
-			__L, ___, __R,
-			_TL, _T_, _TR,
-
-			UBL, UB_, UBR,
-			U_L, U__, U_R,
-			UTL, UT_, UTR,
-		};
-
-		DirIndex directDir = indexMapping[deltaFull];
-
-		CCNTCell *destCell = m_aNNCells[directDir];
-		if(m_bExternal && destCell->IsExternal()){
-			bead->m_Pos[0] += m_SimBoxXLength * ( (bead->m_Pos[0] < 0) - (bead->m_Pos[0] >= m_SimBoxXLength) );
-			bead->m_Pos[1] += m_SimBoxYLength * ( (bead->m_Pos[1] < 0) - (bead->m_Pos[1] >= m_SimBoxYLength) );
-			bead->m_Pos[2] += m_SimBoxZLength * ( (bead->m_Pos[2] < 0) - (bead->m_Pos[2] >= m_SimBoxZLength) );
-		}
-
-		m_aNNCells[directDir]->m_lBeads.push_back(bead);
-		m_lBeads[index] = m_lBeads.back();
-		m_lBeads.pop_back();
-
-	//	assert(dir == directDir);
-
-		/*for(int i=0; i<27; i++){
-			CCNTCell *c=m_aNNCells[i];
-			for(auto lbead : c->m_lBeads){
-				for(int d=0; d<3; d++){
-					assert( c->m_BLCoord[d] <= lbead->m_Pos[d] );
-					assert( c->m_TRCoord[d] >= lbead->m_Pos[d] );
-				}
-			}
-		}*/
-	}
-
-	/*for(int i=0; i<27; i++){
-		CCNTCell *c=m_aNNCells[i];
-		for(auto bead : c->m_lBeads){
-			for(int d=0; d<3; d++){
-				assert( c->m_BLCoord[d] <= bead->m_Pos[d] );
-				assert( c->m_TRCoord[d] >= bead->m_Pos[d] );
-			}
-		}
-	}*/
-}
-#endif
-
-void CCNTCell::UpdateMomThenPosFastV2()
-{
-	#ifndef NDEBUG
-	if(m_lambda!=0.5){
-		ErrorTrace("Attempt to call UpdatePosFast with lambda!=0.5");
-		exit(1);
-	}
-	#endif
-
-	double dx[3];
-
-	int index=m_lBeads.size()-1;
-
-	while(index >= 0){
-		assert(!m_lBeads.empty());
-		assert(index < m_lBeads.size());
-
-		CAbstractBead *bead=m_lBeads[index];
-
-		// Only allow bead to move if its IsMovable flag is true. This allows
-		// us to indicate when a bead has already crossed a cell boundary and
-		// should not be moved again in this timestep.
-
-		if(!bead->GetMovable()){
-			index--;
-			continue;
-		}
-		
-		/*for(int d=0; d<3; d++){
-			assert( m_BLCoord[d] <= bead->m_Pos[d] );
-			assert( m_TRCoord[d] >= bead->m_Pos[d] );
-		}*/
-
-		bead->SetNotMovable();
-
-		// DPD and MD simulations
-		// Store current values of position, velocity and force for later use
-
-		// We do not write to m_oldPos, m_oldMom, or m_oldForce, as it is not needed in fast path (causes extra memory traffic)
-#ifndef NDEBUG
-		bead->m_oldPos[0] = nanf("");
-		bead->m_oldMom[0] = nanf("");
-		bead->m_oldForce[0] = nanf("");
-#endif		
-
-		// Apply the mom from the end of previous step (loop skewed)
-		bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt * bead->m_Force[0] ;
-		bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt* bead->m_Force[1];
-		bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt * bead->m_Force[2];
-
-		// Update position coordinates
-
-		dx[0] = m_dt*bead->m_Mom[0] + m_halfdt2*bead->m_Force[0];
-		dx[1] = m_dt*bead->m_Mom[1] + m_halfdt2*bead->m_Force[1];
-		dx[2] = m_dt*bead->m_Mom[2] + m_halfdt2*bead->m_Force[2];
-
-		bead->m_Pos[0] += dx[0];
-		bead->m_Pos[1] += dx[1];
-		bead->m_Pos[2] += dx[2];
-
-		// Update the unPBC coordinates for use in calculating bond lengths
-		// where we don't want to have to check for beads at opposite side
-		// of the simulation box.
-
-		bead->m_unPBCPos[0] += dx[0];
-		bead->m_unPBCPos[1] += dx[1];
-		bead->m_unPBCPos[2] += dx[2];
-
-		// We do not update m_dPos
-#ifndef NDEBUG
-		bead->m_dPos[0] = nanf("");
-#endif
-
-		// Update intermediate velocity
-
-		// We know that lambda=0.5 for fast path
-		assert(m_lamdt == m_halfdt);
-		bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt*bead->m_Force[0];
-		bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt*bead->m_Force[1];
-		bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt*bead->m_Force[2];
-
-		// Zero current force on beads so that UpdateForce() just has to form
-		// a sum of all bead-bead interactions
-
-		// Force counting is not tracked in fast mode
-#ifndef NDEBUG
-		bead->m_ForceCounter = -1000;
-#endif
-
-		bead->m_Force[0] = 0.0;
-		bead->m_Force[1] = 0.0;
-		bead->m_Force[2] = 0.0;
-
-		/* 
-		Idea here is to make it a branchless as possible. Expected case is that beads
-		mostly stay in the same cell, so all boundary conditions need to be evaluated.
-		*/
-		bool moved=0;
-		for(int d=0; d<3; d++){
-			moved |= (bead->m_Pos[d] > m_TRCoord[d]) - (bead->m_Pos[d] < m_BLCoord[d]);
-		}
-		if(!moved){
-			for(int d=0; d<3; d++){
-				assert( m_BLCoord[d] <= bead->m_Pos[d] );
-				assert( m_TRCoord[d] >= bead->m_Pos[d] );
-			}
-
-			// If the bead did not change cells increment the
-			// iterator by hand.
-			index--;
-			continue;
-		}
-
-		// Enforce wrapping. Unconditional on all dims, as movement is relatively rare
-		// Use while loop as it is safer for super-fast beads and small boxes, and costs little (hopefully)
-		while(bead->m_Pos[0] < 0)	bead->m_Pos[0] += m_SimBoxXLength;
-		while(bead->m_Pos[1] < 0)	bead->m_Pos[1] += m_SimBoxYLength;
-		while(bead->m_Pos[2] < 0)	bead->m_Pos[2] += m_SimBoxZLength;
-		while(bead->m_Pos[0] >= m_SimBoxXLength)	bead->m_Pos[0] -= m_SimBoxXLength;
-		while(bead->m_Pos[1] >= m_SimBoxYLength)	bead->m_Pos[1] -= m_SimBoxYLength;
-		while(bead->m_Pos[2] >= m_SimBoxZLength)	bead->m_Pos[2] -= m_SimBoxZLength;
-
-		assert( fmod(m_SimBoxXLength, 1) == 0);
-		assert( fmod(m_SimBoxYLength, 1) == 0);
-		assert( fmod(m_SimBoxZLength, 1) == 0);
-		assert( m_CNTXCellWidth == 1 && m_CNTYCellWidth==1 && m_CNTZCellWidth==1);
-
-		int ix=floor(bead->m_Pos[0]), iy=floor(bead->m_Pos[1]), iz=floor(bead->m_Pos[2]);
-		int cell_index = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix; 
-
-		if(index+1 < m_lBeads.size()){
-			std::swap(m_lBeads[index], m_lBeads.back());
-		}
-		m_lBeads.pop_back();
-
-		m_pISimBox->GetSimBox()->AddBeadToCNTCell(cell_index, bead);
-		--index;
-	}
-}
-
-
-void CCNTCell::UpdateMomThenPosFast()
-{
-	#ifndef NDEBUG
-	if(m_lambda!=0.5){
-		ErrorTrace("Attempt to call UpdateMomThenPosFast with lambda!=0.5");
-		exit(1);
-	}
-	#endif
-
-	enum DirIndex : char{
-		UTR = 26,
-		DTR = 8,
-		_TR = 17,
-		UBR = 20,
-		DBR = 2,
-		_BR = 11,
-		U_R = 23,
-		D_R = 5,
-		__R = 14,
-		UTL = 24,
-		DTL = 6,
-		_TL = 15,
-		UBL = 18,
-		DBL = 0,
-		_BL = 9,
-		U_L = 21,
-		D_L = 3,
-		__L = 12,
-		UT_ = 25,
-		DT_ = 7,
-		_T_ = 16,
-		UB_ = 19,
-		DB_ = 1,
-		_B_ = 10,
-		U__ = 22,
-		D__ = 4,
-		___ = -1
-	};
-
-	double dx[3];
-
-	unsigned index=0;
-
-	while(index < m_lBeads.size()){
-		assert(!m_lBeads.empty());
-
-		CAbstractBead *bead=m_lBeads[index];
-
-		// Only allow bead to move if its IsMovable flag is true. This allows
-		// us to indicate when a bead has already crossed a cell boundary and
-		// should not be moved again in this timestep.
-
-		if(!bead->GetMovable()){
-			index++;
-			continue;
-		}
-		
-		/*for(int d=0; d<3; d++){
-			assert( m_BLCoord[d] <= bead->m_Pos[d] );
-			assert( m_TRCoord[d] >= bead->m_Pos[d] );
-		}*/
-
-		bead->SetNotMovable();
-
-		// Apply the mom from the end of previous step (loop skewed)
-		bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt * bead->m_Force[0] ;
-		bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt* bead->m_Force[1];
-		bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt * bead->m_Force[2];
-
-
-		// We do not write to m_oldPos, m_oldMom, or m_oldForce, as it is not needed in fast path (causes extra memory traffic)
-#ifndef NDEBUG
-		bead->m_oldPos[0] = nanf("");
-		bead->m_oldMom[0] = nanf("");
-		bead->m_oldForce[0] = nanf("");
-#endif		
-
-		// Update position coordinates
-
-		dx[0] = m_dt*bead->m_Mom[0] + m_halfdt2*bead->m_Force[0];
-		dx[1] = m_dt*bead->m_Mom[1] + m_halfdt2*bead->m_Force[1];
-		dx[2] = m_dt*bead->m_Mom[2] + m_halfdt2*bead->m_Force[2];
-
-		bead->m_Pos[0] += dx[0];
-		bead->m_Pos[1] += dx[1];
-		bead->m_Pos[2] += dx[2];
-
-		// Update the unPBC coordinates for use in calculating bond lengths
-		// where we don't want to have to check for beads at opposite side
-		// of the simulation box.
-
-		bead->m_unPBCPos[0] += dx[0];
-		bead->m_unPBCPos[1] += dx[1];
-		bead->m_unPBCPos[2] += dx[2];
-
-		// We do not update m_dPos
-#ifndef NDEBUG
-		bead->m_dPos[0] = nanf("");
-#endif
-
-		// Update intermediate velocity
-
-		// We know that lambda=0.5 for fast path
-		assert(m_lamdt == m_halfdt);
-		bead->m_Mom[0] = bead->m_Mom[0] + m_halfdt*bead->m_Force[0];
-		bead->m_Mom[1] = bead->m_Mom[1] + m_halfdt*bead->m_Force[1];
-		bead->m_Mom[2] = bead->m_Mom[2] + m_halfdt*bead->m_Force[2];
-
-		// Zero current force on beads so that UpdateForce() just has to form
-		// a sum of all bead-bead interactions
-
-		// Force counting is not tracked in fast mode
-#ifndef NDEBUG
-		bead->m_ForceCounter = -1000;
-#endif
-
-		bead->m_Force[0] = 0.0;
-		bead->m_Force[1] = 0.0;
-		bead->m_Force[2] = 0.0;
-
-		/* 
-		Idea here is to make it a branchless as possible. Expected case is that beads
-		mostly stay in the same cell, so all boundary conditions need to be evaluated.
-		*/
-		int deltaParts[3];
-		int moved=0;
-		for(int d=0; d<3; d++){
-			deltaParts[d] = (bead->m_Pos[d] > m_TRCoord[d]) - (bead->m_Pos[d] < m_BLCoord[d]);
-			moved |= deltaParts[d];
-		}
-		if(!moved){
-			for(int d=0; d<3; d++){
-				assert( m_BLCoord[d] <= bead->m_Pos[d] );
-				assert( m_TRCoord[d] >= bead->m_Pos[d] );
-			}
-
-			// If the bead did not change cells increment the
-			// iterator by hand.
-			index++;
-			continue;
-		}
-
-		// delta[0] : 1 = R, -1 = L
-		// delta[1] : 1 = T, -1 = B
-		// delta[2] : 1 = U, -1 = D
-		//int deltaFull=1 + deltaParts[0] + 3 + 3*deltaParts[1] + 9 + 9*deltaParts[2];
-		int deltaFull=(1+3+9) + deltaParts[0] + 3*deltaParts[1] + 9*deltaParts[2];
-		static const DirIndex indexMapping[27] = {
-			DBL, DB_, DBR,
-			D_L, D__, D_R,
-			DTL, DT_, DTR,
-
-			_BL, _B_, _BR,
-			__L, ___, __R,
-			_TL, _T_, _TR,
-
-			UBL, UB_, UBR,
-			U_L, U__, U_R,
-			UTL, UT_, UTR,
-		};
-
-		DirIndex directDir = indexMapping[deltaFull];
-
-		CCNTCell *destCell = m_aNNCells[directDir];
-		if(m_bExternal && destCell->IsExternal()){
-			bead->m_Pos[0] += m_SimBoxXLength * ( (bead->m_Pos[0] < 0) - (bead->m_Pos[0] >= m_SimBoxXLength) );
-			bead->m_Pos[1] += m_SimBoxYLength * ( (bead->m_Pos[1] < 0) - (bead->m_Pos[1] >= m_SimBoxYLength) );
-			bead->m_Pos[2] += m_SimBoxZLength * ( (bead->m_Pos[2] < 0) - (bead->m_Pos[2] >= m_SimBoxZLength) );
-		}
-
-		m_aNNCells[directDir]->m_lBeads.push_back(bead);
-		m_lBeads[index] = m_lBeads.back();
-		m_lBeads.pop_back();
-
-	//	assert(dir == directDir);
-
-		/*for(int i=0; i<27; i++){
-			CCNTCell *c=m_aNNCells[i];
-			for(auto lbead : c->m_lBeads){
-				for(int d=0; d<3; d++){
-					assert( c->m_BLCoord[d] <= lbead->m_Pos[d] );
-					assert( c->m_TRCoord[d] >= lbead->m_Pos[d] );
-				}
-			}
-		}*/
-	}
-
-	/*for(int i=0; i<27; i++){
-		CCNTCell *c=m_aNNCells[i];
-		for(auto bead : c->m_lBeads){
-			for(int d=0; d<3; d++){
-				assert( c->m_BLCoord[d] <= bead->m_Pos[d] );
-				assert( c->m_TRCoord[d] >= bead->m_Pos[d] );
-			}
-		}
-	}*/
-}
-
 
 
 // Function to update the velocity of the beads using the old
@@ -3076,66 +2377,6 @@ void CCNTCell::UpdateMom()
 	}
 }
 
-void CCNTCell::UpdateMomFastReverse()
-{
-	#if SimIdentifier == BD
-	ErrorTrace("Attempt to call UpdateMomFast with DB");
-	exit(1);
-	#endif
-	#ifndef NDEBUG
-	if(m_lambda!=0.5){
-		ErrorTrace("Attempt to call UpdateMomFast with lambda!=0.5");
-		exit(1);
-	}
-	#endif
-	
-	for( AbstractBeadVectorIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++ )
-	{
-		if((*iterBead)->SetMovable())	// flag ignored by immovable beads
-		{
-			// We have already updated m_Mom to m_oldMom + m_halfdt * m_oldForce
-			(*iterBead)->m_Mom[0] = (*iterBead)->m_Mom[0] -= m_halfdt * (*iterBead)->m_Force[0] ;
-			(*iterBead)->m_Mom[1] = (*iterBead)->m_Mom[1] -= m_halfdt* (*iterBead)->m_Force[1];
-			(*iterBead)->m_Mom[2] = (*iterBead)->m_Mom[2] -= m_halfdt * (*iterBead)->m_Force[2];		
-
-#ifndef NDEBUG
-			(*iterBead)->m_AngMom[0]	= nanf(""); // angular momentum not updated for fast path
-#endif
-		}
-	}
-}
-
-void CCNTCell::UpdateMomFast()
-{
-	#if SimIdentifier == BD
-	ErrorTrace("Attempt to call UpdateMomFast with DB");
-	exit(1);
-	#endif
-	#ifndef NDEBUG
-	if(m_lambda!=0.5){
-		ErrorTrace("Attempt to call UpdateMomFast with lambda!=0.5");
-		exit(1);
-	}
-	#endif
-	
-	for( AbstractBeadVectorIterator iterBead=m_lBeads.begin(); iterBead!=m_lBeads.end(); iterBead++ )
-	{
-		// Note that moveable calculations have been moved into the force update loop,
-		// so here we only read it.
-		if((*iterBead)->GetMovable())	// flag ignored by immovable beads
-		{
-			// We have already updated m_Mom to m_oldMom + m_halfdt * m_oldForce
-			(*iterBead)->m_Mom[0] = (*iterBead)->m_Mom[0] + m_halfdt * (*iterBead)->m_Force[0] ;
-			(*iterBead)->m_Mom[1] = (*iterBead)->m_Mom[1] + m_halfdt* (*iterBead)->m_Force[1];
-			(*iterBead)->m_Mom[2] = (*iterBead)->m_Mom[2] + m_halfdt * (*iterBead)->m_Force[2];		
-
-#ifndef NDEBUG
-			(*iterBead)->m_AngMom[0]	= nanf(""); // angular momentum not updated for fast path
-#endif
-		}
-	}
-}
-
 // Function to map the index of a nearest-neighbour cell to a pointer
 // to the cell. Notice that the current cell is one of the possible 
 // values.
@@ -3165,9 +2406,9 @@ void CCNTCell::SetNNCellIndex(long index, CCNTCell *pCell)
 
 void CCNTCell::AddBeadtoCell(CAbstractBead *pBead)
 {
-	assert( m_BLCoord[0] <= pBead->GetXPos() && pBead->GetXPos() <= m_TRCoord[0] );
-	assert( m_BLCoord[1] <= pBead->GetYPos() && pBead->GetYPos() <= m_TRCoord[1] );
-	assert( m_BLCoord[2] <= pBead->GetZPos() && pBead->GetZPos() <= m_TRCoord[2] );
+	DEBUG_ASSERT( m_BLCoord[0] <= pBead->GetXPos() && pBead->GetXPos() <= m_TRCoord[0] );
+	DEBUG_ASSERT( m_BLCoord[1] <= pBead->GetYPos() && pBead->GetYPos() <= m_TRCoord[1] );
+	DEBUG_ASSERT( m_BLCoord[2] <= pBead->GetZPos() && pBead->GetZPos() <= m_TRCoord[2] );
 	m_lBeads.push_back(pBead);
 }
 
@@ -3296,13 +2537,31 @@ double CCNTCell::Randf()
     return static_cast<double>(CCNTCell::lcg(CCNTCell::m_RNGSeed))*CCNTCell::m_Inv2Power32;
 }
 
-double CCNTCell::RandUnifScaled(double i31_to_r_scale)
+// Returns random force in [-0.5,0.5) between two beads
+double CCNTCell::RandUniformBetweenBeads(uint32_t bead_id1, uint32_t bead_id2)
 {
-    int32_t i31;
-	uint32_t u32=lcg(m_RNGSeed);
-	memcpy(&i31, &u32, 4); // Avoid undefined behaviour. Gets number in range [-2^31,2^31)
-	return i31 * i31_to_r_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
+	// This should be well predicted, so when m_CustomRNGProc is null it just
+	// uses inlined lcg with almost no performance loss.
+	if(m_CustomRNGProc){
+		return m_CustomRNGProc( m_CustomRNGState, bead_id1, bead_id2 );
+	}else{
+		return 0.5 - Randf();
+	}
 }
+
+// Returns random force in [-0.5,0.5) between two beads
+double CCNTCell::RandUniformBetweenBeads(const CAbstractBead *bead1, const CAbstractBead *bead2)
+{
+	// This should be well predicted, so when m_CustomRNGProc is null it just
+	// uses inlined lcg with almost no performance loss.
+	if(m_CustomRNGProc){
+		// Bead ids for RNG are assumed to  be zero indexed
+		return m_CustomRNGProc( m_CustomRNGState, bead1->GetId()-1, bead2->GetId()-1 );
+	}else{
+		return 0.5 - Randf();
+	}
+}
+
 
 // Private static helper function for the lcg RNG
 
@@ -3482,6 +2741,23 @@ double CCNTCell::GetKt()
 	return m_kT;
 }
 
+void CCNTCell::CheckPBCDrift(const CAbstractBead *bg)
+{
+	double eg[3]={
+		std::abs(fmod(bg->GetunPBCXPos(), m_SimBoxXLength) - bg->GetXPos()),
+		std::abs(fmod(bg->GetunPBCYPos(), m_SimBoxYLength) - bg->GetYPos()),
+		std::abs(fmod(bg->GetunPBCZPos(), m_SimBoxZLength) - bg->GetZPos())
+	};
+	eg[0] = std::min( eg[0], m_SimBoxXLength - eg[0]);
+	eg[1] = std::min( eg[1], m_SimBoxXLength - eg[1]);
+	eg[2] = std::min( eg[2], m_SimBoxXLength - eg[2]);
+
+	if(eg[0] > 1e-6 || eg[1] > 1e-6 || eg[2] > 1e-6){
+		fprintf(stderr, "PBC drift.\n");
+		exit(1);
+	}
+};
+
 // Function to check that all the beads in the current CNTCell have coordinates
 // within the cell's boundaries.
 
@@ -3502,6 +2778,8 @@ bool CCNTCell::CheckBeadsinCell()
 	for(int offset = m_lBeads.size()-1; offset >= 0; offset--){
 		CAbstractBead *pBead = m_lBeads[offset];
 
+		CheckPBCDrift(pBead);
+
 		ix = static_cast<long>(pBead->GetXPos()/m_CNTXCellWidth);
 		iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
 
@@ -3510,9 +2788,17 @@ bool CCNTCell::CheckBeadsinCell()
 #elif SimDimension == 3
 		iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);		
 #endif
-		assert(0 <= ix && ix < m_CNTXCellNo);
-		assert(0 <= iy && iy < m_CNTYCellNo);
-		assert(0 <= iz && iz < m_CNTZCellNo);
+		#ifndef NDEBUG
+		auto get_dist_wrapped = [](double pbc, double unpbc, double w) {
+			double dx = fmod(unpbc, w) - pbc;
+			if( dx < -w/2 ) dx += w;
+			if( dx > w/2 ) dx -= w;
+			return std::abs(dx);
+		};
+		DEBUG_ASSERT( get_dist_wrapped(pBead->GetXPos(), pBead->GetunPBCXPos(), m_SimBoxXLength) < 1e-6 );
+		DEBUG_ASSERT( get_dist_wrapped(pBead->GetYPos(), pBead->GetunPBCYPos(), m_SimBoxYLength) < 1e-6 );
+		DEBUG_ASSERT( get_dist_wrapped(pBead->GetZPos(), pBead->GetunPBCZPos(), m_SimBoxZLength) < 1e-6 );
+		#endif
 
 		index1 = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix;
 
@@ -3520,7 +2806,7 @@ bool CCNTCell::CheckBeadsinCell()
 			continue;
 		}
 
-		assert(index1 != GetId());
+		DEBUG_ASSERT(index1 != GetId());
 		
 		numMisplacedBeadsFound += 1;
 
@@ -3578,12 +2864,25 @@ bool CCNTCell::CheckBeadsinCell()
 
 			TraceInt("Fixing Bead", pBead->GetId());
 			TraceVector("  Old pos", pBead->GetXPos(), pBead->GetYPos(), pBead->GetZPos());
+			TraceVector("  Old cell", m_BLIndex[0], m_BLIndex[1], m_BLIndex[2]);
+			TraceVector("  Mom", pBead->GetXMom(), pBead->GetYMom(), pBead->GetZMom());
+			TraceVector("  Force", pBead->GetXForce(), pBead->GetYForce(), pBead->GetZForce());
 			TraceVector("  New pos", xpos, ypos, zpos);
+
+			m_lBeads.erase(m_lBeads.begin()+offset);
+
+			pBead->SetXPos( xpos );
+			pBead->SetYPos( ypos );
+			pBead->SetZPos( zpos );
 
 			// Note that this will modify the array that we are iterating over, but it will only access
 			// element offset.
 			// The beads in [0,offset) will remain in place, and get processed next.
-			m_pISimBox->GetSimBox()->MoveBeadBetweenCNTCells( pBead, xpos, ypos, zpos );
+			m_pISimBox->GetSimBox()->AddBeadToCNTCell(  pBead  );
+
+			#ifndef NDEBUG
+			CheckPBCDrift(pBead);
+			#endif			
 		}
 	}
 
@@ -4215,7 +3514,7 @@ void CCNTCell::UpdateLGForce()
 					gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*riterBead2)->GetType())*wr2;
 
 					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt * RandUniformBetweenBeads( *iterBead1, *iterBead2 );
 
 					newForce[0] = (conForce + lgForce + dissForce + randForce)*dx[0]/dr;
 					newForce[1] = (conForce + lgForce + dissForce + randForce)*dx[1]/dr;
@@ -4336,7 +3635,7 @@ void CCNTCell::UpdateLGForce()
 						gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr2;
 
 						dissForce	= -gammap*rdotv;				
-						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( *iterBead1, *iterBead2 );
 
 						newForce[0] = (conForce + lgForce + dissForce + randForce)*dx[0]/dr;
 						newForce[1] = (conForce + lgForce + dissForce + randForce)*dx[1]/dr;
@@ -4740,7 +4039,7 @@ void CCNTCell::UpdateForceP()
 					gammap		= m_vvDissInt.at(pBead1->GetType()).at((*riterBead2)->GetType())*wr2;
 
 					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( pBead1, *iterBead2 );
 
 					newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
 					newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
@@ -5126,7 +4425,7 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 						gammap		= m_vvDissInt.at(pBead->GetType()).at((*iterBead2)->GetType())*wr2;
 
 						dissForce	= -gammap*rdotv;				
-						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt*(0.5 - CCNTCell::Randf());
+						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( pBead, *iterBead2 );
 
 						newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
 						newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
@@ -5230,4 +4529,23 @@ void CCNTCell::UpdateForceBetweenCells(bool bExternal, CAbstractBead* const pBea
 #endif
 }
 
+void CCNTCell::PreCalculateDPDForces(long global_seed, unsigned simTime)
+{
+	if(m_CustomRNGProc){
+		if(m_CustomRNGBeginTimeStep){
+			m_CustomRNGState = m_CustomRNGBeginTimeStep(std::abs(global_seed), simTime);
+		}else{
+			m_CustomRNGState=0;
+		}
+	}
+}
 
+void CCNTCell::PostCalculateDPDForces()
+{
+	if(m_CustomRNGProc){
+		if(m_CustomRNGEndTimeStep){
+			m_CustomRNGEndTimeStep(m_CustomRNGState);
+		}
+		m_CustomRNGState = 0;
+	}
+}

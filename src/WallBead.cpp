@@ -18,6 +18,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "StdAfx.h"
 #include "SimDefs.h"
 #include "WallBead.h"
+#include "xxBase.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -98,4 +99,19 @@ bool CWallBead::SetFrozen()
 bool CWallBead::SetNotFrozen()
 {
 	return true;
+}
+
+
+CAbstractBead *CWallBead::Clone() const
+{
+	return new CWallBead(*this);
+}
+
+void CWallBead::Assign(const CAbstractBead *src)
+{
+	auto src_bead=dynamic_cast<const CWallBead*>(src);
+	if(src==nullptr){
+		xxBase::FatalTraceGlobal("CWallBead::Assign - source is not a CBead");
+	}
+	*this = *src_bead;
 }

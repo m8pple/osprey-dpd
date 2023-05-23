@@ -24,6 +24,9 @@ class CPolymer
 {
     friend class mpuExtendedPolymer;  // Needed to allow extended polymers to modify their wrapped polymer instances
     friend class mpsSimBox;
+
+	// Fast engine directly accesses members
+	friend class SimEngineFast;
 	
 	// ****************************************
 	// Construction/Destruction: 
@@ -111,11 +114,9 @@ public:
 
 	void AddBondForces();
 	void AddBondForces(ISimBoxBase* const pISimBoxBase);
-	void AddBondForcesFast();
 
 	void AddBondPairForces();
 	void AddBondPairForces(ISimBoxBase* const pISimBoxBase);
-	void AddBondPairForcesFast();
 
 	// Function to calculate the potential energy of the bonds and bondpairs
 

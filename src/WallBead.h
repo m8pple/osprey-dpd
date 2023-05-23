@@ -30,6 +30,9 @@ public:
 	// Now provided by CAbstractBead
 	// virtual bool SetNotMovable();
 	// virtual bool SetMovable();
+
+	virtual CAbstractBead *Clone() const;
+	virtual void Assign(const CAbstractBead *src);
 protected:
 
 	CWallBead(CAbstractBead& oldBead);	// Converts a CAbstractBead to a CWallBead

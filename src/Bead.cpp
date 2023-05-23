@@ -18,6 +18,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "StdAfx.h"
 #include "SimDefs.h"
 #include "Bead.h"
+#include "xxBase.h"
 
 //////////////////////////////////////////////////////////////////////
 // Global functions
@@ -97,6 +98,20 @@ CBead::CBead(const CBead &oldBead) : CAbstractBead(oldBead)
 //		m_Stress[3*i+1]	= oldBead.m_Stress[3*i+1];
 //		m_Stress[3*i+2]	= oldBead.m_Stress[3*i+2];
 //	}
+}
+
+CAbstractBead *CBead::Clone() const
+{
+	return new CBead(*this);
+}
+
+void CBead::Assign(const CAbstractBead *src)
+{
+	auto src_bead=dynamic_cast<const CBead*>(src);
+	if(src==nullptr){
+		xxBase::FatalTraceGlobal("CBead::Assign - source is not a CBead");
+	}
+	*this = *src_bead;
 }
 
 

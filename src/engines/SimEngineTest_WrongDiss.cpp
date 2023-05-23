@@ -6,7 +6,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include <cassert>
+#include "DebugAssert.hpp"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -32,15 +32,10 @@ public:
         return "SimEngineTest_WrongDiss";
     }
 
-    std::string CanSupport(const ISimBox *box) const override
-    {
-        return {};
-    }
-
     bool IsParallel() const override
     { return false; }
 
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override 
+    run_result Run(ISimBox *box, bool modified, unsigned start_sim_time, unsigned num_steps) override 
     {
         CSimBox *cbox=const_cast<CSimBox*>(box->GetSimBox());
 
@@ -62,7 +57,7 @@ public:
         
 
         for(unsigned i=0; i<num_steps; i++){
-           cbox->Evolve();
+           cbox->Evolve(start_sim_time+i);
         }
 
         for(unsigned i=0; i<bead_types; i++){
@@ -70,6 +65,8 @@ public:
                 CCNTCell::SetDPDBeadConsInt(i,j, original[i][j]);
             }
         }
+
+        return {Supported, {}, num_steps};
     }
 };
 

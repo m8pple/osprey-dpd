@@ -10,7 +10,7 @@
 #define AFX_ABSTRACTBEAD_H__12767EC0_3849_11D3_820E_0060088AD300__INCLUDED_
 
 #include <cstdint>
-#include <cassert>
+#include "DebugAssert.hpp"
 
 // Forward declarations
 
@@ -39,6 +39,9 @@ class CAbstractBead
 	friend class CMonitor;
 	friend class CSimBox;
 	friend class taForceDecorator;	// Needed by command target force decorators
+
+	// This provides faster versions of CCNTCell methods, so needs direct access
+	friend class SimEngineFast;
 
 // Friend classes for parallel code
 #if EnableParallelSimBox == SimMPSEnabled
@@ -167,8 +170,8 @@ public:
 
 	// Public functions to set bead state and coordinates
 
-	inline void   SetId(long id)			{ assert(id < INT32_MAX);  m_id = id;}
-	inline void   SetType(long type)		{ assert(type <= UINT8_MAX); m_Type	= type;}
+	inline void   SetId(long id)			{ DEBUG_ASSERT(id < INT32_MAX);  m_id = id;}
+	inline void   SetType(long type)		{ DEBUG_ASSERT(type <= UINT8_MAX); m_Type	= type;}
 	inline void   SetInvisible()			{m_bIsVisible	= false;}
 	inline void   SetVisible()				{m_bIsVisible	= true;}
 	inline void   SetVisible(bool bVisible)	{m_bIsVisible	= bVisible;}
@@ -247,10 +250,13 @@ public:
 		return m_bIsMovable;
 	}
 
-	void PrefetchHint()
-	{
-		__builtin_prefetch( &this->m_Type );
-	}
+	// Return a fresh bead with the same state.
+	// The fresh bead will not be in any cell
+	virtual CAbstractBead *Clone() const =0;
+
+	// Assign all members of this class from the source.
+	// The source must be the same bead class as the target
+	virtual void Assign(const CAbstractBead *src) =0;
 protected:
 
 	// Convert id and type to reduce cache footprint

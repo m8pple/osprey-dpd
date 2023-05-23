@@ -23,6 +23,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Bead.h"
 #include "Bond.h"
 
+#include "DebugAssert.hpp"
+#include "StateLogger.hpp"
+
 #if EnableShadowSimBox == SimACNEnabled
 #include "aeActiveSimBox.h" // Needed for access to SimBox side lengths
 #endif
@@ -129,6 +132,7 @@ void CBond::AddForce()
 #endif
 
 	m_Length = sqrt(m_dx*m_dx + m_dy*m_dy + m_dz*m_dz);
+	DEBUG_ASSERT(std::abs(m_Length) < 4);
 	
 	// The overall minus sign is used to swap the order of m_Length - m_UnStrLen
 
@@ -144,6 +148,12 @@ void CBond::AddForce()
 	m_pTail->m_Force[1]-= m_fy;
 	m_pTail->m_Force[2]-= m_fz;
 
+	if(StateLogger::IsEnabled()){
+		StateLogger::LogBeadPairRefl("bond_dx", m_pHead->GetId()-1, m_pTail->GetId()-1, m_dx);
+		StateLogger::LogBeadPairRefl("bond_r", m_pHead->GetId()-1, m_pTail->GetId()-1, m_Length);
+		StateLogger::LogBeadPairRefl("bond_f", m_pHead->GetId()-1, m_pTail->GetId()-1, { m_fx, m_fy, m_fz});
+	}
+	
 	// Stress tensor contributions from bond force. 
 	// Removed the stress from the tail bead to avoid double counting its 
 	// contribution to the pressure. This does not affect the stress profile
@@ -159,48 +169,6 @@ void CBond::AddForce()
 	m_pHead->m_Stress[6] += m_dx*m_fz;
 	m_pHead->m_Stress[7] += m_dy*m_fz;
 	m_pHead->m_Stress[8] += m_dz*m_fz;
-}
-
-void CBond::AddForceFast()
-{
-#if EnableParallelSimBox == SimMPSEnabled
-    // Parallel code uses the bead coordinates in the principal image of the SimBox as the beads that move between processors have their coordinates udpated
-	// automatically, so we don't need to check for PBCs.
-	
-	m_dx = m_pHead->GetXPos() - m_pTail->GetXPos();
-	m_dy = m_pHead->GetYPos() - m_pTail->GetYPos();
-	m_dz = m_pHead->GetZPos() - m_pTail->GetZPos();
-
-//    std::cout << "Bond force for bond id " << GetId() << " with length " << m_Length << " and components " << m_dx << " " << m_dy << " " << m_dz << zEndl;
-#else
-    // Serial code uses the unPBC coordinates to ensure bonds that span the SimBox boundaries have the correct length
-	
-	m_dx = m_pHead->GetunPBCXPos() - m_pTail->GetunPBCXPos();
-	m_dy = m_pHead->GetunPBCYPos() - m_pTail->GetunPBCYPos();
-	m_dz = m_pHead->GetunPBCZPos() - m_pTail->GetunPBCZPos();
-
-#endif
-
-	m_Length = sqrt(m_dx*m_dx + m_dy*m_dy + m_dz*m_dz);
-	
-	// The overall minus sign is used to swap the order of m_Length - m_UnStrLen
-
-	m_fx = m_SprConst*(m_UnStrLen - m_Length)*m_dx/m_Length;
-	m_fy = m_SprConst*(m_UnStrLen - m_Length)*m_dy/m_Length;
-	m_fz = m_SprConst*(m_UnStrLen - m_Length)*m_dz/m_Length;
-
-	m_pHead->m_Force[0]+= m_fx;
-	m_pHead->m_Force[1]+= m_fy;
-	m_pHead->m_Force[2]+= m_fz;
-
-	m_pTail->m_Force[0]-= m_fx;
-	m_pTail->m_Force[1]-= m_fy;
-	m_pTail->m_Force[2]-= m_fz;
-
-	// No stresses calculated
-#ifndef NDEBUG
-	m_pHead->m_Stress[0] = nanf("");
-#endif
 }
 
 // Function to calculate the bond force using bead coordinates that are 

@@ -10,6 +10,7 @@
 #include "Polymer.h"
 #include "Bond.h"
 #include "BondPair.h"
+#include "StateLogger.hpp"
 
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
@@ -124,7 +125,7 @@ struct BondInfo
 
         if(existing_bead_colour_min != UINT32_MAX){
             polymers_use_disjoint_beads = false;
-            assert(colour < existing_bead_colour_min);
+            DEBUG_ASSERT(colour < existing_bead_colour_min);
             colour = existing_bead_colour_min;
             res->colour = colour;
         
@@ -136,7 +137,7 @@ struct BondInfo
         return res;
     }
 
-    void import_all(ISimBox *box)
+    ISimEngineCapabilities::support_result import_all(ISimBox *box)
     {
         const auto &src_polymers=box->GetPolymers();
 
@@ -162,6 +163,8 @@ struct BondInfo
         }
 
         working_space.resize(max_bonds*4);
+
+        return {ISimEngineCapabilities::Supported};
     }
 
     template<class TBeadSource>
@@ -207,7 +210,7 @@ struct BondInfo
             return;
         }
 
-        if(polymers_use_disjoint_beads){
+        if(false && polymers_use_disjoint_beads){
             update_polymers_tbb(bead_source, dims_float);
         }else{
             update_polymers_seq(bead_source, dims_float);
@@ -241,7 +244,11 @@ struct BondInfo
             }
 
             TCalc r=sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
-            assert(std::abs(r)<4);
+            /*if(std::abs(r) > 4){
+                fprintf(stderr, "Bond has snapped.\n");
+                exit(1);
+            }*/
+            DEBUG_ASSERT(std::abs(r)<4);
             working[4*i+3] = r;
 
             TCalc fScale = bond.springConst * (bond.length - r) / r;
@@ -250,8 +257,14 @@ struct BondInfo
                 head.force[d] += dx[d] * fScale;
                 tail.force[d] -= dx[d] * fScale;
             
-                assert(!std::isnan(head.force[d]));
-                assert(!std::isnan(tail.force[d]));
+                DEBUG_ASSERT(!std::isnan(head.force[d]));
+                DEBUG_ASSERT(!std::isnan(tail.force[d]));
+            }
+
+            if(StateLogger::IsEnabled()){
+                StateLogger::LogBeadPairRefl("bond_dx", bond.head_bead_id, bond.tail_bead_id, {dx[0],dx[1],dx[2]});
+                StateLogger::LogBeadPairRefl("bond_r", bond.head_bead_id, bond.tail_bead_id, r);
+                StateLogger::LogBeadPairRefl("bond_f", bond.head_bead_id, bond.tail_bead_id, { dx[0] * fScale, dx[1] * fScale, dx[2] * fScale});
             }
             
         }
@@ -265,9 +278,9 @@ struct BondInfo
             auto &second_head_bead = bead_source( polymer.data[bond_pair.second_bond_off].bond.head_bead_id );
 
             TCalc FirstLength=first[3];
-            assert(std::abs(FirstLength) < 4);
+            DEBUG_ASSERT(std::abs(FirstLength) < 4);
             TCalc SecondLength=second[3];
-            assert(std::abs(SecondLength) < 4);
+            DEBUG_ASSERT(std::abs(SecondLength) < 4);
 
             TCalc magProduct = FirstLength * SecondLength;
 
@@ -295,7 +308,7 @@ struct BondInfo
                     { forceMag = m_Modulus/magProduct; }*/
 
                     forceMag *= (bond_pair.m_CosPhi0 - bond_pair.m_SinPhi0 / Prefactor);
-                    assert(!std::isnan(forceMag));
+                    DEBUG_ASSERT(!std::isnan(forceMag));
                 }
 
         		TCalc BeadXForce[3], BeadYForce[3], BeadZForce[3];
@@ -303,7 +316,7 @@ struct BondInfo
                 BeadXForce[0] = forceMag*(b1b2Overb1Sq*first[0] - second[0]);
                 BeadYForce[0] = forceMag*(b1b2Overb1Sq*first[1] - second[1]);
                 BeadZForce[0] = forceMag*(b1b2Overb1Sq*first[2] - second[2]);
-                assert(!std::isnan(BeadXForce[0]));
+                DEBUG_ASSERT(!std::isnan(BeadXForce[0]));
 
                 first_tail_bead.force[0] += BeadXForce[0];
                 first_tail_bead.force[1] += BeadYForce[0];
@@ -333,9 +346,9 @@ struct BondInfo
                 first_head_bead.force[2] += BeadZForce[1];
 
                 for(int d=0; d<3; d++){
-                    assert(!std::isnan(BeadXForce[d]));
-                    assert(!std::isnan(BeadYForce[d]));
-                    assert(!std::isnan(BeadZForce[d]));
+                    DEBUG_ASSERT(!std::isnan(BeadXForce[d]));
+                    DEBUG_ASSERT(!std::isnan(BeadYForce[d]));
+                    DEBUG_ASSERT(!std::isnan(BeadZForce[d]));
                 }
 
             }

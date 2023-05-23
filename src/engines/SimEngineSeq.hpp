@@ -6,7 +6,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include <cassert>
+#include "DebugAssert.hpp"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -31,7 +31,7 @@
 static inline bool require_fail_impl(const char *file, int line, const char *cond)
 {
     fprintf(stderr, "%s:%d: requirement failed : %s\n", file, line, cond);
-    assert(0);
+    DEBUG_ASSERT(0);
     exit(1);
 }
 
@@ -41,7 +41,7 @@ static inline bool require_fail_impl(const char *file, int line, const char *con
 static inline void declare(bool cond)
 {
     if(!cond){
-        assert(0);
+        DEBUG_ASSERT(0);
         __builtin_unreachable();
     }
 }
@@ -91,26 +91,20 @@ public:
     bool IsParallel() const override
     { return false; }
 
-
-
-    std::string CanSupport(const ISimBox *box) const override
+    support_result CanSupport_ExtraConstraints(const ISimBox *box) const override
     {
-        if(box->GetSimBoxXOrigin()!=0 || box->GetSimBoxXOrigin()!=0 || box->GetSimBoxZOrigin()!=0){
-            return "Sim box origin is not at zero."; // Actually fairly easy to support
+        if(box->GetBeadTypeTotal() >= 255){
+            return {PermanentProblem, "More than 254 bead types"};
         }
-        if( std::round(box->GetSimBoxXLength()) != box->GetSimBoxXLength() || std::round(box->GetSimBoxYLength()) != box->GetSimBoxYLength() || std::round(box->GetSimBoxZLength()) != box->GetSimBoxZLength()){
-            return "Sim box does not have integer dimensions.";
-        }
-        if(box->GetLambda() != 0.5){
-            return "Lambda != 0.5";
-        }
-
-        return {};
+        return {Supported};
     }
 
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override
+    run_result Run(ISimBox *box, bool modified, unsigned /*start_sim_time*/, unsigned num_steps) override
     {
-        import_all(box);
+        auto res=import_all(box);
+        if(res.status!=Supported){
+            return res;
+        }
 
         auto bead_source=[&](uint32_t bead_id) -> Bead &{
             return find(bead_id);
@@ -150,6 +144,8 @@ public:
         #endif
 
         export_all(box);
+
+        return {Supported, {}, num_steps};
     }
 
 protected:
@@ -157,6 +153,10 @@ protected:
     static const int MAX_BEADS_PER_CELL = 32;
 
     static const int CALC_DIM = 3; // Dimension used for maths. Could be 3 for scalar, or 4 to allow for more optimisation in vector modes
+
+    // We expect PBC and unPBC positions to be within this distance of each other
+    // at all times (particularly import)
+    static constexpr double UNPBC_DRIFT_TOLERANCE = 1e-6;
 
     struct Bead
     {
@@ -200,7 +200,7 @@ protected:
             }else if(delta==dims[d]-1){
                 local.offsets[d]=2;
             }else{
-                assert(0);
+                DEBUG_ASSERT(0);
                 fprintf(stderr, "Logic violation in make_edge_tag");
                 exit(1);
             }
@@ -269,6 +269,15 @@ protected:
     std::vector<Cell> cells;
     std::vector<int32_t> bead_locations; // The current location of each slot
 
+    // If we need to flush the small bead->unpbcWrap counters then they go here.
+    // We don't want to flush into the AbstractBead in case some kindof error
+    // happens and we abort.
+    // We also don't want them in the beads, as it increases cache pressur for no
+    // reason.
+    // Flushing the pbc requires a bead to wrap round the entire box 127 times,
+    // so accessing this array is very rare.
+    std::vector<int32_t> unpbc_flushed_fixups; // An array of 3*NumBeads integers
+
     // Indices of cells in order of visiting. Used for morton orderig.
     std::vector<uint32_t> cell_enum_order;
 
@@ -286,7 +295,7 @@ protected:
         int parts[3];
         for(int d=0; d<3; d++){
             parts[d] = std::floor(pos[d]);
-            assert( 0 <= parts[d] && parts[d] <dims_int[d]);
+            DEBUG_ASSERT( 0 <= parts[d] && parts[d] <dims_int[d]);
         }
         return pos_to_cell_index(parts);
     }
@@ -294,10 +303,10 @@ protected:
     unsigned pos_to_cell_index(const int *parts)
     {
         for(int d=0; d<3; d++){
-            assert( 0 <= parts[d] && parts[d] <dims_int[d]);
+            DEBUG_ASSERT( 0 <= parts[d] && parts[d] <dims_int[d]);
         }
         unsigned index = parts[0] + dims_int[0]*parts[1] + dims_int[0]*dims_int[1]*parts[2];
-        assert(index < cells.size());
+        DEBUG_ASSERT(index < cells.size());
         return index;
     }
 
@@ -363,15 +372,16 @@ protected:
         return {res.begin(), res.end()};
     }
 
-    virtual void on_import(ISimBox *box)
-    {}
+    virtual support_result on_import(ISimBox *box)
+    {
+        return {Supported};   
+    }
 
-    void import_all(ISimBox *box)
+    support_result import_all(ISimBox *box)
     {
         auto err=CanSupport(box);
-        if(!err.empty()){
-            fprintf(stderr, "%s\n", err.c_str());
-            exit(1);
+        if(err.status!=Supported){
+            return err;
         }
 
         global_seed=box->GetRNGSeed();
@@ -434,7 +444,7 @@ protected:
                         cell.origin[d] = 0;
                     }
                     cell.cell_index = cell_index;
-                    assert( pos_to_cell_index(cell.origin) == cell_index );
+                    DEBUG_ASSERT( pos_to_cell_index(cell.origin) == cell_index );
 
                     cell.any_external=false;
 
@@ -478,11 +488,11 @@ protected:
             }
         }
 
-
         const auto &beads=box->GetBeads();
         unsigned num_beads=beads.size();
         bead_locations.assign(num_beads, -1); // We are assuming bead ids are contiguous.
         id_to_original_bead.assign(num_beads, nullptr);
+        unpbc_flushed_fixups.assign(num_beads*3, 0);
 
         original_beads=box->GetBeads(); // This method will create a new vector.
         any_frozen_beads = false;
@@ -493,15 +503,21 @@ protected:
         for(CAbstractBead * b : original_beads){
             #ifndef NDEBUG
             auto it=seen_beed_ids.find(b->GetId());
-            assert(it==seen_beed_ids.end());
+            DEBUG_ASSERT(it==seen_beed_ids.end());
             seen_beed_ids.insert(b->GetId());
             #endif
-            import_bead(*b);
+            import_bead(*b, err);
+            if(err.status!=Supported){
+                return err;
+            }
         }
 
-        bonds.import_all(box);
+        err = bonds.import_all(box);
+        if(err.status!=Supported){
+            return err;
+        }
 
-        on_import(box);
+        return on_import(box);
     }
 
     double wrapped_distance(double x0, double x1, double w )
@@ -513,17 +529,27 @@ protected:
         }
     }
 
-    void import_bead(CAbstractBead &b)
+    void import_bead(CAbstractBead &b, support_result &err)
     {
         // Osprey bead ids start at 1
-        require(1 <= b.GetId() && b.GetId() <= UINT32_MAX);
-        require(0 <= b.GetType() && b.GetType() <= UINT8_MAX);
+        if( !(1 <= b.GetId()) ){
+            err.status=PermanentProblem;
+            err.reason="Bead ids do not start at 1.";
+            return;
+        }
+        if(b.GetId() >= UINT32_MAX){
+            err.status=PermanentProblem;
+            err.reason="Bead id is more than 32-bit.";
+            return;
+        }
+        DEBUG_ASSERT(0 <= b.GetType() && b.GetType() <= UINT8_MAX);
 
         Bead c;
         c.pos[0]=b.GetXPos();
         c.pos[1]=b.GetYPos();
         c.pos[2]=b.GetZPos();
         c.pos[3]=0;
+        bool in_bounds = true;
         for(int d=0; d<3; d++){
             if(c.pos[d] == dims_float[d] ){ // Possible due to double->float rounding
                 c.pos[d] = 0;  
@@ -531,8 +557,25 @@ protected:
             require( 0 <= c.pos[d] && c.pos[d] < dims_float[d] );
 
             c.unpbcWrap[d] = 0;
+            
+            in_bounds |= (0 <= c.pos[0]) && (c.pos[0] < dims_float[d]);
         }
-        assert( wrapped_distance( b.GetXPos(), fmod(b.GetunPBCXPos() , dims_float[0] ), dims_float[0]) < 0.1 );
+        if(!in_bounds){
+            err.status=TransientProblemStep;
+            err.reason="At least one bead is not currently in side the sim box";
+            return;
+        }
+
+        #ifndef NDEBUG
+            double unPBC=b.GetunPBCXPos(), PBC=b.GetXPos();
+            DEBUG_ASSERT( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+        #endif
+
+        if( wrapped_distance( b.GetXPos(), fmod(b.GetunPBCXPos() , dims_float[0] ), dims_float[0]) > UNPBC_DRIFT_TOLERANCE ){
+            err.status=PermanentProblem; // Is anyone else going to fix this?
+            err.reason="unPBC and PBC positions for one bead differ by more than tolerance";
+            return;
+        }
 
         c.mom[0]=b.GetXMom();
         c.mom[1]=b.GetYMom();
@@ -556,26 +599,34 @@ protected:
         }
 
         unsigned cell_index = pos_to_cell_index( c.pos );
-        assert(cell_index < cells.size());
+        DEBUG_ASSERT(cell_index < cells.size());
         auto &cell = cells[cell_index];
         unsigned cell_offset = cell.count;
-        require( cell_offset < MAX_BEADS_PER_CELL );
+        if( cell_offset >= MAX_BEADS_PER_CELL){
+            err.status = TransientProblemStep;
+            err.reason = "Currently there are more than MAX_BEADS_PER_CELL in at least one cell";
+            return;
+        }
         cell.count += 1;
         cell.to_move += 1;
         cell.local[cell_offset] = c;
         cell.any_frozen |= c.frozen;
 
         unsigned bead_location=cell_index * MAX_BEADS_PER_CELL + cell_offset;
-        require( c.bead_id < bead_locations.size() && bead_locations[c.bead_id] == -1);
+        if( c.bead_id >= bead_locations.size() ){
+            err.status = PermanentProblem;
+            err.reason = "Bead ids do not appear to be contiguous.";
+            return;
+        }
+        if( bead_locations[c.bead_id] != -1){
+            err.status = PermanentProblem;
+            err.reason = "Two beads with the same id found.";
+            return;
+        }
         bead_locations[c.bead_id] = bead_location;
 
         require(id_to_original_bead[c.bead_id]==nullptr);
         id_to_original_bead[c.bead_id] = &b;
-
-        // We shear off the intra-box offset from unPBC, then restore it later on export
-        b.SetunPBCXPos( b.GetunPBCXPos() - c.pos[0] );
-        b.SetunPBCYPos( b.GetunPBCYPos() - c.pos[1] );
-        b.SetunPBCZPos( b.GetunPBCZPos() - c.pos[2] );
     }
 
     void export_all(ISimBox *box)
@@ -600,24 +651,40 @@ protected:
             b->SetZForce( ib.force[2] );
 
             for(int d=0; d<3; d++){
-                assert( 0<=ib.pos[d] && ib.pos[d]<dims_float[d] );
+                DEBUG_ASSERT( 0<=ib.pos[d] && ib.pos[d]<dims_float[d] );
             }
 
-            simstate->MoveBeadBetweenCNTCells(b, ib.pos[0], ib.pos[1], ib.pos[2]);
-
-            flush_unpbc_wrap(b, ib);
-            // At this point the unPBC pos should have no offset, and wrap to the simbox origin (i.e. 0)
             #ifndef NDEBUG
-            double tmp1=b->GetunPBCXPos() + dims_float[0]/2;
-            double tmp2=std::abs(fmod(tmp1 , dims_float[0] ));
-            assert( std::abs( tmp2 - dims_float[0]/2  ) < 0.1 );
+            {
+                double unPBC=b->GetunPBCXPos(), PBC=b->GetXPos();
+                DEBUG_ASSERT( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+            }
             #endif
-            
-            b->SetunPBCXPos( b->GetunPBCXPos() + ib.pos[0] );
-            b->SetunPBCYPos( b->GetunPBCYPos() + ib.pos[1] );
-            b->SetunPBCZPos( b->GetunPBCZPos() + ib.pos[2] );
-            assert( wrapped_distance( b->GetXPos(), fmod(b->GetunPBCXPos() , dims_float[0] ), dims_float[0]) < 0.1 );
 
+            simstate->MoveBeadBetweenCNTCells(b, ib.pos[0], ib.pos[1], ib.pos[2]);
+            // Recover the complete number of wraps
+            int pbc_offset[3];
+            for(int d=0; d<3; d++ ){
+                pbc_offset[d] = ib.unpbcWrap[d] + unpbc_flushed_fixups[ib.bead_id*3+d];
+            }
+            
+            // We take the PBC position as truth and snap the unPBC back to it.
+            // For extremely long simulations this should be more accurate, as
+            // if we do huge numbers of steps in here (e.g. 100000+), then the PBC positions will
+            // be close to equilibrium for both DPD and bond forces. Trying to
+            // snap back to unPBC would potentially jerk all the beads around
+            // and disrupt that.
+            b->SetunPBCXPos( b->GetunPBCXPos() - fmod(b->GetunPBCXPos(), dims_float[0]) + pbc_offset[0]*dims_float[0] + ib.pos[0] );
+            b->SetunPBCYPos( b->GetunPBCYPos() - fmod(b->GetunPBCYPos(), dims_float[1]) + pbc_offset[1]*dims_float[1]+ ib.pos[1] );
+            b->SetunPBCZPos( b->GetunPBCZPos() - fmod(b->GetunPBCZPos(), dims_float[2]) + pbc_offset[2]*dims_float[2]+ ib.pos[2] );
+
+            // Check we preserve the invariant
+            #ifndef NDEBUG
+            {
+                double unPBC=b->GetunPBCXPos(), PBC=b->GetXPos();
+                DEBUG_ASSERT( wrapped_distance( PBC, fmod(unPBC , dims_float[0] ), dims_float[0]) < UNPBC_DRIFT_TOLERANCE );
+            }
+            #endif
         }
     }
 
@@ -649,26 +716,26 @@ protected:
     const Bead &find(uint32_t bead_id) const
     {
         int32_t loc=bead_locations[bead_id];
-        assert(0 <= loc);
+        DEBUG_ASSERT(0 <= loc);
 
         unsigned cell_index=loc/MAX_BEADS_PER_CELL;
         unsigned cell_offset=loc%MAX_BEADS_PER_CELL;
         auto &cell=cells[cell_index];
         auto &res=cell.local[cell_offset];
-        assert(res.bead_id==bead_id);
+        DEBUG_ASSERT(res.bead_id==bead_id);
         return res;
     }
 
     Bead &find(uint32_t bead_id)
     {
         int32_t loc=bead_locations[bead_id];
-        assert(0 <= loc);
+        DEBUG_ASSERT(0 <= loc);
 
         unsigned cell_index=loc/MAX_BEADS_PER_CELL;
         unsigned cell_offset=loc%MAX_BEADS_PER_CELL;
         auto &cell=cells[cell_index];
         auto &res=cell.local[cell_offset];
-        assert(res.bead_id==bead_id);
+        DEBUG_ASSERT(res.bead_id==bead_id);
         return res;
     }
 
@@ -683,7 +750,7 @@ protected:
 
         for(int d=0; d<CALC_DIM; d++){
             dx[d] = home.pos[d] - other_x[d];
-            assert( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
+            DEBUG_ASSERT( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
 
             dx2[d] = dx[d] * dx[d];
         }
@@ -773,7 +840,7 @@ protected:
             Cell &other_cell=cells[nlink.index];
             bool reflect_forces = (NHOOD_TYPE & NhoodType_ForceShare_Mask) == NHoodType_ForceShare_Direct;
 
-            assert( nlink.tag==EdgeTag_ForceShare_Direct || nlink.tag==EdgeTag_ForceShare_None );
+            DEBUG_ASSERT( nlink.tag==EdgeTag_ForceShare_Direct || nlink.tag==EdgeTag_ForceShare_None );
             reflect_forces |= nlink.tag==EdgeTag_ForceShare_Direct;
             
             float other_delta[4];
@@ -843,31 +910,18 @@ protected:
         }
     }
 
-    void flush_unpbc_wrap(CAbstractBead *b,  Bead &ib)
-    {
-        // TODO : The numerical stability of the unPBC stuff is dodgy in general.
-        // However, it is a double-precision accumulation, so hopefully error accumultion
-        // is not too bad
-        b->SetunPBCXPos( b->GetunPBCXPos() + dims_float[0] * ib.unpbcWrap[0] );
-        ib.unpbcWrap[0]=0;
-        b->SetunPBCYPos( b->GetunPBCYPos() + dims_float[1] * ib.unpbcWrap[1] );
-        ib.unpbcWrap[1]=0;
-        b->SetunPBCZPos( b->GetunPBCZPos() + dims_float[2] * ib.unpbcWrap[2] );
-        ib.unpbcWrap[2]=0;
-    }
-
     void flush_unpbc_wrap(Bead &ib)
     {
-        CAbstractBead *b=id_to_original_bead.at(ib.bead_id);
-        assert(b->GetId() == ib.bead_id+1);
-        flush_unpbc_wrap( b, ib );
+        for(int d=0; d<3; d++){
+            unpbc_flushed_fixups[ib.bead_id*3+d] += ib.unpbcWrap[d];
+            ib.unpbcWrap[d] = 0;
+        }
     }
-
 
     template<bool AnyFrozen>
     void update_mom_and_move(rng_t &rng, Cell &cell)
     {
-        assert(AnyFrozen ? any_frozen_beads : true);
+        DEBUG_ASSERT(AnyFrozen ? any_frozen_beads : true);
         
         unsigned i=0;
         while(i<cell.to_move){
@@ -924,7 +978,7 @@ protected:
                 if(bead.pos[d] >= dims_float[d]){
                     bead.pos[d] -= dims_float[d];
                     bead.unpbcWrap[d] += 1;
-                    if( bead.unpbcWrap[d] < -100 ){
+                    if( bead.unpbcWrap[d] > +100 ){
                         flush_unpbc_wrap(bead);
                     }
                 }
@@ -941,7 +995,7 @@ protected:
 
             if(i+1 == cell.count){
                 // The gap is the last thing in the array
-                assert(i+1 == cell.to_move && cell.to_move == cell.count);
+                DEBUG_ASSERT(i+1 == cell.to_move && cell.to_move == cell.count);
                 cell.count -= 1;
                 // We are finished
                 break;
@@ -959,7 +1013,7 @@ protected:
                 // We need to move past this bead, as it is already processed in another cell
                 ++i;
             }else{
-                assert(i+1 < cell.to_move && cell.to_move == cell.count); 
+                DEBUG_ASSERT(i+1 < cell.to_move && cell.to_move == cell.count); 
                 // We still have at least one more bead, but nothing new
                 // Use the last todo bead to fill the gap and don't advance i
                 cell.to_move -= 1;
@@ -1035,7 +1089,7 @@ protected:
             cell.count -= 1;
             if(i == cell.count){
                 // The gap is the last thing in the array
-                assert(i+1 == cell.to_move && cell.to_move == cell.count+1);
+                DEBUG_ASSERT(i+1 == cell.to_move && cell.to_move == cell.count+1);
                 // We are finished
                 break;
             }else{
@@ -1044,7 +1098,7 @@ protected:
                     // A new bead has been moved in. Use it to fill the gap
                     src = cell.count;
                 }else{
-                    assert(i+1 < cell.to_move && cell.to_move == cell.count+1); 
+                    DEBUG_ASSERT(i+1 < cell.to_move && cell.to_move == cell.count+1); 
                     // We still have at least one more bead, but nothing new
                     // Use the last todo bead to fill the gap
                     cell.to_move -= 1;

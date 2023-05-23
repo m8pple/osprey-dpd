@@ -6,7 +6,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include <cassert>
+#include "DebugAssert.hpp"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -18,20 +18,20 @@
 #include "Polymer.h"
 #include "Bond.h"
 #include "BondPair.h"
+#include "StateLogger.hpp"
 
 #include "ISimEngine.h"
-
-#include "immintrin.h"
-#include "pmmintrin.h"
 
 #include "morton_codec.hpp"
 
 #include "bond_info.hpp"
 
+#include "BeadIdHashRNG.hpp"
+
 static bool require_fail_impl(const char *file, int line, const char *cond)
 {
     fprintf(stderr, "%s:%d: requirement failed : %s\n", file, line, cond);
-    assert(0);
+    DEBUG_ASSERT(0);
     exit(1);
 }
 
@@ -41,7 +41,7 @@ static bool require_fail_impl(const char *file, int line, const char *cond)
 static void declare(bool cond)
 {
     if(!cond){
-        assert(0);
+        DEBUG_ASSERT(0);
         __builtin_unreachable();
     }
 }
@@ -60,24 +60,13 @@ public:
     { return false; }
 
 
-
-    std::string CanSupport(const ISimBox *box) const override
+    run_result Run(ISimBox *box, bool modified, unsigned start_sim_time,unsigned num_steps) override
     {
-        if(box->GetSimBoxXOrigin()!=0 || box->GetSimBoxXOrigin()!=0 || box->GetSimBoxZOrigin()!=0){
-            return "Sim box origin is not at zero."; // Actually fairly easy to support
-        }
-        if( std::round(box->GetSimBoxXLength()) != box->GetSimBoxXLength() || std::round(box->GetSimBoxYLength()) != box->GetSimBoxYLength() || std::round(box->GetSimBoxZLength()) != box->GetSimBoxZLength()){
-            return "Sim box does not have integer dimensions.";
-        }
-        if(box->GetLambda() != 0.5){
-            return "Lambda != 0.5";
+        support_result tmp=CanSupport(box);
+        if(tmp.status!=Supported){
+            return {tmp.status, tmp.reason, 0};
         }
 
-        return {};
-    }
-
-    void Run(ISimBox *box, bool modified, unsigned num_steps) override
-    {
         import_all(box);
 
         auto bead_source=[&](uint32_t bead_id) -> Bead &{
@@ -96,7 +85,15 @@ public:
             validate_cells();
             #endif
 
+            rng_state=bead_id_hash_rng__round_hash(std::abs(box->GetRNGSeed()), start_sim_time+i);
+
             update_forces();
+
+            for(unsigned j=0; j<bead_locations.size(); j++){
+                auto &b=find(j);
+                double f[3]={b.force[0], b.force[1], b.force[2]};
+                StateLogger::LogBead("dpd_f_total", b.bead_id, f);
+            }
 
             #ifndef NDEBUG
             validate_cells();
@@ -117,6 +114,8 @@ public:
         #endif
 
         export_all(box);
+
+        return {Supported, {}, num_steps};
     }
 
 protected:
@@ -156,7 +155,7 @@ protected:
             }else if(delta==dims[d]-1){
                 local[d]=2;
             }else{
-                assert(0);
+                DEBUG_ASSERT(0);
                 fprintf(stderr, "Logic violation in make_edge_tag");
                 exit(1);
             }
@@ -198,7 +197,7 @@ protected:
 
     uint32_t m_generation;
 
-    uint64_t rng_state = 0;
+    uintptr_t rng_state = 0;
     calc_t rng_scale;
 
     unsigned pos_to_cell_index(const calc_t *pos)
@@ -206,7 +205,7 @@ protected:
         int parts[3];
         for(int d=0; d<3; d++){
             parts[d] = std::floor(pos[d]);
-            assert( 0 <= parts[d] && parts[d] <dims_int[d]);
+            DEBUG_ASSERT( 0 <= parts[d] && parts[d] <dims_int[d]);
         }
         return pos_to_cell_index(parts);
     }
@@ -214,12 +213,12 @@ protected:
     unsigned pos_to_cell_index(const int *parts)
     {
         for(int d=0; d<3; d++){
-            assert( 0 <= parts[d] && parts[d] <dims_int[d]);
+            DEBUG_ASSERT( 0 <= parts[d] && parts[d] <dims_int[d]);
         }
         unsigned index = parts[0] + dims_int[0]*parts[1] + dims_int[0]*dims_int[1]*parts[2];
-        assert(index < cells.size());
+        DEBUG_ASSERT(index < cells.size());
         for(int d=0; d<3; d++){
-            assert(cells[index].origin[d]==parts[d]);
+            DEBUG_ASSERT(cells[index].origin[d]==parts[d]);
         }
         return index;
     }
@@ -235,6 +234,23 @@ protected:
             f( cells[i] );
         }
     }
+
+    void CheckPBCDrift(const CAbstractBead *bg)
+    {
+        double eg[3]={
+            std::abs(fmod(bg->GetunPBCXPos(), dims_float[0]) - bg->GetXPos()),
+            std::abs(fmod(bg->GetunPBCYPos(), dims_float[1]) - bg->GetYPos()),
+            std::abs(fmod(bg->GetunPBCZPos(), dims_float[2]) - bg->GetZPos())
+        };
+        eg[0] = std::min( eg[0], dims_float[0] - eg[0]);
+        eg[1] = std::min( eg[1], dims_float[1] - eg[1]);
+        eg[2] = std::min( eg[2], dims_float[2] - eg[2]);
+
+        if(eg[0] > 1e-6 || eg[1] > 1e-6 || eg[2] > 1e-6){
+            fprintf(stderr, "PBC drift.\n");
+            exit(1);
+        }
+    };
 
     std::vector<std::array<int,3>> make_forward_nhood()
     {
@@ -259,9 +275,9 @@ protected:
 
     void import_all(ISimBox *box)
     {
-        auto err=CanSupport(box);
-        if(!err.empty()){
-            fprintf(stderr, "%s\n", err.c_str());
+        ISimEngineCapabilities::support_result err=CanSupport(box);
+        if(err.status!=Supported){
+            fprintf(stderr, "%s\n", err.reason.c_str());
             exit(1);
         }
 
@@ -290,7 +306,7 @@ protected:
         halfdt2=halfdt * dt;
 
         double invrootdt = sqrt(24.0*CCNTCell::GetKt()/dt);
-        rng_scale = ldexp(invrootdt, -32);
+        rng_scale = invrootdt;
 
         const auto &bead_types=box->GetBeadTypes();
         num_bead_types = bead_types.size();
@@ -314,7 +330,7 @@ protected:
                         cell.origin[d] = cell_pos[d];
                     }
                     cell.cell_index = cell_index;
-                    assert( pos_to_cell_index(cell.origin) == cell_index );
+                    DEBUG_ASSERT( pos_to_cell_index(cell.origin) == cell_index );
                     cell_index += 1;
                 }
             }
@@ -365,6 +381,8 @@ protected:
         // Osprey bead ids start at 1
         require(1 <= b.GetId() && b.GetId() <= UINT32_MAX);
         require(0 <= b.GetType() && b.GetType() <= UINT8_MAX);
+
+        CheckPBCDrift(&b);
 
         Bead c;
         c.pos[0]=b.GetXPos();
@@ -433,6 +451,8 @@ protected:
             b->SetunPBCZPos( b->GetunPBCZPos() + ib.pos[2] + ib.unpbcWrap[2] * dims_float[2] );
 
             simstate->MoveBeadBetweenCNTCells(b, ib.pos[0], ib.pos[1], ib.pos[2]);
+
+            CheckPBCDrift(b);
         }
     }
 
@@ -460,26 +480,26 @@ protected:
     const Bead &find(uint32_t bead_id) const
     {
         int32_t loc=bead_locations[bead_id];
-        assert(0 <= loc);
+        DEBUG_ASSERT(0 <= loc);
 
         unsigned cell_index=loc/MAX_BEADS_PER_CELL;
         unsigned cell_offset=loc%MAX_BEADS_PER_CELL;
         auto &cell=cells[cell_index];
         auto &res=cell.local[cell_offset];
-        assert(res.bead_id==bead_id);
+        DEBUG_ASSERT(res.bead_id==bead_id);
         return res;
     }
 
     Bead &find(uint32_t bead_id)
     {
         int32_t loc=bead_locations[bead_id];
-        assert(0 <= loc);
+        DEBUG_ASSERT(0 <= loc);
 
         unsigned cell_index=loc/MAX_BEADS_PER_CELL;
         unsigned cell_offset=loc%MAX_BEADS_PER_CELL;
         auto &cell=cells[cell_index];
         auto &res=cell.local[cell_offset];
-        assert(res.bead_id==bead_id);
+        DEBUG_ASSERT(res.bead_id==bead_id);
         return res;
     }
 
@@ -502,7 +522,7 @@ protected:
 
         for(int d=0; d<3; d++){
             dx[d] = home.pos[d] - other_x[d];
-            assert( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
+            DEBUG_ASSERT( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
 
             dx2[d] = dx[d] * dx[d];
         }
@@ -536,7 +556,7 @@ protected:
 
             calc_t dissForce	= -gammap*rdotv;
             declare(gammap > 0);
-            calc_t rv = RandUnifScaled();
+            calc_t rv = bead_id_hash_rng__random_symmetric_uniform(rng_state, home.bead_id, other.bead_id);
 
             /*
             static double rvSum=0;
@@ -551,7 +571,7 @@ protected:
             */
 
 
-            calc_t randForce	= std::sqrt(gammap)*rv;
+            calc_t randForce	= std::sqrt(gammap) * rng_scale * rv;
             calc_t normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
             calc_t newForce[4];
@@ -559,6 +579,14 @@ protected:
                 newForce[d] = normTotalForce * dx[d];
                 home.force[d] += newForce[d];
                 other.force[d] -= newForce[d];
+            }
+
+            if(StateLogger::IsEnabled()){
+                int id1=home.bead_id, id2=other.bead_id;
+                StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+                StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+                StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+                StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
             }
         }
     }
@@ -622,17 +650,17 @@ protected:
     void update_mom_and_move(Cell &cell)
     {
         for(unsigned i=0; i<cell.to_move; i++){
-            assert(cell.local[i].generation==m_generation);
+            DEBUG_ASSERT(cell.local[i].generation==m_generation);
         }
         for(unsigned i=cell.to_move; i<cell.count; i++){
-            assert(cell.local[i].generation==m_generation+1);
+            DEBUG_ASSERT(cell.local[i].generation==m_generation+1);
         }
 
         unsigned i=0;
         while(i<cell.to_move){
             Bead &bead=cell.local[i];
 
-            assert(bead.generation==m_generation);
+            DEBUG_ASSERT(bead.generation==m_generation);
             bead.generation += 1;
 
             if(bead.frozen){
@@ -694,7 +722,7 @@ protected:
 
             if(i+1 == cell.count){
                 // The gap is the last thing in the array
-                assert(i+1 == cell.to_move && cell.to_move == cell.count);
+                DEBUG_ASSERT(i+1 == cell.to_move && cell.to_move == cell.count);
                 cell.count -= 1;
                 // We are finished
                 break;
@@ -712,7 +740,7 @@ protected:
                 // We need to move past this bead, as it is already processed in another cell
                 ++i;
             }else{
-                assert(i+1 < cell.to_move && cell.to_move == cell.count); 
+                DEBUG_ASSERT(i+1 < cell.to_move && cell.to_move == cell.count); 
                 // We still have at least one more bead, but nothing new
                 // Use the last todo bead to fill the gap and don't advance i
                 cell.to_move -= 1;
@@ -726,7 +754,7 @@ protected:
         }
 
         for(unsigned i=0; i<cell.count; i++){
-            assert(cell.local[i].generation==m_generation+1);
+            DEBUG_ASSERT(cell.local[i].generation==m_generation+1);
         }
     
         cell.to_move=0;

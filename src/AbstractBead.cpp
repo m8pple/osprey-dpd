@@ -87,7 +87,7 @@ CAbstractBead::CAbstractBead(long type) : m_id(-1), m_Type(type),
                                  m_Radius(0.0)
 #endif
 {
-	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
 
 #if EnableDPDLG == ExperimentEnabled
     m_LGRadius  = 0.0;
@@ -135,8 +135,8 @@ CAbstractBead::CAbstractBead(long id, long type, bool movable,
                                                             m_Radius(0.5)
 #endif
 {
-	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
-	assert(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
 
 #if EnableDPDLG == ExperimentEnabled
     m_LGRadius  = 0.0;
@@ -182,8 +182,8 @@ CAbstractBead::CAbstractBead(long id, long type, bool movable, double radius,
                                                             m_Radius(radius)
 #endif
 {
-	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
-	assert(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
 
 #if EnableDPDLG == ExperimentEnabled
     m_LGRadius  = 0.0;
@@ -226,8 +226,8 @@ CAbstractBead::CAbstractBead(long id, long type, bool movable, double radius, do
                                                             m_LGRadius(lgRadius),
                                                             m_LGDensity(0.0)
 {
-	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
-	assert(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
 
 #if EnableParallelSimBox == SimMPSEnabled
     m_pPolymer = 0;
@@ -265,8 +265,8 @@ CAbstractBead::CAbstractBead(CPolymer* const pPolymer, long id, long type, bool 
                                                             m_Radius(radius),
                                                             m_pPolymer(pPolymer)
 {
-	assert(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
-	assert(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(type <= UINT8_MAX); // Due to optimisation of CAbstractBead for cache
+	DEBUG_ASSERT(id <= INT32_MAX); // Due to optimisation of CAbstractBead for cache
 
 	for(short int i=0; i<3; i++)
 	{

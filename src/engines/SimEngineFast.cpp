@@ -18,7 +18,7 @@
 
 #include "SimBox.h"
 #include "mpsSimBox.h"
-#include "ae/aeActiveSimBox.h"
+#include "aeActiveSimBox.h"
 
 #include "ISimBox.h"
 
@@ -78,7 +78,7 @@ private:
     double m_SimBoxZLength;
     unsigned m_CNTXCellNo, m_CNTYCellNo, m_CNTZCellNo;
 
-    void PrefetchHint(CCNTCell &cell)
+    void PrefetchHint(const CCNTCell &cell)
 	{
 		for(unsigned i=0; i<cell.m_lBeads.size(); i++){
 			__builtin_prefetch(&cell.m_lBeads[i]->m_Type);
@@ -107,7 +107,7 @@ private:
             return;
         }
 
-        PrefetchForRW( &cell->m_aIntNNCells[0]->m_type );
+        PrefetchHint( *cell->m_aIntNNCells[0] );
 
         double rng_scale =  CCNTCell::m_invrootdt;
 
@@ -669,14 +669,14 @@ private:
             CCNTCell::PreCalculateDPDForces(box->GetRNGSeed(), sim_start_time);
 
             iterCell = m_vCNTCells.begin();
-            PrefetchHint(*iterCell);
+            PrefetchHint(**iterCell);
 
             while(iterCell != m_vCNTCells.end()){
                 auto curr=*iterCell;
 
                 ++iterCell;
                 if(iterCell!=m_vCNTCells.end()){
-                    PrefetchHint(*iterCell);
+                    PrefetchHint(**iterCell);
                 }
 
                 UpdateMomThenPosFastV2(box, curr);
@@ -686,14 +686,14 @@ private:
             // that can potentially interact. No monitor accumulations are performed.
 
             iterCell = m_vCNTCells.begin();
-            PrefetchHint(*iterCell);
+            PrefetchHint(**iterCell);
 
             while(iterCell != m_vCNTCells.end()){
                 auto curr=*iterCell;
 
                 ++iterCell;
                 if(iterCell!=m_vCNTCells.end()){
-                    PrefetchHint(*iterCell);
+                    PrefetchHint(**iterCell);
                 }
 
                 UpdateForceFast(curr);

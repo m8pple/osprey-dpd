@@ -1,5 +1,7 @@
 #include "ParallelServices.hpp"
 
+#include "xxBase.h"
+
 class ParallelServices_Sequential
     : public ParallelServices
 {
@@ -14,28 +16,36 @@ public:
     struct Range1DContextImpl
         : public Range1DContext
     {
+        Range1DContextImpl(const range_1d &_r)
+            : range(_r)
+        {}
+
         range_1d range;
     };
 
     struct Range3DContextImpl
         : public Range3DContext
     {
+        Range3DContextImpl(const range_3d &_r)
+            : range(_r)
+        {}
+
         range_3d range;
     };
 
     virtual Range1DToken CreateParForToken(const range_1d& range) override
     {
-        return std::make_unique<Range1DContextImpl>(range);
+        return Range1DToken( new Range1DContextImpl(range) );
     }
     
     virtual Range3DToken CreateParForToken(const range_3d& range) override
     {
-        return std::make_unique<Range3DContextImpl>(range);
+        return Range3DToken( new Range3DContextImpl(range) );
     }
 
     virtual Range3DToken CreateParForWithSafeHaloToken(const range_3d& range) override
     {
-        return std::make_unique<Range3DContextImpl>(range);
+        return Range3DToken( new Range3DContextImpl(range) );
     }
 
     virtual void Par(
@@ -58,22 +68,31 @@ public:
     virtual void ParFor(
         const Range1DToken &ctxt,
         std::function<void(const range_1d &)> f
-    ) {
-        auto ic=dynamic_cast<const Range1DContextImpl *>(&ctxt);
+    ) override {
+        auto ic=dynamic_cast<const Range1DContextImpl *>(ctxt.get());
         if(!ic){
-
+            xxBase::FatalTraceGlobal("ParFor called with incorrect context.");
         }
+        ParFor(ic->range, f);
     }
 
     virtual void ParFor(
-        const range_1d &range,
+        const range_3d &range,
         std::function<void(const range_3d &)> f
-    ) = 0;
+    ) override {
+        f(range);
+    }
 
     virtual void ParFor(
-        const Range3DToken &range,
+        const Range3DToken &ctxt,
         std::function<void(const range_3d &)> f
-    ) = 0;
+    ) override {
+        auto ic=dynamic_cast<const Range3DContextImpl *>(ctxt.get());
+        if(!ic){
+            xxBase::FatalTraceGlobal("ParFor called with incorrect context.");
+        }
+        ParFor(ic->range, f);
+    }
 
     /*
     Execute everything in the given range, but ensure each executing volume
@@ -84,10 +103,18 @@ public:
     virtual void ParForWithSafeHalo(
         const range_3d &range,
         std::function<void(const range_3d &)> f
-    ) = 0;
+    ) override {
+        f(range);
+    }
 
     virtual void ParForWithSafeHalo(
-        const Range3DContext &range,
+        const Range3DToken &ctxt,
         std::function<void(const range_3d &)> f
-    ) = 0;
+    ) override {
+        auto ic=dynamic_cast<const Range3DContextImpl *>(ctxt.get());
+        if(!ic){
+            xxBase::FatalTraceGlobal("ParFor called with incorrect context.");
+        }
+        ParFor(ic->range, f);
+    }
 };

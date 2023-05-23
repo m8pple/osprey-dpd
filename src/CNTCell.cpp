@@ -30,6 +30,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "mpsBorder.h"
 #include "ExternalCNTCell.h"
 
+#include "DebugAssert.hpp"
 #include "RandomNumberSequence.h"
 #include "IGlobalSimBox.h"      // Needed to see if lg interactions are used
 
@@ -1772,9 +1773,9 @@ void CCNTCell::UpdatePos()
 
 			// This is not strictly illegal, but usually means something has
 			// gone very wrong. It's a useful break-point in debug mode.
-			assert( std::abs(dx[0]) < m_HalfSimBoxXLength);
-			assert( std::abs(dx[1]) < m_HalfSimBoxYLength);
-			assert( std::abs(dx[2]) < m_HalfSimBoxZLength);
+			DEBUG_ASSERT( std::abs(dx[0]) < m_HalfSimBoxXLength);
+			DEBUG_ASSERT( std::abs(dx[1]) < m_HalfSimBoxYLength);
+			DEBUG_ASSERT( std::abs(dx[2]) < m_HalfSimBoxZLength);
 
 			(*iterBead)->m_Pos[0] += dx[0];
 			(*iterBead)->m_Pos[1] += dx[1];
@@ -1821,9 +1822,9 @@ void CCNTCell::UpdatePos()
 
 			// used to debug final position
 			CAbstractBead *working = *iterBead;
-			assert( -m_SimBoxXLength/2 < working->GetXPos() && working->GetXPos() <= m_SimBoxXLength*1.5);
-			assert( -m_SimBoxYLength/2 < working->GetYPos() && working->GetYPos() <= m_SimBoxYLength*1.5);
-			assert( -m_SimBoxZLength/2 < working->GetZPos() && working->GetZPos() <= m_SimBoxZLength*1.5);
+			DEBUG_ASSERT( -m_SimBoxXLength/2 < working->GetXPos() && working->GetXPos() <= m_SimBoxXLength*1.5);
+			DEBUG_ASSERT( -m_SimBoxYLength/2 < working->GetYPos() && working->GetYPos() <= m_SimBoxYLength*1.5);
+			DEBUG_ASSERT( -m_SimBoxZLength/2 < working->GetZPos() && working->GetZPos() <= m_SimBoxZLength*1.5);
 			double pre_pos[3]={working->m_Pos[0], working->m_Pos[1], working->m_Pos[2]};
 
 			if( (*iterBead)->m_Pos[0] > m_TRCoord[0] )
@@ -2405,9 +2406,9 @@ void CCNTCell::SetNNCellIndex(long index, CCNTCell *pCell)
 
 void CCNTCell::AddBeadtoCell(CAbstractBead *pBead)
 {
-	assert( m_BLCoord[0] <= pBead->GetXPos() && pBead->GetXPos() <= m_TRCoord[0] );
-	assert( m_BLCoord[1] <= pBead->GetYPos() && pBead->GetYPos() <= m_TRCoord[1] );
-	assert( m_BLCoord[2] <= pBead->GetZPos() && pBead->GetZPos() <= m_TRCoord[2] );
+	DEBUG_ASSERT( m_BLCoord[0] <= pBead->GetXPos() && pBead->GetXPos() <= m_TRCoord[0] );
+	DEBUG_ASSERT( m_BLCoord[1] <= pBead->GetYPos() && pBead->GetYPos() <= m_TRCoord[1] );
+	DEBUG_ASSERT( m_BLCoord[2] <= pBead->GetZPos() && pBead->GetZPos() <= m_TRCoord[2] );
 	m_lBeads.push_back(pBead);
 }
 
@@ -2794,9 +2795,9 @@ bool CCNTCell::CheckBeadsinCell()
 			if( dx > w/2 ) dx -= w;
 			return std::abs(dx);
 		};
-		assert( get_dist_wrapped(pBead->GetXPos(), pBead->GetunPBCXPos(), m_SimBoxXLength) < 1e-6 );
-		assert( get_dist_wrapped(pBead->GetYPos(), pBead->GetunPBCYPos(), m_SimBoxYLength) < 1e-6 );
-		assert( get_dist_wrapped(pBead->GetZPos(), pBead->GetunPBCZPos(), m_SimBoxZLength) < 1e-6 );
+		DEBUG_ASSERT( get_dist_wrapped(pBead->GetXPos(), pBead->GetunPBCXPos(), m_SimBoxXLength) < 1e-6 );
+		DEBUG_ASSERT( get_dist_wrapped(pBead->GetYPos(), pBead->GetunPBCYPos(), m_SimBoxYLength) < 1e-6 );
+		DEBUG_ASSERT( get_dist_wrapped(pBead->GetZPos(), pBead->GetunPBCZPos(), m_SimBoxZLength) < 1e-6 );
 		#endif
 
 		index1 = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix;
@@ -2805,7 +2806,7 @@ bool CCNTCell::CheckBeadsinCell()
 			continue;
 		}
 
-		assert(index1 != GetId());
+		DEBUG_ASSERT(index1 != GetId());
 		
 		numMisplacedBeadsFound += 1;
 

@@ -5916,9 +5916,9 @@ AbstractBeadVector CSimBox::GetAllBeadsInCNTCells()
         BeadList lBeads = (*iterCell)->GetBeads();
 		#ifndef NDEBUG
 		for(const auto b : lBeads){
-			assert( (*iterCell)->GetBLXCoord() <= b->GetXPos() && b->GetXPos() <= (*iterCell)->GetTRXCoord());
-			assert( (*iterCell)->GetBLYCoord() <= b->GetYPos() && b->GetYPos() <= (*iterCell)->GetTRYCoord());
-			assert( (*iterCell)->GetBLZCoord() <= b->GetZPos() && b->GetZPos() <= (*iterCell)->GetTRZCoord());
+			DEBUG_ASSERT( (*iterCell)->GetBLXCoord() <= b->GetXPos() && b->GetXPos() <= (*iterCell)->GetTRXCoord());
+			DEBUG_ASSERT( (*iterCell)->GetBLYCoord() <= b->GetYPos() && b->GetYPos() <= (*iterCell)->GetTRYCoord());
+			DEBUG_ASSERT( (*iterCell)->GetBLZCoord() <= b->GetZPos() && b->GetZPos() <= (*iterCell)->GetTRZCoord());
 		}
 		#endif
         copy(lBeads.begin(), lBeads.end(), back_inserter(vBeads));
@@ -6269,7 +6269,7 @@ bool CSimBox::MoveBeadBetweenCNTCells(CAbstractBead* const pBead, double x, doub
         }
         else
         {
-			assert(false);
+			DEBUG_ASSERT(false);
             bValid = false;
         }
     }
@@ -6290,7 +6290,7 @@ void CSimBox::AddBeadToCNTCell(CAbstractBead* const pBead) const
 	FatalTraceGlobal("AddBeadToCNTCell - Not expected to be called from parallel code.");
 #endif
     
-	assert(pBead);
+	DEBUG_ASSERT(pBead);
 	// Get current position and the index to the owning CNT cell
 	long ix, iy, iz;
 	// Now get the new position and the index to the new CNT cel
@@ -6313,7 +6313,7 @@ void CSimBox::AddBeadToCNTCell(int cell_index, CAbstractBead* const pBead) const
     
 #else
     
-	assert(pBead);
+	DEBUG_ASSERT(pBead);
 	// Get current position and the index to the owning CNT cell
 #ifndef NDEBUG
 	long ix, iy, iz;
@@ -6322,7 +6322,7 @@ void CSimBox::AddBeadToCNTCell(int cell_index, CAbstractBead* const pBead) const
 	iy = static_cast<long>(pBead->GetYPos()/m_CNTYCellWidth);
 	iz = static_cast<long>(pBead->GetZPos()/m_CNTZCellWidth);
 	const long trueIndex = m_CNTXCellNo*(m_CNTYCellNo*iz+iy) + ix; 
-	assert(trueIndex == cell_index);
+	DEBUG_ASSERT(trueIndex == cell_index);
 #endif
 
 	m_vCNTCells[cell_index]->AddBeadtoCell(pBead);

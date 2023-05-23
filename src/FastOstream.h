@@ -34,7 +34,7 @@ struct FastOstream
 		curr=&buffer[0];
 
 		digits=dst.precision();
-		assert(digits>0);
+		DEBUG_ASSERT(digits>0);
 		// scale=std::exp10(digits); OSX libm doesn't have this ? Anyway, linker errors...
 		scale=1;
 		for(int i=0; i<digits; i++){
@@ -60,7 +60,7 @@ struct FastOstream
 		if(x<10){ // Handles 0 and other single digit cases. Common for bead types
 			*curr++='0'+x;
 		}else{
-			static_assert(sizeof(long) <= 8);
+			static_assert(sizeof(long) <= 8, "sizeof(long) is too large.");
 			char scratch[21]; // A long can't be more than this
 			char * begin=scratch + sizeof(scratch);
             char *end=begin;
@@ -121,7 +121,7 @@ struct FastOstream
 			dst << x;
 		}
 
-		static_assert(sizeof(long) <= 8);
+		static_assert(sizeof(long) <= 8, "sizeof long is too large.");
 		char scratch[32]; // A fixed-point double in this range can't be more tahn this
         char *begin=scratch+sizeof(scratch);
         char *end=begin;
@@ -162,8 +162,8 @@ struct FastOstream
 			return;
 		}
 
-		assert(&buffer[0] <= curr);
-		assert(curr < &buffer.back());
+		DEBUG_ASSERT(&buffer[0] <= curr);
+		DEBUG_ASSERT(curr < &buffer.back());
 		if(curr >= &buffer.back()){
             if(context){
     			context->FatalTrace("Internal error : a fast formatted line used too many characters.");

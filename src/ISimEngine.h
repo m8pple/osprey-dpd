@@ -7,6 +7,8 @@
 
 #include <map>
 
+#include "DebugAssert.hpp"
+
 class ISimBox;
 
 class ISimEngineCapabilities

@@ -23,6 +23,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Bead.h"
 #include "Bond.h"
 
+#include "DebugAssert.hpp"
 #include "StateLogger.hpp"
 
 #if EnableShadowSimBox == SimACNEnabled
@@ -131,7 +132,7 @@ void CBond::AddForce()
 #endif
 
 	m_Length = sqrt(m_dx*m_dx + m_dy*m_dy + m_dz*m_dz);
-	assert(std::abs(m_Length) < 4);
+	DEBUG_ASSERT(std::abs(m_Length) < 4);
 	
 	// The overall minus sign is used to swap the order of m_Length - m_UnStrLen
 

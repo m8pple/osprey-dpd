@@ -1,11 +1,11 @@
 #include "StdAfx.h"
 #include "SimDefs.h"
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include "CommandLineParameters.h"
 
 #include "xxCommandObject.h"
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 bool CommandLineParameters::sm_initialised = false;
 std::vector<std::unique_ptr<xxCommandObject>> CommandLineParameters::sm_extra_commands;
@@ -117,7 +117,7 @@ void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<vo
 
             consume_args(2);
         }else if(cmd=="--list-engines"){
-            ISimEngineFactory::ListEngines(std::cout);
+            IIntegrationEngineFactory::ListEngines(std::cout);
             exit(1);
         }else if(cmd=="--set-engine"){
             if(argc < 3){
@@ -126,15 +126,15 @@ void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<vo
 
             std::string engine_name = argv[2];
             
-            auto inst = ISimEngineFactory::CreateEngineInstanceByName(engine_name);
+            auto inst = IIntegrationEngineFactory::CreateEngineInstanceByName(engine_name);
             if(!inst){
                 return on_error("Couldn't find engine called "+engine_name);
             }
-            ISimEngine::SetGlobalEngine(inst );
+            IIntegrationEngine::SetGlobalEngine(inst );
 
             consume_args(2);
         }else if(cmd=="--wrap-engine-with-ref-diff"){
-            ISimEngine::WrapGlobalEngineWithRefDiff();
+            IIntegrationEngine::WrapGlobalEngineWithRefDiff();
             consume_args(1);
         }else if(cmd=="--help"){
             consume_args(1);

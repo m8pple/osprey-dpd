@@ -1,4 +1,4 @@
-#include "StateLogger.hpp"
+#include "StateLogger.h"
 #include <string>
 #include <sstream>
 #include <functional>

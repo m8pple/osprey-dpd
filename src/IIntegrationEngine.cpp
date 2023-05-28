@@ -1,13 +1,13 @@
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 #include "CNTCell.h"
 #include "ISimBox.h"
 #include "aeActiveSimBox.h"
 
-#include "BeadIdHashRNG.hpp"
-#include "StateLogger.hpp"
+#include "BeadIdHashRNG.h"
+#include "StateLogger.h"
 
-ISimEngineCapabilities::support_result ISimEngineCapabilities::StandardSupportAssumptions(const ISimBox *box)
+IIntegrationEngineCapabilities::support_result IIntegrationEngineCapabilities::StandardSupportAssumptions(const ISimBox *box)
 {
     #if (SimDimension!=3)
     return {PermanentProblem,"Compile-time standard SimEngine assumption not met - dimensions!=3."};
@@ -64,7 +64,7 @@ ISimEngineCapabilities::support_result ISimEngineCapabilities::StandardSupportAs
     return {Supported,{}};
 }
 
-ISimEngineCapabilities::support_result ISimEngineCapabilities::CanSupport(const ISimBox *box) const
+IIntegrationEngineCapabilities::support_result IIntegrationEngineCapabilities::CanSupport(const ISimBox *box) const
 {
     auto tmp=StandardSupportAssumptions(box);
     if(tmp.status!=Supported){
@@ -76,10 +76,10 @@ ISimEngineCapabilities::support_result ISimEngineCapabilities::CanSupport(const 
 
 
 class SimEngineRefDiff
-    : public ISimEngine
+    : public IIntegrationEngine
 {
 public:
-    SimEngineRefDiff(std::shared_ptr<ISimEngine> testee)
+    SimEngineRefDiff(std::shared_ptr<IIntegrationEngine> testee)
         : m_testee(testee)
     {}
 
@@ -241,14 +241,14 @@ protected:
     }
 
 private:
-    std::shared_ptr<ISimEngine> m_testee;
+    std::shared_ptr<IIntegrationEngine> m_testee;
 };
 
-void ISimEngine::WrapGlobalEngineWithRefDiff()
+void IIntegrationEngine::WrapGlobalEngineWithRefDiff()
 {
-    auto e=ISimEngine::GetGlobalEngine();
+    auto e=IIntegrationEngine::GetGlobalEngine();
     if(e){
-        ISimEngine::SetGlobalEngine( std::make_shared<SimEngineRefDiff>(e) );
+        IIntegrationEngine::SetGlobalEngine( std::make_shared<SimEngineRefDiff>(e) );
     }
 
 }

@@ -1,4 +1,4 @@
-#include "SimEngineSeq.hpp"
+#include "SimEngineSeq.h"
 
 
 namespace {

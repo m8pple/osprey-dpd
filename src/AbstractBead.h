@@ -10,7 +10,7 @@
 #define AFX_ABSTRACTBEAD_H__12767EC0_3849_11D3_820E_0060088AD300__INCLUDED_
 
 #include <cstdint>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 
 // Forward declarations
 

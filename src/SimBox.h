@@ -417,7 +417,7 @@ class CSimBox : public ISimState,
 	friend class ccToggleDPDBeadForcesImpl;
 	friend class ccToggleDPDBeadThermostatImpl;
 #endif
-	friend class ISimEngineCapabilities;
+	friend class IIntegrationEngineCapabilities;
 	friend class SimEngineFast;
 	friend class SimEngineRef;
 	friend class SimEngineRefDiff;

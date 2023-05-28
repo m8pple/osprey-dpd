@@ -1,7 +1,7 @@
 #ifndef SimEngineTBB_hpp
 #define SimEngineTBB_hpp
 
-#include "SimEngineSeq.hpp"
+#include "SimEngineSeq.h"
 
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
@@ -53,10 +53,10 @@ public:
     bool IsParallel() const override
     { return true; }
 
-    ISimEngine::run_result Run(ISimBox *box, bool modified, unsigned /*start_sim_time*/, unsigned num_steps) override
+    IIntegrationEngine::run_result Run(ISimBox *box, bool modified, unsigned /*start_sim_time*/, unsigned num_steps) override
     {
         auto err=base_t::import_all(box);
-        if(err.status!=ISimEngine::Supported){
+        if(err.status!=IIntegrationEngine::Supported){
             return err;
         }
 
@@ -99,7 +99,7 @@ public:
 
         base_t::export_all(box);
     
-        return {ISimEngine::Supported, {}, num_steps};
+        return {IIntegrationEngine::Supported, {}, num_steps};
     }
 protected:
 

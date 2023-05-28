@@ -6,12 +6,12 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include <cstdlib>
 #include <set>
 #include <cstring>
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 
 #include "AbstractBead.h"
@@ -24,7 +24,7 @@
 A broken simulation engine that uses the wrong dissipative parameter.
 */
 class SimEngineTest_WrongDiss
-    : public ISimEngine
+    : public IIntegrationEngine
 {
 public:
     std::string Name() const override

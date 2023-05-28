@@ -37,6 +37,7 @@ find_package(TBB)
 if(TBB_FOUND)
 set(COMPILE_OPTIONS ${COMPILE_OPTIONS} -DOSPREY_DPD_ENABLE_TBB=1 )
 message("TBB found and enabled")
+link_libraries(TBB::tbb)
 endif()
 
 find_package(OpenMP)
@@ -54,10 +55,6 @@ add_executable(dpd ${SRC_FILES})
 target_compile_options(dpd
   PRIVATE ${COMPILE_OPTIONS}  -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
 )
-if(TBB_FOUND)
-target_link_libraries(dpd PRIVATE TBB::tbb)
-endif()
-
 
 add_executable(dpd-bd ${SRC_FILES})
 target_compile_options(dpd-bd
@@ -88,10 +85,6 @@ target_compile_options(dpd-debug
 )
 target_compile_options(dpd-debug PRIVATE -fsanitize=undefined -fsanitize=address)
 target_link_options(dpd-debug PRIVATE -fsanitize=undefined -fsanitize=address)
-if(TBB_FOUND)
-target_link_libraries(dpd-debug PRIVATE TBB::tbb)
-endif()
-
 
 #############################################################
 ## Most optimised version.
@@ -100,9 +93,6 @@ add_executable(dpd-opt ${SRC_FILES})
 target_compile_options(dpd-opt
   PRIVATE ${COMPILE_OPTIONS}
 )
-if(TBB_FOUND)
-target_link_libraries(dpd-opt PRIVATE TBB::tbb)
-endif()
 # These get a good boost, and should be portable. fast-math appears fine in the 
 # context of commands I've tried, but there may be parts where it doesn't work.
 # AFAICT nothing in osprey depends on errno, or has very sensitive ordering.

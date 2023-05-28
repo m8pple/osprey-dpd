@@ -6,12 +6,12 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include <cstdlib>
 #include <set>
 #include <cstring>
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 
 #include "AbstractBead.h"
@@ -24,7 +24,7 @@
 A broken simulation engine that skips 5% of time steps
 */
 class SimEngineTest_SkipTime
-    : public ISimEngine
+    : public IIntegrationEngine
 {
     std::mt19937 rng;
 

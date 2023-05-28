@@ -21,7 +21,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "ISimCmd.h"
 #include "InputData.h"
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 //////////////////////////////////////////////////////////////////////
 // Global members
@@ -146,12 +146,12 @@ bool ecSelectEngine::Execute(long simTime, ISimCmd* const pISimCmd) const
 {
 	if(simTime == GetExecutionTime())
 	{
-		auto inst = ISimEngineFactory::CreateEngineInstanceByName(m_engine_name);
+		auto inst = IIntegrationEngineFactory::CreateEngineInstanceByName(m_engine_name);
 		if(!inst){
 			ErrorTrace("Couldn't find engine called "+m_engine_name);
 		}
 
-		ISimEngine::SetGlobalEngine(inst );
+		IIntegrationEngine::SetGlobalEngine(inst );
 		return true;
 	}
 	else
@@ -162,7 +162,7 @@ bool ecSelectEngine::Execute(long simTime, ISimCmd* const pISimCmd) const
 
 bool ecSelectEngine::IsDataValid(const CInputData& riData) const
 {
-	if(ISimEngineFactory::IsKnownEngine(m_engine_name)){
+	if(IIntegrationEngineFactory::IsKnownEngine(m_engine_name)){
 		return true;
 	}
 	ErrorTrace("SelectSimEngine : Unknown SimEngine "+m_engine_name);

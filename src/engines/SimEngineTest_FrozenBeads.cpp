@@ -6,12 +6,12 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include <cstdlib>
 #include <set>
 #include <cstring>
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 
 #include "AbstractBead.h"
@@ -23,7 +23,7 @@
 A broken simulation engine that doesn't update 1% of the beads.
 */
 class SimEngineTest_FrozenBeads
-    : public ISimEngine
+    : public IIntegrationEngine
 {
 public:
     std::string Name() const override

@@ -1,4 +1,4 @@
-#include "SimEngineSeq.hpp"
+#include "SimEngineSeq.h"
 
 #ifdef __AVX2__
 
@@ -14,8 +14,8 @@ class SimEngineSeqAVX2
     : public SimEngineSeq<SimEngineSeqAVX2Policy>
 {
 public:
-    using ISimEngine::support_result;
-    using ISimEngine::run_result;
+    using IIntegrationEngine::support_result;
+    using IIntegrationEngine::run_result;
 
     std::string Name() const override
     {

@@ -23,7 +23,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 	using std::setw;
 	using std::setprecision;
 
-
+bool CTimeSeriesData::EnableTimeSeriesStdDevPrinting = false;
 
 //////////////////////////////////////////////////////////////////////
 // Global functions for serialization
@@ -49,12 +49,21 @@ zOutStream& operator<<(zOutStream& os, const CTimeSeriesData& rTSD)
 	os << "</Data>" << zEndl;
 
 #elif EnableXMLProcesses == SimXMLDisabled
-    
-    czDoubleVectorIterator iterSDev=rTSD.m_vSDevSet.begin();
-    
-	for(czDoubleVectorIterator iterData=rTSD.m_vDataSet.begin(); iterData!=rTSD.m_vDataSet.end(); iterData++)
-	{
-		os << setw(12) << setprecision(6) << zLeft << (*iterData) << " " << (*iterSDev++) <<zEndl;
+
+	if(CTimeSeriesData::EnableTimeSeriesStdDevPrinting){
+		czDoubleVectorIterator iterSDev=rTSD.m_vSDevSet.begin();
+		
+		for(czDoubleVectorIterator iterData=rTSD.m_vDataSet.begin(); iterData!=rTSD.m_vDataSet.end(); iterData++)
+		{
+			os << setw(12) << setprecision(6) << zLeft << (*iterData) << " " << (*iterSDev++) <<zEndl;
+		}
+	}else{
+		for(czDoubleVectorIterator iterData=rTSD.m_vDataSet.begin(); iterData!=rTSD.m_vDataSet.end(); iterData++)
+		{
+			os << setw(12) << setprecision(6) << zLeft;
+			os << (*iterData) << " ";
+		}
+		os << zEndl;
 	}
 
 #endif

@@ -69,6 +69,7 @@ private:
 	// ****************************************
 	// Data members
 private:
+	static bool EnableTimeSeriesStdDevPrinting;
 
     zDoubleVector    m_vDataSet;            // Set of stored values
     zDoubleVector    m_vSDevSet;            // Set of standard deviations of the stored values

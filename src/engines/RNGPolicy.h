@@ -3,9 +3,9 @@
 #define RNGPolicy_hpp
 
 #include <cstdint>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 
-#include "BeadIdHashRNG.hpp"
+#include "BeadIdHashRNG.h"
 
 enum RNGPolicy
 {

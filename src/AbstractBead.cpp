@@ -21,7 +21,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Polymer.h"
 #include "xxParallelBase.h"
 
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 
 
 //////////////////////////////////////////////////////////////////////

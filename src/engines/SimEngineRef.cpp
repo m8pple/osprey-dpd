@@ -6,12 +6,12 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include <cstdlib>
 #include <set>
 #include <cstring>
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 
 #include "AbstractBead.h"
@@ -19,7 +19,7 @@
 #include "xxBase.h"
 
 class SimEngineRef
-    : public ISimEngine
+    : public IIntegrationEngine
 {
 public:
     std::string Name() const override

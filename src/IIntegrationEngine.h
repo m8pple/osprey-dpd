@@ -1,5 +1,5 @@
-#ifndef ISimEngine_h
-#define ISimEngine_h
+#ifndef IIntegrationEngine_h
+#define IIntegrationEngine_h
 
 #include <string>
 #include <memory>
@@ -7,14 +7,14 @@
 
 #include <map>
 
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 
 class ISimBox;
 
-class ISimEngineCapabilities
+class IIntegrationEngineCapabilities
 {
 public:
-    virtual ~ISimEngineCapabilities()
+    virtual ~IIntegrationEngineCapabilities()
     {}
 
     virtual std::string Name() const=0;
@@ -97,11 +97,11 @@ protected:
 };
 
 
-class ISimEngine
-    : public ISimEngineCapabilities
+class IIntegrationEngine
+    : public IIntegrationEngineCapabilities
 {
 public:
-    virtual ~ISimEngine()
+    virtual ~IIntegrationEngine()
     {}
 
     struct run_result
@@ -163,12 +163,12 @@ public:
     virtual run_result Run(ISimBox *box, bool modified, unsigned start_sim_time, unsigned num_steps) =0;
 
 
-    static std::shared_ptr<ISimEngine> GetGlobalEngine()
+    static std::shared_ptr<IIntegrationEngine> GetGlobalEngine()
     {
         return sim_engine_backing();
     }
 
-    static void SetGlobalEngine(std::shared_ptr<ISimEngine> engine)
+    static void SetGlobalEngine(std::shared_ptr<IIntegrationEngine> engine)
     {
         sim_engine_backing() = engine;
     }
@@ -178,20 +178,20 @@ public:
     */
     static void WrapGlobalEngineWithRefDiff();
 private:
-    static std::shared_ptr<ISimEngine> &sim_engine_backing()
+    static std::shared_ptr<IIntegrationEngine> &sim_engine_backing()
     {
-        static std::shared_ptr<ISimEngine> backing;
+        static std::shared_ptr<IIntegrationEngine> backing;
         return backing;
     }
 };
 
-class ISimEngineFactory
-    : public ISimEngineCapabilities
+class IIntegrationEngineFactory
+    : public IIntegrationEngineCapabilities
 {
 public:
-    virtual std::shared_ptr<ISimEngine> CreateEngineInstance() =0;
+    virtual std::shared_ptr<IIntegrationEngine> CreateEngineInstance() =0;
 
-    static std::shared_ptr<ISimEngine> CreateEngineInstanceByName(std::string name)
+    static std::shared_ptr<IIntegrationEngine> CreateEngineInstanceByName(std::string name)
     {
         auto &factories=GetFactories();
         auto it=factories.find(name);
@@ -202,7 +202,7 @@ public:
         return it->second->CreateEngineInstance();
     }
 
-    static bool RegisterEngine(std::shared_ptr<ISimEngineFactory> factory)
+    static bool RegisterEngine(std::shared_ptr<IIntegrationEngineFactory> factory)
     {
         auto &factories=GetFactories();
         if(factories.find(factory->Name()) != factories.end()){
@@ -229,9 +229,9 @@ public:
     }
 
 private:
-    static std::map<std::string,std::shared_ptr<ISimEngineFactory>> &GetFactories()
+    static std::map<std::string,std::shared_ptr<IIntegrationEngineFactory>> &GetFactories()
     {
-        static std::map<std::string,std::shared_ptr<ISimEngineFactory>> factories;
+        static std::map<std::string,std::shared_ptr<IIntegrationEngineFactory>> factories;
         return factories;
     }
 };
@@ -242,10 +242,10 @@ class SimEngineBase
 {
 private:
     class Factory
-        : public ISimEngineFactory
+        : public IIntegrationEngineFactory
         , public TCapabilities
     {
-        std::shared_ptr<ISimEngine> CreateEngineInstance() override
+        std::shared_ptr<IIntegrationEngine> CreateEngineInstance() override
         { return std::make_shared<TImpl>(); }
 
         std::string Name() const override
@@ -254,14 +254,14 @@ private:
         bool IsParallel() const override
         { return TCapabilities::IsParallel(); }
 
-        ISimEngineCapabilities::support_result CanSupport_ExtraConstraints(const ISimBox *box) const override
+        IIntegrationEngineCapabilities::support_result CanSupport_ExtraConstraints(const ISimBox *box) const override
         { return TCapabilities::CanSupport_ExtraConstraints(box); }
     };
 
 public:
     static bool Register()
     {
-        ISimEngineFactory::RegisterEngine(std::make_shared<Factory>());
+        IIntegrationEngineFactory::RegisterEngine(std::make_shared<Factory>());
         return true;
     }
 };

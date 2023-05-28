@@ -2,7 +2,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -14,7 +14,7 @@
 #include "AbstractBead.h"
 #include "CNTCell.h"
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 #include "SimBox.h"
 #include "mpsSimBox.h"
@@ -22,10 +22,10 @@
 
 #include "ISimBox.h"
 
-#include "StateLogger.hpp"
+#include "StateLogger.h"
 
 class SimEngineFast
-    : public ISimEngine
+    : public IIntegrationEngine
 {
 public:
     std::string Name() const override

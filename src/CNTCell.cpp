@@ -30,15 +30,15 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "mpsBorder.h"
 #include "ExternalCNTCell.h"
 
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include "RandomNumberSequence.h"
 #include "IGlobalSimBox.h"      // Needed to see if lg interactions are used
 
 #include "mpsSimBox.h"
 
-#include "StateLogger.hpp"
+#include "StateLogger.h"
 
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 
 //////////////////////////////////////////////////////////////////////
 // Static member variable and function definitions
@@ -1477,6 +1477,14 @@ void CCNTCell::UpdateForce()
 						newForce[1] = (conForce + dissForce + randForce)*dx[1]/dr;
 						newForce[2] = (conForce + dissForce + randForce)*dx[2]/dr;
 
+						if(StateLogger::IsEnabled()){
+							int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
+							StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+							StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+							StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+							StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
+						}
+
 #elif SimIdentifier == MD
 
 				if( dr2 < m_coradius2 )
@@ -1535,14 +1543,6 @@ void CCNTCell::UpdateForce()
 						(*iterBead2)->m_Force[0] -= newForce[0];
 						(*iterBead2)->m_Force[1] -= newForce[1];
 						(*iterBead2)->m_Force[2] -= newForce[2];
-
-						if(StateLogger::IsEnabled()){
-							int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
-							StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
-							StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
-							StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
-							StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
-						}
 
 
 						// stress tensor summation

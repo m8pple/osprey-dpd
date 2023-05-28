@@ -17,7 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "StdAfx.h"
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
 #include "SimDefs.h"
 #include "ExperimentDefs.h"
@@ -33,7 +33,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "IModifySimStatePolymers.h"
 
 
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 
 // Force target base class needed for some functions
 
@@ -252,7 +252,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "LogToggleDPDBeadThermostat.h"
 #endif
 
-#include "StateLogger.hpp"
+#include "StateLogger.h"
 #include <functional>
 
 	using std::cout;
@@ -1384,7 +1384,7 @@ void CSimBox::Run()
 
 			const bool logStepReasons=true;
 
-			auto engine=ISimEngine::GetGlobalEngine();
+			auto engine=IIntegrationEngine::GetGlobalEngine();
 			ISimBox *box=const_cast<ISimBox*>(GetISimBox());
 			if(engine && fastSteps > 0){
 				if(logStepReasons){ fprintf(stderr, "Fast stepping from %ld to %ld with engine %s\n", m_SimTime, m_SimTime+fastSteps, engine->Name().c_str()); }
@@ -1392,17 +1392,17 @@ void CSimBox::Run()
 				auto res = engine->Run(box, modified, m_SimTime, fastSteps);
 				m_SimTime += res.completed_steps;
 				switch(res.status){
-				case ISimEngineCapabilities::Supported:
+				case IIntegrationEngineCapabilities::Supported:
 					break;
-				case ISimEngineCapabilities::TransientProblemStep:
+				case IIntegrationEngineCapabilities::TransientProblemStep:
 					if(logStepReasons){ fprintf(stderr, "Fast stepping stopped early due to step transient : %s\n", res.reason.c_str()); }
 					break;
-				case ISimEngineCapabilities::TransientProblemFlags:
+				case IIntegrationEngineCapabilities::TransientProblemFlags:
 					if(logStepReasons){ fprintf(stderr, "Fast stepping stopped early due to flags transient : %s\n", res.reason.c_str()); }
 					// TODO: This really needs some way of checking when simbox/command stuff has changed the simbox 
-				case ISimEngineCapabilities::PermanentProblem:
+				case IIntegrationEngineCapabilities::PermanentProblem:
 					if(logStepReasons){ fprintf(stderr, "Fast stepping stopped early due to permanent problem; clearing engine : %s\n", res.reason.c_str()); }
-					ISimEngine::SetGlobalEngine(nullptr);
+					IIntegrationEngine::SetGlobalEngine(nullptr);
 				}
 			}else{
 				if(logStepReasons && engine){ fprintf(stderr, "Slow step at %ld : mon=%d, feat=%d, targ=%d, nextObs=%ld\n", m_SimTime, is_monitor_active, are_features_active, are_features_active, GetNextObservationTime()); }

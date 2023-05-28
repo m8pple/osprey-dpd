@@ -23,8 +23,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Bead.h"
 #include "Bond.h"
 
-#include "DebugAssert.hpp"
-#include "StateLogger.hpp"
+#include "DebugAssert.h"
+#include "StateLogger.h"
 
 #if EnableShadowSimBox == SimACNEnabled
 #include "aeActiveSimBox.h" // Needed for access to SimBox side lengths

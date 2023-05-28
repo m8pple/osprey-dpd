@@ -6,7 +6,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -18,15 +18,15 @@
 #include "Polymer.h"
 #include "Bond.h"
 #include "BondPair.h"
-#include "StateLogger.hpp"
+#include "StateLogger.h"
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
-#include "morton_codec.hpp"
+#include "morton_codec.h"
 
-#include "bond_info.hpp"
+#include "bond_info.h"
 
-#include "BeadIdHashRNG.hpp"
+#include "BeadIdHashRNG.h"
 
 static bool require_fail_impl(const char *file, int line, const char *cond)
 {
@@ -48,7 +48,7 @@ static void declare(bool cond)
 
 
 struct SimEngineSeqV0
-    : public ISimEngine
+    : public IIntegrationEngine
 {
 public:
     std::string Name() const override
@@ -275,7 +275,7 @@ protected:
 
     void import_all(ISimBox *box)
     {
-        ISimEngineCapabilities::support_result err=CanSupport(box);
+        IIntegrationEngineCapabilities::support_result err=CanSupport(box);
         if(err.status!=Supported){
             fprintf(stderr, "%s\n", err.reason.c_str());
             exit(1);

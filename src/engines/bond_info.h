@@ -10,7 +10,7 @@
 #include "Polymer.h"
 #include "Bond.h"
 #include "BondPair.h"
-#include "StateLogger.hpp"
+#include "StateLogger.h"
 
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
@@ -137,7 +137,7 @@ struct BondInfo
         return res;
     }
 
-    ISimEngineCapabilities::support_result import_all(ISimBox *box)
+    IIntegrationEngineCapabilities::support_result import_all(ISimBox *box)
     {
         const auto &src_polymers=box->GetPolymers();
 
@@ -164,7 +164,7 @@ struct BondInfo
 
         working_space.resize(max_bonds*4);
 
-        return {ISimEngineCapabilities::Supported};
+        return {IIntegrationEngineCapabilities::Supported};
     }
 
     template<class TBeadSource>

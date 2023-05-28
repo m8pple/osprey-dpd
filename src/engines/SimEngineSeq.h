@@ -6,7 +6,7 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include "DebugAssert.hpp"
+#include "DebugAssert.h"
 #include <cstdlib>
 #include <set>
 #include <cstring>
@@ -20,13 +20,13 @@
 #include "Bond.h"
 #include "BondPair.h"
 
-#include "ISimEngine.h"
+#include "IIntegrationEngine.h"
 
-#include "morton_codec.hpp"
+#include "morton_codec.h"
 
-#include "bond_info.hpp"
+#include "bond_info.h"
 
-#include "RNGPolicy.hpp"
+#include "RNGPolicy.h"
 
 static inline bool require_fail_impl(const char *file, int line, const char *cond)
 {
@@ -69,7 +69,7 @@ struct EnginePolicyConcept
 
 template<class TPolicy = EnginePolicyConcept>
 struct SimEngineSeq
-    : public ISimEngine
+    : public IIntegrationEngine
 {
 public:
     static constexpr bool USE_MORTON = TPolicy::USE_MORTON;

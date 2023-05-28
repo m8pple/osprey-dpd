@@ -149,7 +149,7 @@ void CBond::AddForce()
 	m_pTail->m_Force[2]-= m_fz;
 
 	if(StateLogger::IsEnabled()){
-		StateLogger::LogBeadPairRefl("bond_dx", m_pHead->GetId()-1, m_pTail->GetId()-1, m_dx);
+		StateLogger::LogBeadPairRefl("bond_dx", m_pHead->GetId()-1, m_pTail->GetId()-1, {m_dx, m_dy, m_dz});
 		StateLogger::LogBeadPairRefl("bond_r", m_pHead->GetId()-1, m_pTail->GetId()-1, m_Length);
 		StateLogger::LogBeadPairRefl("bond_f", m_pHead->GetId()-1, m_pTail->GetId()-1, { m_fx, m_fy, m_fz});
 	}

@@ -31,13 +31,13 @@ void StateLogger::Disable()
 void StateLogger::SetPrefix(const std::string &_prefix)
 {
     StateLogger_Prefix = _prefix;
-    StateLogger_PrefixPlusTime=StateLogger_Prefix+","+std::to_string(StateLogger_Stepindex);
+    StateLogger_PrefixPlusTime=StateLogger_Prefix+std::to_string(StateLogger_Stepindex)+",";
 }
 
 void StateLogger::BeginStep(unsigned step)
 {
     StateLogger_Stepindex = step;
-    StateLogger_PrefixPlusTime=StateLogger_Prefix+","+std::to_string(StateLogger_Stepindex);
+    StateLogger_PrefixPlusTime=StateLogger_Prefix+std::to_string(StateLogger_Stepindex)+",";
 }
 
 void StateLogger::LogImpl(const char *facet, int key_dim, const int *key, int val_dim, const double *value)

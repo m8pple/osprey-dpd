@@ -91,10 +91,10 @@ public:
     {
         if(StateLogger_CompileTimeEnable){
             int bb[2]={(int)b1,(int)b2};
-            Log(facet, 2, bb, 1, value);
+            Log(facet, 2, bb, 3, value);
             std::swap(bb[0], bb[1]);
             double neg[3]={-value[0], -value[1], -value[2]};
-            Log(facet, 2, bb, 1, neg);
+            Log(facet, 2, bb, 3, neg);
         }
     }
 

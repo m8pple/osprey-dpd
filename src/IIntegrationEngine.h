@@ -223,9 +223,11 @@ public:
 
     static void ListEngines(std::ostream &dst)
     {
+        dst<<"Available engines:\n";
         for(const auto &kv : GetFactories()){
             dst<<kv.first<<"\n";
         }
+        dst.flush();
     }
 
 private:

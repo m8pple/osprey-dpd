@@ -24,10 +24,15 @@
 
 #include "StateLogger.h"
 
+#include "ParallelContext.h"
+
 class SimEngineFast
     : public IIntegrationEngine
 {
 public:
+    SimEngineFast()
+    {}
+
     std::string Name() const override
     {
         return "SimEngineFast";
@@ -685,18 +690,41 @@ private:
             // Next calculate the forces between all pairs of beads in NN CNT cells
             // that can potentially interact. No monitor accumulations are performed.
 
-            iterCell = m_vCNTCells.begin();
-            PrefetchHint(**iterCell);
+            if(!IsParallel()){
+                iterCell = m_vCNTCells.begin();
+                PrefetchHint(**iterCell);
 
-            while(iterCell != m_vCNTCells.end()){
-                auto curr=*iterCell;
+                while(iterCell != m_vCNTCells.end()){
+                    auto curr=*iterCell;
 
-                ++iterCell;
-                if(iterCell!=m_vCNTCells.end()){
-                    PrefetchHint(**iterCell);
+                    ++iterCell;
+                    if(iterCell!=m_vCNTCells.end()){
+                        PrefetchHint(**iterCell);
+                    }
+
+                    UpdateForceFast(curr);
                 }
+            }else{
+                range_3d box{
+                  {0, m_CNTXCellNo},
+                  {0, m_CNTYCellNo},
+                  {0, m_CNTZCellNo}  
+                };
 
-                UpdateForceFast(curr);
+                ParallelContext::GetDefaultContext().ParForWithSafeHalo(
+                    box,
+                    2, // Means minimum parallelism comes with dimension of 2*2*2 = 8. Too fine-grain?
+                    [&](const range_3d &local){
+                        for(auto p : local){
+                            unsigned index = box.to_linear_index(p);
+                            auto cell=m_vCNTCells[index];
+                            DEBUG_ASSERT(cell->GetBLXIndex()==p.x);
+                            DEBUG_ASSERT(cell->GetBLYIndex()==p.y);
+                            DEBUG_ASSERT(cell->GetBLZIndex()==p.z);
+                            UpdateForceFast(cell);
+                        }
+                    }
+                );
             }
 
             CCNTCell::PostCalculateDPDForces();
@@ -716,4 +744,20 @@ private:
     }
 };
 
+
+class SimEngineFastPar
+    : public SimEngineFast
+{
+public:
+
+    std::string Name() const override
+    {
+        return "SimEngineFastPar";
+    }
+
+    virtual bool IsParallel() const override
+    { return true; }
+};
+
 static bool reg_SimEngineFast = SimEngineBase<SimEngineFast>::Register();
+static bool reg_SimEngineFastPar = SimEngineBase<SimEngineFastPar>::Register();

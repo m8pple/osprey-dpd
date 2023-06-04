@@ -3,7 +3,8 @@ cmake_policy(VERSION 3.9)
 
 project(osprey-dpd VERSION "0.0.0")
 
-include(CheckIPOSupported)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(COMPILE_OPTIONS
     -g3
@@ -21,17 +22,7 @@ set(COMPILE_OPTIONS
     -Wno-sign-compare
     )
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# cheating until source file count goes down
-file(GLOB SRC_FILES src/*.cpp src/*/*.cpp)
-
-INCLUDE_DIRECTORIES(
-  src
-  src/engines
-)
-
+include(CheckIPOSupported)
 
 find_package(TBB)
 if(TBB_FOUND)
@@ -50,11 +41,75 @@ if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
 set(COMPILE_OPTIONS ${COMPILE_OPTIONS} -mavx2)
 endif()
 
+set(COMPILE_OPTIONS_DEBUG
+  ${COMPILE_OPTIONS}
+  -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
+  -DOSPREY_ENABLE_DEBUG_ASSERT=1
+  -DTraceOn
+  -UNDEBUG
+  -fsanitize=undefined
+  -fsanitize=address
+  -O0
+)
+set(LINK_OPTIONS_DEBUG
+  -fsanitize=undefined
+  -fsanitize=address
+)
 
-add_executable(dpd ${SRC_FILES})
+INCLUDE_DIRECTORIES(
+  src
+  src/engines
+)
+
+#####################################################################
+## Create "virtual" object libraries
+##
+## These are used to reduce the recompilation time when there are both
+## programs and unit tests that depend on the main body of the code.
+## 
+## They must be virtual libraries (OBJECT) rather than shared libraries
+## due to the self-registration pattern used in osprey. It relies on
+## static initialisers running before main, but if linking with a 
+## static library the translation units containing initialisers will
+## be stripped out.
+
+# cheating until source file count goes down
+file(GLOB SRC_FILES src/*.cpp src/*/*.cpp)
+
+# Get the list with everything except source containing main
+file(GLOB SRC_FILES_NO_MAIN src/*.cpp src/*/*.cpp)
+list(FILTER SRC_FILES_NO_MAIN EXCLUDE REGEX ".*/src/dmpc.cpp")
+
+# Create a library that contains the default-compiled version of everything _except_ dmpc.cpp)
+add_library(libdpd OBJECT ${SRC_FILES_NO_MAIN})
+target_compile_options(libdpd PRIVATE ${COMPILE_OPTIONS})
+
+# Create a library that contains the debug default-compiled version of everything _except_ dmpc.cpp)
+add_library(libdpd-debug OBJECT ${SRC_FILES_NO_MAIN})
+target_compile_options(libdpd-debug PRIVATE ${COMPILE_OPTIONS_DEBUG})
+
+
+#############################################################
+## Main build targets
+
+# Bog standard version. Nothing special
+add_executable(dpd src/dmpc.cpp)
+target_link_libraries(dpd libdpd)
 target_compile_options(dpd
   PRIVATE ${COMPILE_OPTIONS}  -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
 )
+
+# Debug version of dpd with limited sanitizers turned on
+add_executable(dpd-debug ${SRC_FILES})
+target_link_libraries(dpd-debug libdpd-debug)
+target_compile_options(dpd-debug
+  PRIVATE ${COMPILE_OPTIONS_DEBUG} 
+)
+target_link_options(dpd-debug PRIVATE ${LINK_OPTIONS_DEBUG})
+
+
+################################################################################
+## These are mainly added to check less common options still compile
 
 add_executable(dpd-bd ${SRC_FILES})
 target_compile_options(dpd-bd
@@ -71,20 +126,6 @@ target_compile_options(dpd-2d
   PRIVATE ${COMPILE_OPTIONS} -DSimDimension=2
 )
 
-
-#############################################################
-## Debug build
-
-add_executable(dpd-debug ${SRC_FILES})
-target_compile_options(dpd-debug
-  PRIVATE ${COMPILE_OPTIONS}
-  -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
-  -DOSPREY_ENABLE_DEBUG_ASSERT=1
-  -DTraceOn
-  -UNDEBUG
-)
-target_compile_options(dpd-debug PRIVATE -fsanitize=undefined -fsanitize=address)
-target_link_options(dpd-debug PRIVATE -fsanitize=undefined -fsanitize=address)
 
 #############################################################
 ## Most optimised version.
@@ -115,3 +156,31 @@ check_ipo_supported(RESULT check_ipo_supported_result OUTPUT output)
 if(check_ipo_supported_result)
   set_property(TARGET dpd-opt PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
+
+
+############################################################################
+## Unit tests
+
+function(add_unittest cpp_name)
+
+add_executable(${cpp_name} testing/unittests/${cpp_name}.cpp)
+
+target_link_libraries(${cpp_name} libdpd)
+target_compile_options(${cpp_name}
+  PRIVATE ${COMPILE_OPTIONS}  -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
+)
+add_test(NAME ${cpp_name} COMMAND ${cpp_name})
+
+add_executable(${cpp_name}-debug testing/unittests/${cpp_name}.cpp)
+target_link_libraries(${cpp_name}-debug libdpd-debug)
+target_compile_options(${cpp_name}-debug
+  PRIVATE ${COMPILE_OPTIONS_DEBUG} 
+)
+target_link_options(${cpp_name}-debug
+  PRIVATE  ${LINK_OPTIONS_DEBUG}
+)
+
+endfunction()
+
+
+add_unittest(test_parallel_services)

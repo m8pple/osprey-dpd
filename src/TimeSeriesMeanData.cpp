@@ -11,14 +11,14 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************** */
-// TimeSeriesData.cpp: implementation of the CTimeSeriesData class.
+// TimeSeriesMeanData.cpp: implementation of the CTimeSeriesMeanData class.
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
 #include "SimDefs.h"
 #include "SimXMLFlags.h"
-#include "TimeSeriesData.h"
+#include "TimeSeriesMeanData.h"
 
 	using std::setw;
 	using std::setprecision;
@@ -29,20 +29,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 // Global functions for serialization
 //////////////////////////////////////////////////////////////////////
 
-// Function to write out the command data to file. We pass the
-// stream output operator to the put() function. This is because the << and >> operators cannot be
-// treated polymporphically.
-
-zOutStream& operator<<(zOutStream& os, const CTimeSeriesData& rTSD)
-{
-    return rTSD.put(os);
-}
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CTimeSeriesData::CTimeSeriesData(long dataSetSize)
+CTimeSeriesMeanData::CTimeSeriesMeanData(long dataSetSize) : CTimeSeriesData(dataSetSize)
 {
 	// Fix the size of the data set here and add data in the locations later.
 	// This avoids having to allocate memory every time a data item is added
@@ -51,16 +43,15 @@ CTimeSeriesData::CTimeSeriesData(long dataSetSize)
 	// This is different from reserve() that only allocates memory to the 
 	// vector but does not change its "size()".
 
-	m_vDataSet.resize(dataSetSize, 0.0);
-	m_vDataLabels.resize(dataSetSize);
+    m_vSDevSet.resize(dataSetSize, 0.0);
 }
 
-CTimeSeriesData::~CTimeSeriesData()
+CTimeSeriesMeanData::~CTimeSeriesMeanData()
 {
 
 }
 
-zOutStream& CTimeSeriesData::put(zOutStream& os) const
+zOutStream& CTimeSeriesMeanData::put(zOutStream& os) const
 {
     // If XML output is enabled wrap the data in start and end tags and place each
     // data item inside an element whose name is given by the item's label.
@@ -80,13 +71,13 @@ zOutStream& CTimeSeriesData::put(zOutStream& os) const
     os << "</Data>" << zEndl;
 
 #elif EnableXMLProcesses == SimXMLDisabled
-
+    
+    czDoubleVectorIterator iterSDev=m_vSDevSet.begin();
+    
     for(czDoubleVectorIterator iterData=m_vDataSet.begin(); iterData!=m_vDataSet.end(); iterData++)
     {
-        os << setw(12) << setprecision(6) << zLeft;
-        os << (*iterData) << " ";
+        os << setw(12) << setprecision(6) << zLeft << (*iterData) << " " << (*iterSDev++) <<zEndl;
     }
-    os << zEndl;
 
 #endif
 
@@ -103,9 +94,12 @@ zOutStream& CTimeSeriesData::put(zOutStream& os) const
 //
 // Note that the default value of the label is set in the header file.
 
-void CTimeSeriesData::SetValue(long id, double value, zString label)
+// Overloaded function to set the value of a data member and its stdandard deviation in the current data set.
+
+void CTimeSeriesMeanData::SetValue(long id, double value, double sdev, zString label)
 {
-	m_vDataSet.at(id)	 = value;
-	m_vDataLabels.at(id) = label;
+    m_vDataSet.at(id)     = value;
+    m_vSDevSet.at(id)     = sdev;
+    m_vDataLabels.at(id)  = label;
 }
 

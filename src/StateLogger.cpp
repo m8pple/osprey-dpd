@@ -5,7 +5,7 @@
 
 bool StateLogger::m_RunTimeEnabled = false;
 
-static unsigned StateLogger_Stepindex = 0;
+static unsigned StateLogger_Stepindex =  0;
 static std::string StateLogger_Prefix;
 static std::string StateLogger_PrefixPlusTime;
 static std::function<void(const std::string &)> StateLogger_LineSink;

@@ -273,9 +273,12 @@ struct BondInfo
             const BondPair &bond_pair=polymer.data[polymer.num_bonds + i].bond_pair;
             const TCalc *first = working + bond_pair.first_bond_off*4;
             const TCalc *second = working + bond_pair.second_bond_off*4;
-            auto &first_head_bead = bead_source( polymer.data[bond_pair.first_bond_off].bond.head_bead_id );
-            auto &first_tail_bead = bead_source( polymer.data[bond_pair.first_bond_off].bond.tail_bead_id );
-            auto &second_head_bead = bead_source( polymer.data[bond_pair.second_bond_off].bond.head_bead_id );
+            unsigned idH=polymer.data[bond_pair.first_bond_off].bond.head_bead_id;
+            unsigned idM=polymer.data[bond_pair.first_bond_off].bond.tail_bead_id;
+            unsigned idT=polymer.data[bond_pair.second_bond_off].bond.head_bead_id;
+            auto &first_head_bead = bead_source( idH );
+            auto &first_tail_bead = bead_source( idM );
+            auto &second_head_bead = bead_source( idT );
 
             TCalc FirstLength=first[3];
             DEBUG_ASSERT(std::abs(FirstLength) < 4);
@@ -349,6 +352,17 @@ struct BondInfo
                     DEBUG_ASSERT(!std::isnan(BeadXForce[d]));
                     DEBUG_ASSERT(!std::isnan(BeadYForce[d]));
                     DEBUG_ASSERT(!std::isnan(BeadZForce[d]));
+                }
+
+                if(StateLogger::IsEnabled()){
+                    //DEBUG_ASSERT(idH!=idM && idM!=idT && idT!=idH);
+                    //DEBUG_ASSERT( idM == m_pSecond->m_pTail->GetId()-1 );
+                    StateLogger::LogBeadTriple("bondpair_dx1", idH, idM, idT, {first[0], first[1], first[2]});
+                    StateLogger::LogBeadTriple("bondpair_dx2", idH, idM, idT, {second[0], second[1], second[2]});
+
+                    StateLogger::LogBeadTriple("bondpair_fH", idH, idM, idT, {BeadXForce[0], BeadYForce[0], BeadZForce[0] });
+                    StateLogger::LogBeadTriple("bondpair_fM", idH, idM, idT, {BeadXForce[1], BeadYForce[1], BeadZForce[1] });
+                    StateLogger::LogBeadTriple("bondpair_fT", idH, idM, idT, {BeadXForce[2], BeadYForce[2], BeadZForce[2] });
                 }
 
             }

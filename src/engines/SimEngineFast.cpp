@@ -54,7 +54,13 @@ public:
      
         ImportGlobals(mbox);
      
-        EvolveFast(mbox, start_sim_time, num_steps);
+        if(0){
+            EvolveFast(mbox, start_sim_time, num_steps);
+        }else{
+            for(unsigned i=0; i<num_steps; i++){
+                EvolveFast(mbox, start_sim_time+i, 1);
+            }
+        }
 
         return {Supported, {}, num_steps};
     }
@@ -154,8 +160,16 @@ private:
                     dx[d] = ((*iterBead1)->m_Pos[d] - (*iterBead2)->m_Pos[d]);
                     dx2[d] = dx[d] * dx[d];
                 }
-        
+
                 dr2 = dx2[0] + dx2[1] + dx2[2];
+                
+                if(StateLogger::IsEnabled()){
+                    int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
+                    StateLogger::LogBeadPairRefl("dpd_dx", id1, id2, dx);
+                    StateLogger::LogBeadPairRefl("dpd_dr2", id1, id2, dr2);
+                }
+        
+        
 
     // Calculate the interactions between the two beads for each simulation type.
     // For the DPD interactions we use the flag UseDPDBeadRadii to determine whether
@@ -184,15 +198,17 @@ private:
                     rdotv		= (dx_dv[0] + dx_dv[1] + dx_dv[2]) * inv_dr;
                     gammap		= CCNTCell::m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
 
-                    dissForce	= -gammap*rdotv;				
-                    randForce	= sqrt(gammap) * rng_scale * CCNTCell::RandUniformBetweenBeads(*iterBead1, *iterBead2);
+                    dissForce	= -gammap*rdotv;			
+                    double randNum    = CCNTCell::RandUniformBetweenBeads(*iterBead1, *iterBead2);	
+                    randForce	= sqrt(gammap) * rng_scale * randNum;
                     normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
                     if(StateLogger::IsEnabled()){
-						int id1=(*iterBead1)->GetId()-1, id2=(*iterBead1)->GetId()-1;
+						int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
 						StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
-						StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
-						StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+						StateLogger::LogBeadPairRefl("dpd_randNum", id1, id2, randNum);
+                        StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+                        StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
 						StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
 					}
 
@@ -256,6 +272,12 @@ private:
 
                     dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
 
+                    if(StateLogger::IsEnabled()){
+                        int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
+                        StateLogger::LogBeadPairRefl("dpd_dx", id1, id2, dx);
+                        StateLogger::LogBeadPairRefl("dpd_dr2", id1, id2, dr2);
+                    }
+
                     if( dr2 < 1.0 && dr2 > min_r2)
                     {		
                         for(int d=0; d<3; d++){
@@ -274,13 +296,23 @@ private:
                         gammap		= CCNTCell::m_vvDissInt[(*iterBead1)->GetType()][(*iterBead2)->GetType()]*wr2;
 
                         dissForce	= -gammap*rdotv;		
-                        randForce	= sqrt(gammap) * rng_scale * CCNTCell::RandUniformBetweenBeads(*iterBead1, *iterBead2);
+                        double randNum = CCNTCell::RandUniformBetweenBeads(*iterBead1, *iterBead2);
+                        randForce	= sqrt(gammap) * rng_scale * randNum;
                         normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
                         for(int d=0; d<3; d++){
                             newForce[d] = normTotalForce * dx[d];
                             (*iterBead1)->m_Force[d] += newForce[d];
                             (*iterBead2)->m_Force[d] -= newForce[d];
+                        }
+
+                        if(StateLogger::IsEnabled()){
+                            int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
+                            StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+                            StateLogger::LogBeadPairRefl("dpd_randNum", id1, id2, randNum);
+                            StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+                            StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+                            StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
                         }
                     }
                 }
@@ -403,7 +435,7 @@ private:
             */
             bool moved=0;
             for(int d=0; d<3; d++){
-                moved |= (bead->m_Pos[d] > cell->m_TRCoord[d]) - (bead->m_Pos[d] < cell->m_BLCoord[d]);
+                moved |= (bead->m_Pos[d] > cell->m_TRCoord[d]) | (bead->m_Pos[d] < cell->m_BLCoord[d]);
             }
             if(!moved){
                 for(int d=0; d<3; d++){
@@ -482,6 +514,12 @@ private:
     #ifndef NDEBUG
                 (*iterBead)->m_AngMom[0]	= nanf(""); // angular momentum not updated for fast path
     #endif
+
+                if(StateLogger::IsEnabled()){
+                    StateLogger::LogBead("x_next", (*iterBead)->GetId()-1, (*iterBead)->m_Pos);
+                    StateLogger::LogBead("v_next", (*iterBead)->GetId()-1, (*iterBead)->m_Mom);
+                    StateLogger::LogBead("f_next", (*iterBead)->GetId()-1, (*iterBead)->m_Force);
+                }
             }
         }
     }
@@ -511,6 +549,13 @@ private:
         double fx = SprConst*(UnStrLen - Length)*dx/Length;
         double fy = SprConst*(UnStrLen - Length)*dy/Length;
         double fz = SprConst*(UnStrLen - Length)*dz/Length;
+
+        if(StateLogger::IsEnabled()){
+            unsigned id1=m_pHead->GetId()-1, id2=m_pTail->GetId()-1;
+            StateLogger::LogBeadPair("bond_dx", id1, id2, {dx, dy, dz});
+            StateLogger::LogBeadPair("bond_r", id1, id2, Length);
+            StateLogger::LogBeadPair("bond_f", id1, id2, {fx, fy, fz});
+        }
 
         m_pHead->m_Force[0]+= fx;
         m_pHead->m_Force[1]+= fy;
@@ -556,7 +601,7 @@ private:
         #endif
 
         auto &m_pFirst=bp->m_pFirst;
-        auto &m_pSecond=bp->m_pFirst;
+        auto &m_pSecond=bp->m_pSecond;
 
         double FirstLength   = m_pFirst->m_Length;
         double SecondLength  = m_pSecond->m_Length;
@@ -640,6 +685,18 @@ private:
             m_pFirst->m_pHead->m_Force[0] += BeadXForce[1];
             m_pFirst->m_pHead->m_Force[1] += BeadYForce[1];
             m_pFirst->m_pHead->m_Force[2] += BeadZForce[1];
+
+            if(StateLogger::IsEnabled()){
+                unsigned idH=m_pFirst->m_pTail->GetId()-1, idM=m_pFirst->m_pHead->GetId()-1, idT=m_pSecond->m_pHead->GetId()-1;
+                //DEBUG_ASSERT(idH!=idM && idM!=idT && idT!=idH);
+                //DEBUG_ASSERT( idM == m_pSecond->m_pTail->GetId()-1 );
+                StateLogger::LogBeadTriple("bondpair_dx1", idH, idM, idT, {m_pFirst->m_dx, m_pFirst->m_dy, m_pFirst->m_dz});
+                StateLogger::LogBeadTriple("bondpair_dx2", idH, idM, idT, {m_pSecond->m_dx, m_pSecond->m_dy, m_pSecond->m_dz});
+
+                StateLogger::LogBeadTriple("bondpair_fH", idH, idM, idT, {BeadXForce[0], BeadYForce[0], BeadZForce[0] });
+                StateLogger::LogBeadTriple("bondpair_fM", idH, idM, idT, {BeadXForce[1], BeadYForce[1], BeadZForce[1] });
+                StateLogger::LogBeadTriple("bondpair_fT", idH, idM, idT, {BeadXForce[2], BeadYForce[2], BeadZForce[2] });
+            }
         }
     }
 
@@ -670,8 +727,9 @@ private:
         }
 
         for(unsigned i=0; i<nSteps; i++){
+            StateLogger::BeginStep(sim_start_time+i);
 
-            CCNTCell::PreCalculateDPDForces(box->GetRNGSeed(), sim_start_time);
+            CCNTCell::PreCalculateDPDForces(box->GetRNGSeed(), sim_start_time+i);
 
             iterCell = m_vCNTCells.begin();
             PrefetchHint(**iterCell);
@@ -729,6 +787,12 @@ private:
 
             CCNTCell::PostCalculateDPDForces();
 
+            if(StateLogger::IsEnabled()){
+                for(auto b : box->GetAllBeadsInCNTCells()){
+                    StateLogger::LogBead("dpd_f_total", b->GetId()-1, b->m_Force);
+                }
+            }
+
             // Add in the forces between bonded beads and the stiff bond force. Note that
             // AddBondPairForces() must be called after AddBondForces() because it relies
             // on the bond lengths having already been calculated in CBond::AddForce().
@@ -739,6 +803,7 @@ private:
 
         for(iterCell=m_vCNTCells.begin(); iterCell!=m_vCNTCells.end(); iterCell++)
         {
+            // Any logging here appears for the final time-step
             UpdateMomFast(box, (*iterCell));
         } 
     }

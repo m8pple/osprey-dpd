@@ -20,6 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Bead.h"
 #include "Bond.h"
 #include "BondPair.h"
+#include "StateLogger.h"
 
 #include "SimMathFlags.h"
 
@@ -262,6 +263,18 @@ void CBondPair::AddForce()
 		m_pFirst->m_pHead->m_Force[0] += m_BeadXForce[1];
 		m_pFirst->m_pHead->m_Force[1] += m_BeadYForce[1];
 		m_pFirst->m_pHead->m_Force[2] += m_BeadZForce[1];
+
+		if(StateLogger::IsEnabled()){
+			unsigned idH=m_pFirst->m_pTail->GetId()-1, idM=m_pFirst->m_pHead->GetId()-1, idT=m_pSecond->m_pHead->GetId()-1;
+			DEBUG_ASSERT(idH!=idM && idM!=idT && idT!=idH);
+			DEBUG_ASSERT( idM == m_pSecond->m_pTail->GetId()-1 );
+			StateLogger::LogBeadTriple("bondpair_dx1", idH, idM, idT, {m_pFirst->m_dx, m_pFirst->m_dy, m_pFirst->m_dz});
+			StateLogger::LogBeadTriple("bondpair_dx2", idH, idM, idT, {m_pSecond->m_dx, m_pSecond->m_dy, m_pSecond->m_dz});
+
+			StateLogger::LogBeadTriple("bondpair_fH", idH, idM, idT, {m_BeadXForce[0], m_BeadYForce[0], m_BeadZForce[0] });
+			StateLogger::LogBeadTriple("bondpair_fM", idH, idM, idT, {m_BeadXForce[1], m_BeadYForce[1], m_BeadZForce[1] });
+			StateLogger::LogBeadTriple("bondpair_fT", idH, idM, idT, {m_BeadXForce[2], m_BeadYForce[2], m_BeadZForce[2] });
+		}
 
 /*
 		// Debug output of new forces

@@ -37,7 +37,6 @@ const zString ecSelectEngine::m_Type = "SelectSimEngine";
 
 const zString ecSelectEngine::GetType()
 {
-	fprintf(stderr, "Wobble : type=%s ", m_Type.c_str());
 	return m_Type;
 }
 

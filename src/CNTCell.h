@@ -174,11 +174,23 @@ public:
 	void SetIntNNCellIndex(long index, CCNTCell* pCell);
 	bool CheckBeadsinCell();
 
+	/* 	Hook to allow different RNGs to be inserted into CCNTCell. Used both for testing
+		purposes, and to make parts of CCNTCell thread safe.
+		If this method is not called, then the original LCG RNG is used.
+		- CustomRngProc : returns a number in the range (-0.5,+0.5) for the given bead pair
+		- CustomRNGBeginTimeStep : performs any initialisation for a given time-step, returning an opaque state handle
+		- CustomRNGEndTimeStep : cleans up resources associated with time-step
+	*/
 	static void SetCustomRNGProc(
 		float (*CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2) = 0,
 		uintptr_t (*CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t step_index) = 0,
-		void (*CustomRNGEndTimeStep)(uintptr_t state) = 0
+		void (*CustomRNGEndTimeStep)(uintptr_t state) = 0,
+		bool isThreadSafe = false,    	// If true, then multiple threads can access at the same time
+		bool isRepeatable = false 		// If true, then a sequential thread calling (bead_id1,bead_id2) will always get the same value
+		
 	);
+	static bool IsRandUniformBetweenBeadsThreadSafe(); // Returns true if the RandUniformBetweenBeads is thread-safe (though it may still be non-deterministic)
+	static bool IsRandUniformBetweenBeadsRepeatable(); // Returns true if the RandUniformBetweenBeads is repeatable (though it may not be thread safe)
 
 	// ****************************************
 	// Protected local functions
@@ -251,6 +263,8 @@ private:
 	static uintptr_t (*m_CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t step_index);
 	// Called after all forces are calculate in the time step, just in case state points at something dynamically allocated.
 	static void (*m_CustomRNGEndTimeStep)(uintptr_t state);
+	static bool m_CustomRNGIsThreadSafe;
+	static bool m_CustomRNGIsRepeatable;
 	
 	static CMonitor* m_pMonitor;	// Pointer to CMonitor to allow on-the-fly analysis
 	static ISimBox*  m_pISimBox;	// Pointer to ISimBox to allow on-the-fly analysis

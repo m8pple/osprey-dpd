@@ -23,16 +23,24 @@ inline uint32_t bead_id_hash_rng__bead_hash(uint64_t round_hash, uint32_t ida, u
     // This is a completely arbitrary constant. It hasn't been optimised
     // at all. I don't really recommend people use this in production,
     // it is mainly to support debugging.
-    const uint64_t C = 15241094493843679889ull;
+    /*const uint32_t C1 = 1459366445; // e/8
+    const uint32_t C2 = 1686629713; // pi/8
 
-    uint64_t idab=(uint64_t(ida)<<32)|idb;
-    uint64_t idba=(uint64_t(idb)<<32)|ida;
-    idab += round_hash;
-    idba += round_hash;
-    idab *= C;
-    idba *= C;
+    uint32_t a = std::min(ida,idb) + uint32_t(round_hash);
+    uint32_t b = std::max(ida,idb) + uint32_t(round_hash>>32);
 
-    return uint32_t( (idab ^ idba) + ( (idab>>32) ^ (idab>>32) ) );
+    uint32_t c = (a + (b>>16)) & 0x7FFFFFFFul;
+    uint32_t d = (b + (a>>16)) & 0x7FFFFFFFul;
+
+    c *= C1;
+    d *= C2;
+
+    return c ^ d;*/
+
+
+    uint64_t ab=(uint64_t(std::max(ida,idb))<<32) | std::min(ida,idb);
+    uint64_t xx=bead_id_hash_rng__SplitMix64(round_hash+ab);
+    return uint32_t(xx) ^ uint32_t(xx>>32);
 }
 
 // Return random float in [-0.5,+0.5)

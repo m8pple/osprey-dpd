@@ -89,7 +89,7 @@ for (nindex,name) in enumerate(ref_data.names):
             sys.stderr.write(f"Warning : repeat {rindex} matches maximum seen in reference for {name}\n")
     sys.stdout.flush()
 
-    tt=TimeSeriesBucketTransitions(ref_data, nindex, 5)
+    tt=TimeSeriesBucketTransitions(ref_data, nindex, 4)
     pvalues=tt.calc_pvalues(data)
     (message,code)=to_message_and_code(pvalues)
     for (rindex,pvalue) in enumerate(pvalues):

@@ -75,6 +75,15 @@ public:
         }
     }
 
+    // Log a shared vector property just for (b1,b2)
+    static void LogBeadPair(const char *facet, unsigned b1, unsigned b2, const std::array<double,3> &values)
+    {
+        if(StateLogger_CompileTimeEnable){
+            int bb[2]={(int)b1,(int)b2};
+            Log(facet, 2, bb, 3, &values[0]);
+        }
+    }
+
     // Log a shared scalar property for (b1,b2), and the same property for (b2,b1) 
     static void LogBeadPairRefl(const char *facet, unsigned b1, unsigned b2, double value)
     {
@@ -105,6 +114,33 @@ public:
         }
     }
 
+
+    // Log a shared scalar property for (b1,b2,b3)
+    static void LogBeadTriple(const char *facet, unsigned b1, unsigned b2, unsigned b3, double value)
+    {
+        if(StateLogger_CompileTimeEnable){
+            int bb[3]={(int)b1,(int)b2, (int)b3};
+            Log(facet, 3, bb, 1, &value);
+        }
+    }
+
+    // Log a shared vector property for (b1,b2,b3)
+    static void LogBeadTriple(const char *facet, unsigned b1, unsigned b2, unsigned b3, const double value[3])
+    {
+        if(StateLogger_CompileTimeEnable){
+            int bb[3]={(int)b1,(int)b2,(int)b3};
+            Log(facet, 3, bb, 3, value);
+        }
+    }
+
+    // Log a shared vector property for (b1,b2,b3)
+    static void LogBeadTriple(const char *facet, unsigned b1, unsigned b2, unsigned b3, const std::array<double,3> &values)
+    {
+        if(StateLogger_CompileTimeEnable){
+            int bb[3]={(int)b1,(int)b2,(int)b3};
+            Log(facet, 3, bb, 3, &values[0]);
+        }
+    }
 
 private:
     static void LogImpl(const char *facet, int key_dim, const int *key, int val_dim, const double *value);

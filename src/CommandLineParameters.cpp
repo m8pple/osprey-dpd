@@ -6,6 +6,9 @@
 #include "xxCommandObject.h"
 
 #include "IIntegrationEngine.h"
+#include "BeadIdHashRNG.h"
+#include "CNTCell.h"
+#include <random>
 
 bool CommandLineParameters::sm_initialised = false;
 std::vector<std::unique_ptr<xxCommandObject>> CommandLineParameters::sm_extra_commands;
@@ -59,7 +62,51 @@ Parameters:
     a diff engine that compares bead state against the refernce engine output after each step.
     If no engine is set then it is a no-op.
 
+--set-hash-rng : (Only useful for development and POETS-DPD inter-op) Switch RNG to a
+    hash based RNG that is deterministic under parallel re-ordering of cell execution.
+
+--set-mt19937-rng : (Only useful for development and testing) Switch RNG to a
+    mersenne twister (slow, but very high quality).
+
 )";
+
+struct mt19937_64_wrapper
+{
+    std::mt19937_64 rng;
+    std::uniform_real_distribution<float> udist; // This is non-const, so in principle it is not thread-safe to share...
+
+    static void HookCNTCell()
+    {
+        CCNTCell::SetCustomRNGProc(
+            mt19937_CustomRNGProc,
+            mt19937_CustomRNGBeginTimeStep,
+            mt19937_CustomRNGEndTimeStep,
+            false,
+            false
+        );
+    }
+
+    static float mt19937_CustomRNGProc(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2)
+    {
+        auto p = (mt19937_64_wrapper*)state;
+        return p->udist(p->rng);
+    }
+
+    static uintptr_t mt19937_CustomRNGBeginTimeStep(uint64_t global_seed, uint64_t step_index)
+    {
+        uint32_t vals[4] = {uint32_t(global_seed>>32), uint32_t(global_seed&0xFFFFFFFFul), uint32_t(step_index>>32), uint32_t(step_index&0xFFFFFFFFul)};
+        std::seed_seq ss(vals, vals+4);
+        return (uintptr_t)(new mt19937_64_wrapper{ std::mt19937_64{ss}, std::uniform_real_distribution<float>{-0.5f, 0.5f} } );
+    }
+
+    static void mt19937_CustomRNGEndTimeStep(uintptr_t state)
+    {
+        delete (mt19937_64_wrapper*)state;
+    }
+};
+
+
+
 
 void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<void(const std::string &)> on_error)
 {
@@ -136,6 +183,16 @@ void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<vo
         }else if(cmd=="--wrap-engine-with-ref-diff"){
             IIntegrationEngine::WrapGlobalEngineWithRefDiff();
             consume_args(1);
+        }else if(cmd=="--set-hash-rng"){
+            CCNTCell::SetCustomRNGProc(
+                bead_id_hash_rng__random_symmetric_uniform,
+                bead_id_hash_rng__round_hash,
+                0
+            );
+            consume_args(1);
+        }else if(cmd=="--set-mt19937-rng"){
+            mt19937_64_wrapper::HookCNTCell();
+            consume_args(1);
         }else if(cmd=="--help"){
             consume_args(1);
             return on_error(sg_usage);
@@ -144,3 +201,4 @@ void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<vo
         }
     }
 }
+

@@ -20,6 +20,8 @@ set(COMPILE_OPTIONS
     -Wno-unused-parameter
     -Wno-reorder
     -Wno-sign-compare
+
+    -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
     )
 
 include(CheckIPOSupported)
@@ -43,7 +45,6 @@ endif()
 
 set(COMPILE_OPTIONS_DEBUG
   ${COMPILE_OPTIONS}
-  -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
   -DOSPREY_ENABLE_DEBUG_ASSERT=1
   -DTraceOn
   -UNDEBUG
@@ -54,6 +55,14 @@ set(COMPILE_OPTIONS_DEBUG
 set(LINK_OPTIONS_DEBUG
   -fsanitize=undefined
   -fsanitize=address
+)
+
+
+set(COMPILE_OPTIONS_RELEASE
+  ${COMPILE_OPTIONS}
+  -UOSPREY_DPD_ENABLE_STATE_LOGGING
+  -UOSPREY_ENABLE_DEBUG_ASSERT
+  -UTraceOn
 )
 
 INCLUDE_DIRECTORIES(
@@ -88,6 +97,9 @@ target_compile_options(libdpd PRIVATE ${COMPILE_OPTIONS})
 add_library(libdpd-debug OBJECT ${SRC_FILES_NO_MAIN})
 target_compile_options(libdpd-debug PRIVATE ${COMPILE_OPTIONS_DEBUG})
 
+# Create a library that contains the release-compiled version of everything _except_ dmpc.cpp)
+add_library(libdpd-release OBJECT ${SRC_FILES_NO_MAIN})
+target_compile_options(libdpd-release PRIVATE ${COMPILE_OPTIONS_RELEASE})
 
 #############################################################
 ## Main build targets
@@ -96,16 +108,23 @@ target_compile_options(libdpd-debug PRIVATE ${COMPILE_OPTIONS_DEBUG})
 add_executable(dpd src/dmpc.cpp)
 target_link_libraries(dpd libdpd)
 target_compile_options(dpd
-  PRIVATE ${COMPILE_OPTIONS}  -DOSPREY_DPD_ENABLE_STATE_LOGGING=1
+  PRIVATE ${COMPILE_OPTIONS}
 )
 
 # Debug version of dpd with limited sanitizers turned on
-add_executable(dpd-debug ${SRC_FILES})
+add_executable(dpd-debug  src/dmpc.cpp)
 target_link_libraries(dpd-debug libdpd-debug)
 target_compile_options(dpd-debug
   PRIVATE ${COMPILE_OPTIONS_DEBUG} 
 )
 target_link_options(dpd-debug PRIVATE ${LINK_OPTIONS_DEBUG})
+
+# Release version. Max optimisation, min error checking
+add_executable(dpd-release src/dmpc.cpp)
+target_link_libraries(dpd-release libdpd-release)
+target_compile_options(dpd-release
+  PRIVATE ${COMPILE_OPTIONS_RELEASE}
+)
 
 
 ################################################################################
@@ -132,7 +151,7 @@ target_compile_options(dpd-2d
 
 add_executable(dpd-opt ${SRC_FILES})
 target_compile_options(dpd-opt
-  PRIVATE ${COMPILE_OPTIONS}
+  PRIVATE ${COMPILE_OPTIONS_RELEASE}
 )
 # These get a good boost, and should be portable. fast-math appears fine in the 
 # context of commands I've tried, but there may be parts where it doesn't work.

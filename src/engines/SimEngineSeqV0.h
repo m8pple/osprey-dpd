@@ -78,6 +78,8 @@ public:
         #endif
 
         for(unsigned i=0; i<num_steps; i++){
+            StateLogger::BeginStep(start_sim_time+i);
+                
             update_mom_and_move();
             m_generation += 1;
 

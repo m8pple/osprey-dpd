@@ -84,6 +84,8 @@ float (*CCNTCell::m_CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t 
 uintptr_t CCNTCell::m_CustomRNGState = 0;
 uintptr_t (*CCNTCell::m_CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t time_step) =0;
 void (*CCNTCell::m_CustomRNGEndTimeStep)(uintptr_t state) =0;
+bool CCNTCell::m_CustomRNGIsRepeatable=false;
+bool CCNTCell::m_CustomRNGIsThreadSafe=false;
 
 
 CMonitor* CCNTCell::m_pMonitor				 = 0;
@@ -593,13 +595,28 @@ void CCNTCell::AddDPDBeadType(long oldType)
 void CCNTCell::SetCustomRNGProc(
 	float (*CustomRNGProc)(uintptr_t state, uint32_t bead_id1, uint32_t bead_id2),
 	uintptr_t (*CustomRNGBeginTimeStep)(uint64_t global_seed, uint64_t step_index),
-	void (*CustomRNGEndTimeStep)(uintptr_t state)
+	void (*CustomRNGEndTimeStep)(uintptr_t state),
+	bool isThreadSafe,
+	bool isRepeatable
 ){
 	m_CustomRNGProc=CustomRNGProc;
 	m_CustomRNGBeginTimeStep=CustomRNGBeginTimeStep;
 	m_CustomRNGEndTimeStep=CustomRNGEndTimeStep;
 	m_CustomRNGState=0;
+	m_CustomRNGIsThreadSafe=isThreadSafe;
+	m_CustomRNGIsRepeatable=isRepeatable;
 }
+
+bool CCNTCell::IsRandUniformBetweenBeadsThreadSafe()
+{
+	return m_CustomRNGProc ? m_CustomRNGIsThreadSafe : false;
+}
+
+bool CCNTCell::IsRandUniformBetweenBeadsRepeatable()
+{
+	return m_CustomRNGProc ? m_CustomRNGIsRepeatable : false;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -1211,6 +1228,12 @@ void CCNTCell::UpdateForce()
 
 			dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
 
+			if(StateLogger::IsEnabled()){
+				int id1=(*iterBead1)->GetId()-1, id2=(*riterBead2)->GetId()-1;
+				StateLogger::LogBeadPairRefl("dpd_dx", id1, id2, dx);
+				StateLogger::LogBeadPairRefl("dpd_dr2", id1, id2, dr2);
+			}
+
 // Calculate the interactions between the two beads for each simulation type.
 // For the DPD interactions we use the flag UseDPDBeadRadii to determine whether
 // the interaction radius is bead-specific or not. Note that when we use the
@@ -1249,7 +1272,8 @@ void CCNTCell::UpdateForce()
 					gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*riterBead2)->GetType())*wr2;
 
 					dissForce	= -gammap*rdotv;				
-					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( *iterBead1, *riterBead2 );
+					double randNum = RandUniformBetweenBeads( *iterBead1, *riterBead2 );
+					randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  randNum;
 // Gauss RNG		randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 					newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
@@ -1259,6 +1283,7 @@ void CCNTCell::UpdateForce()
 					if(StateLogger::IsEnabled()){
 						int id1=(*iterBead1)->GetId()-1, id2=(*riterBead2)->GetId()-1;
 						StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+						StateLogger::LogBeadPairRefl("dpd_randNum", id1, id2, randNum);
 						StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
 						StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
 						StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
@@ -1439,6 +1464,13 @@ void CCNTCell::UpdateForce()
 
 				dr2 = dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2];
 
+				if(StateLogger::IsEnabled()){
+					int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
+					StateLogger::LogBeadPairRefl("dpd_dx", id1, id2, dx);
+					StateLogger::LogBeadPairRefl("dpd_dr2", id1, id2, dr2);
+				}
+
+
 // Calculate the interactions between the two beads for each simulation type.
 // For the DPD interactions we have to change the distance-dependence according
 // to the bead interaction radii.
@@ -1469,8 +1501,9 @@ void CCNTCell::UpdateForce()
 						rdotv		= (dx[0]*dv[0] + dx[1]*dv[1] + dx[2]*dv[2])/dr;
 						gammap		= m_vvDissInt.at((*iterBead1)->GetType()).at((*iterBead2)->GetType())*wr2;
 
-						dissForce	= -gammap*rdotv;				
-						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt *  RandUniformBetweenBeads( *iterBead1, *iterBead2 );
+						dissForce	= -gammap*rdotv;	
+						double randNum = RandUniformBetweenBeads( *iterBead1, *iterBead2 );
+						randForce	= sqrt(gammap)*CCNTCell::m_invrootdt * randNum;
 // Gauss RNG		    randForce	= 0.288675*sqrt(gammap)*CCNTCell::m_invrootdt*CCNTCell::Gasdev();
 
 						newForce[0] = (conForce + dissForce + randForce)*dx[0]/dr;
@@ -1480,6 +1513,7 @@ void CCNTCell::UpdateForce()
 						if(StateLogger::IsEnabled()){
 							int id1=(*iterBead1)->GetId()-1, id2=(*iterBead2)->GetId()-1;
 							StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+							StateLogger::LogBeadPairRefl("dpd_randNum", id1, id2, randNum);
 							StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
 							StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
 							StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
@@ -1826,6 +1860,10 @@ void CCNTCell::UpdatePos()
 			DEBUG_ASSERT( -m_SimBoxYLength/2 < working->GetYPos() && working->GetYPos() <= m_SimBoxYLength*1.5);
 			DEBUG_ASSERT( -m_SimBoxZLength/2 < working->GetZPos() && working->GetZPos() <= m_SimBoxZLength*1.5);
 			double pre_pos[3]={working->m_Pos[0], working->m_Pos[1], working->m_Pos[2]};
+
+			#ifndef NDEBUG
+			CheckPBCDrift(*iterBead);
+			#endif
 
 			if( (*iterBead)->m_Pos[0] > m_TRCoord[0] )
 			{
@@ -2312,10 +2350,6 @@ void CCNTCell::UpdatePos()
 					(*iterBead)->SetNotMovable();
 					iterBead++;
 #endif
-
-					#ifndef NDEBUG
-					CheckPBCDrift(*iterBead);
-					#endif
 				}
 			}
 		}
@@ -2374,6 +2408,12 @@ void CCNTCell::UpdateMom()
 										  (*iterBead)->m_Pos[1]*(*iterBead)->m_Mom[0];
 		}
 #endif
+
+		if(StateLogger::IsEnabled()){
+			StateLogger::LogBead("x_next", (*iterBead)->GetId()-1, (*iterBead)->m_Pos);
+			StateLogger::LogBead("v_next", (*iterBead)->GetId()-1, (*iterBead)->m_Mom);
+			StateLogger::LogBead("f_next", (*iterBead)->GetId()-1, (*iterBead)->m_Force);
+		}
 	}
 }
 
@@ -2749,8 +2789,8 @@ void CCNTCell::CheckPBCDrift(const CAbstractBead *bg)
 		std::abs(fmod(bg->GetunPBCZPos(), m_SimBoxZLength) - bg->GetZPos())
 	};
 	eg[0] = std::min( eg[0], m_SimBoxXLength - eg[0]);
-	eg[1] = std::min( eg[1], m_SimBoxXLength - eg[1]);
-	eg[2] = std::min( eg[2], m_SimBoxXLength - eg[2]);
+	eg[1] = std::min( eg[1], m_SimBoxYLength - eg[1]);
+	eg[2] = std::min( eg[2], m_SimBoxZLength - eg[2]);
 
 	if(eg[0] > 1e-6 || eg[1] > 1e-6 || eg[2] > 1e-6){
 		fprintf(stderr, "PBC drift.\n");

@@ -112,9 +112,7 @@ public:
         //std::ofstream dump("dump.txt");
         std::ostream &dst=std::cout;
 
-        std::vector<std::string> log_lines;
-
-        StateLogger::Enable( [&](const std::string &x){ log_lines.push_back(x); } );
+        std::vector<std::pair<std::string,bool> > log_lines;
 
         auto bv=box->GetBeads();
         std::vector<std::unique_ptr<CAbstractBead>> original;
@@ -140,27 +138,23 @@ public:
 
         CSimBox *cbox=const_cast<CSimBox*>(box->GetSimBox());
         
-        for(unsigned i=0; i<num_steps; i++){
+        unsigned i=0;
+        while(i<num_steps){
+            unsigned todo=std::min<unsigned>(num_steps-i, 1);
+
             for(unsigned j=0; j<original_lbeads.size(); j++){
                 auto &cell=cells[j];
                 auto beads=cell->GetBeads();
                 original_lbeads[j].assign(beads.begin(), beads.end());
             }
 
-            StateLogger::SetPrefix("dut,");
-            StateLogger::BeginStep(start_sim_time+i);
+            StateLogger::Enable( [&](const std::string &x){ log_lines.push_back({x,false}); } );
 
-            auto res=m_testee->Run(box, true, start_sim_time+i, 1);
-            if(res.completed_steps==0){
+            auto res=m_testee->Run(box, true, start_sim_time+i, todo);
+            if(res.completed_steps<todo){
                 return res;
             }
 
-            std::sort(log_lines.begin(), log_lines.end());
-            for(const auto &l : log_lines){
-                dst<<l<<"\n";
-            }
-            log_lines.clear();
-            
             // Rewind state back to the original
             for(unsigned j=0; j<bv.size(); j++){
                 check_pbc_drift(bv[j]);
@@ -176,19 +170,27 @@ public:
                 }
             }
 
-            StateLogger::SetPrefix("ref,");
-            StateLogger::BeginStep(start_sim_time+i);
-            cbox->Evolve(start_sim_time+i);
-            cbox->CNTCellCheck();
+            StateLogger::Enable( [&](const std::string &x){ log_lines.push_back({x,true}); } );
+
+            for(unsigned ioff=0; ioff<todo; ioff++){
+                StateLogger::BeginStep(start_sim_time+i+ioff);
+                cbox->Evolve(start_sim_time+i+ioff);
+                cbox->CNTCellCheck();
+            }
 
             std::sort(log_lines.begin(), log_lines.end());
             for(const auto &l : log_lines){
-                dst<<l<<"\n";
+                if(l.second){
+                    dst<<"ref,"<<l.first<<"\n";
+                }else{
+                    dst<<"dut,"<<l.first<<"\n";
+                }
             }
             log_lines.clear();
+            dst.flush();
 
             for(unsigned j=0; j<bv.size(); j++){
-                auto br=bv[i], bg=testee_state[i].get();
+                auto br=bv[j], bg=testee_state[j].get();
 
                 check_pbc_drift(br);
 
@@ -199,7 +201,7 @@ public:
                 };
                 double r=sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
                 if(r > 1e-6){
-                    fprintf(stderr, "dx = %g, %g, %g\n", dx[0], dx[1], dx[2]);
+                    fprintf(stderr, "id=%u, dx = %g, %g, %g\n", bv[j]->GetId()-1,  dx[0], dx[1], dx[2]);
                     exit(1);
                 }
                 double dv[3] = {
@@ -209,7 +211,7 @@ public:
                 };
                 double v=sqrt(dv[0]*dv[0] + dv[1]*dv[1] + dv[2]*dv[2]);
                 if(v > 1e-6){
-                    fprintf(stderr, "dv = %g, %g, %g\n", dv[0], dv[1], dv[2]);
+                    fprintf(stderr, "id=%u, dv = %g, %g, %g\n", bv[j]->GetId()-1, dv[0], dv[1], dv[2]);
                     exit(1);
                 }
                 double df[3] = {
@@ -219,12 +221,14 @@ public:
                 };
                 double f=sqrt(df[0]*df[0] + df[1]*df[1] + df[2]*df[2]);
                 if(f > 1e-6){
-                    fprintf(stderr, "df = %g, %g, %g\n", df[0], df[1], df[2]);
+                    fprintf(stderr, "id=%u, df = %g, %g, %g\n", bv[j]->GetId()-1, df[0], df[1], df[2]);
                     exit(1);
                 }
 
                 original[j]->Assign(bv[j]);
             }
+
+            i+=todo;
 
             StateLogger::Disable();
             std::cout.flush();

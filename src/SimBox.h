@@ -424,6 +424,8 @@ class CSimBox : public ISimState,
 	friend class SimEngineTest_SkipTime;
 	friend class SimEngineTest_FrozenBeads;
 	friend class SimEngineTest_WrongDiss;
+	friend class SimEngineTest_PositionSizzle;
+	friend class SimEngineTest_Sizzle;
 
 public:
 

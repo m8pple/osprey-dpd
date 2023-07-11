@@ -123,7 +123,7 @@ if __name__=="__main__":
     vars["dmpci_hash"]=dmpci_hash
     vars["osprey_path"]=osprey_path
 
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(processes=max(1,int(os.cpu_count()/2))) as pool:
         done=0
         for _ in pool.imap_unordered(do_task,  [(i,vars) for i in range(start,start+replicates)]):
             done+=1

@@ -117,7 +117,7 @@ protected:
         if(1){
             unsigned n=base_t::cells.size();
             tbb::parallel_for( range_t(0,n), [&]( const range_t &rr ){
-                rng_t rng(base_t::rng_stddev, base_t::global_seed, base_t::round_id, uniquifier_base + rr.begin());
+                rng_t rng(base_t::global_seed, base_t::round_id, uniquifier_base + rr.begin());
 
                 for(unsigned i=rr.begin(); i<rr.end(); i++){
                     if(i+1 < rr.end()){
@@ -129,7 +129,7 @@ protected:
         }else{
 
             unsigned n=base_t::cells.size();
-            rng_t rng(base_t::rng_stddev, base_t::global_seed, base_t::round_id, 0);
+            rng_t rng(base_t::global_seed, base_t::round_id, 0);
 
             for(unsigned i=0; i<n; i++){
                 if(i+1 < n){

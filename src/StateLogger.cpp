@@ -9,6 +9,7 @@ static unsigned StateLogger_Stepindex =  0;
 static std::string StateLogger_Prefix;
 static std::string StateLogger_PrefixPlusTime;
 static std::function<void(const std::string &)> StateLogger_LineSink;
+static std::mutex StateLogger_Mutex;
 
 
 void StateLogger::Enable(std::function<void(const std::string &)> line_sink)
@@ -58,6 +59,9 @@ void StateLogger::LogImpl(const char *facet, int key_dim, const int *key, int va
                 line<<value[dim];
             }
         }
-        StateLogger_LineSink(line.str());
+        {
+            std::lock_guard<std::mutex> lk(StateLogger_Mutex);
+            StateLogger_LineSink(line.str());
+        }
     }
 }

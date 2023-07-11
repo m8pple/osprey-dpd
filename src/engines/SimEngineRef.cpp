@@ -30,6 +30,13 @@ public:
     bool IsParallel() const override
     { return false; }
 
+    bool IsProductionReady() const override
+    { return true; }
+
+    int GetEstimatedMerit() const override
+    { return 0; }  
+
+
     run_result Run(ISimBox *box, bool modified, unsigned start_sim_time, unsigned num_steps) override 
     {
         CSimBox *cbox=const_cast<CSimBox*>(box->GetSimBox());

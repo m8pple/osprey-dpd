@@ -1382,7 +1382,7 @@ void CSimBox::Run()
 			//////////////////////////////////////////////
 			// Try to do a full step
 
-			const bool logStepReasons=true;
+			const bool logStepReasons=false;
 
 			auto engine=IIntegrationEngine::GetGlobalEngine();
 			ISimBox *box=const_cast<ISimBox*>(GetISimBox());

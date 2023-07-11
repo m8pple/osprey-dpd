@@ -21,6 +21,23 @@ public:
 
     virtual bool IsParallel() const=0;
 
+    //! Return true only if the engine is believed to be completely correct
+    virtual bool IsProductionReady() const
+    { return false; }
+
+    /*! Relative estimated merit (performance) of the engine. This is _only_ an estimate,
+        and does not need to be correct for the platform of for a specific simulation. The
+        merit is not expected to map to MBeadSteps/Sec or any other metric.
+        
+        Any good optimiser should build/use platform-specific (and ideally sim-specific) wisdom.
+
+        Increasing positive means better
+        Zero is minimum usable merit
+        Negative merit means it is likely to be very slow.
+    */
+    virtual int GetEstimatedMerit() const
+    { return -10; }  
+
     enum SupportStatus
     {
         Supported = 0,
@@ -221,11 +238,37 @@ public:
         return factories.find(name) != factories.end();
     }
 
-    static void ListEngines(std::ostream &dst)
+    static void ListEngines(std::ostream &dst, bool includeDev)
     {
-        dst<<"Available engines:\n";
+        size_t maxNameLen=0;
         for(const auto &kv : GetFactories()){
-            dst<<kv.first<<"\n";
+            if(!includeDev){
+                if(!kv.second->IsProductionReady()){
+                    continue;
+                }
+            }
+            maxNameLen=std::max(maxNameLen, kv.first.size());
+        }
+
+        for(const auto &kv : GetFactories()){
+            if(!includeDev){
+                if(!kv.second->IsProductionReady()){
+                    continue;
+                }
+            }
+
+            auto prevWidth=dst.width(maxNameLen+1);
+            auto prevFill=dst.fill(' ');
+            auto prevFlags=dst.setf(std::ios::adjustfield, std::ios::left);
+            dst<<kv.first;
+            dst.width(prevWidth);
+            dst.fill(prevFill);
+            dst.setf(prevFlags);
+
+            dst<<(kv.second->IsProductionReady()?"Prod ":"Dev  ");
+            dst<<(kv.second->IsParallel()?"Par ":"Seq ");
+            dst<<(kv.second->GetEstimatedMerit());
+            dst<<"\n";
         }
         dst.flush();
     }
@@ -255,6 +298,12 @@ private:
 
         bool IsParallel() const override
         { return TCapabilities::IsParallel(); }
+
+        bool IsProductionReady() const override
+        { return TCapabilities::IsProductionReady(); }
+
+        int GetEstimatedMerit() const override
+        { return TCapabilities::GetEstimatedMerit(); }
 
         IIntegrationEngineCapabilities::support_result CanSupport_ExtraConstraints(const ISimBox *box) const override
         { return TCapabilities::CanSupport_ExtraConstraints(box); }

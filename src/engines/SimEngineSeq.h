@@ -99,7 +99,7 @@ public:
         return {Supported};
     }
 
-    run_result Run(ISimBox *box, bool modified, unsigned /*start_sim_time*/, unsigned num_steps) override
+    run_result Run(ISimBox *box, bool modified, unsigned start_sim_time, unsigned num_steps) override
     {
         auto res=import_all(box);
         if(res.status!=Supported){
@@ -114,7 +114,10 @@ public:
         validate_cells();
         #endif
 
+        round_id=start_sim_time;
         for(unsigned i=0; i<num_steps; i++){
+            StateLogger::BeginStep(round_id);  
+
             update_mom_and_move();
 
             #ifndef NDEBUG
@@ -135,6 +138,14 @@ public:
             #ifndef NDEBUG
             validate_cells();
             #endif
+
+            if(StateLogger::IsEnabled()){
+                for(auto &cell : cells){
+                    for(unsigned i=0; i<cell.count; i++){
+                        StateLogger::LogBead("f_next", cell.local[i].bead_id, cell.local[i].pos);
+                    }
+                }
+            }
 
             round_id += 1;
         }
@@ -259,7 +270,7 @@ protected:
 
     uint64_t global_seed;
     uint64_t round_id;
-    double rng_stddev;
+    double rng_scale_for_unif_sym;
     
     float edge_adjustments[3][3];
 
@@ -384,9 +395,8 @@ protected:
             return err;
         }
 
-        global_seed=box->GetRNGSeed();
-        round_id=box->GetCurrentTime();
-        rng_stddev=sqrt(2 * CCNTCell::GetKt() / box->GetStepSize()); 
+        global_seed=std::abs(box->GetRNGSeed());
+        rng_scale_for_unif_sym=sqrt(24 * CCNTCell::GetKt() / box->GetStepSize()); 
 
         dims_float[0] = box->GetSimBoxXLength();
         dims_float[1] = box->GetSimBoxYLength();
@@ -499,7 +509,7 @@ protected:
 
         std::set<long> seen_beed_ids;
 
-        bead_round_tag_lcg = SplitMix64( box->GetRNGSeed() + SplitMix64(box->GetCurrentTime()) );
+        bead_round_tag_lcg = SplitMix64( std::abs(box->GetRNGSeed()) + SplitMix64(box->GetCurrentTime()) );
         for(CAbstractBead * b : original_beads){
             #ifndef NDEBUG
             auto it=seen_beed_ids.find(b->GetId());
@@ -757,6 +767,12 @@ protected:
 	
 		float dr2 = dx2[0] + dx2[1] + dx2[2];
 
+        if(StateLogger::IsEnabled()){
+            int id1=home.bead_id, id2=other.bead_id;
+            StateLogger::LogBeadPairRefl("dpd_dx", id1, id2, dx);
+            StateLogger::LogBeadPairRefl("dpd_dr2", id1, id2, dr2);
+        }
+
         static const float min_r = 0.000000001f;
         static const float min_r2 = min_r * min_r;
 
@@ -786,12 +802,23 @@ protected:
 
         float dissForce	= -gammap*rdotv;
         declare(gammap > 0);
-        float randForce	= std::sqrt(gammap)*rng.NextUnifScaled(home,other);
+        float u = rng.NextUnifSym(home,other);
+        float randForce	= std::sqrt(gammap)*rng_scale_for_unif_sym*u;
         float normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
         for(int d=0; d<CALC_DIM; d++){
             newForce[d] = normTotalForce * dx[d];
         }
+
+        if(StateLogger::IsEnabled()){
+            int id1=home.bead_id, id2=other.bead_id;
+            StateLogger::LogBeadPairRefl("dpd_randNum", id1, id2, u);
+            StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
+            StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
+            StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
+            StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, newForce);
+        }
+
         return true;
     }
 
@@ -805,9 +832,12 @@ protected:
         float newForce[4];
 
         if(calc_force(rng, home, other, other_x, newForce)){
+            float scale = reflect_force ? 1.0f : 0.0f;
             for(int d=0; d<CALC_DIM; d++){
                 home.force[d] += newForce[d];
-                if( reflect_force ){
+            }
+            if(reflect_force){
+                for(int d=0; d<CALC_DIM; d++){
                     other.force[d] -= newForce[d];
                 }
             }
@@ -870,7 +900,7 @@ protected:
 
     virtual __attribute__((noinline)) void update_forces()
     {
-        rng_t rng(rng_stddev, global_seed, round_id, 0);
+        rng_t rng(global_seed, round_id, 0);
 
         // TODO : branching based on any external may introduce data-dependent
         // control and bloat instruction size. Is minor saving worth it?
@@ -887,7 +917,7 @@ protected:
 
     virtual __attribute__((noinline)) void update_mom_and_move()
     {
-        rng_t rng(rng_stddev, global_seed, round_id, 1);
+        rng_t rng(global_seed, round_id, 1);
 
         if(any_frozen_beads){
             for_each_cell([&](Cell &cell){
@@ -957,6 +987,10 @@ protected:
             }
 
             if(!moved){
+                if(StateLogger::IsEnabled()){
+                    StateLogger::LogBead("x_next", bead.bead_id, bead.pos);
+                }
+
                 ++i;
                 continue;
             }
@@ -983,6 +1017,10 @@ protected:
                     }
                 }
                 new_origin[d] = std::floor( bead.pos[d] );
+            }
+
+            if(StateLogger::IsEnabled()){
+                StateLogger::LogBead("x_next", bead.bead_id, bead.pos);
             }
 
             unsigned new_index = pos_to_cell_index(new_origin);

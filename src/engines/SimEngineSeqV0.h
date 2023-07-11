@@ -47,18 +47,31 @@ static void declare(bool cond)
 }
 
 
+template<class TCalc,class TAcc, class TPos>
 struct SimEngineSeqV0
     : public IIntegrationEngine
 {
 public:
+
     std::string Name() const override
     {
-        return "SimEngineSeqV0";
+        std::string res="SimEngineSeqV0_C";
+        res += std::to_string(sizeof(TCalc)*8);
+        res += "_A";
+        res += std::to_string(sizeof(TAcc)*8);
+        res += "_P";
+        res += std::to_string(sizeof(TPos)*8);
+        return res;
     }
 
     bool IsParallel() const override
     { return false; }
 
+    bool IsProductionReady() const override
+    { return true; }
+
+    int GetEstimatedMerit() const override
+    { return 20; }  
 
     run_result Run(ISimBox *box, bool modified, unsigned start_sim_time,unsigned num_steps) override
     {
@@ -124,13 +137,15 @@ protected:
 
     static const int MAX_BEADS_PER_CELL = 32;
 
-    using calc_t = double;
+    using calc_t = TCalc;
+    using acc_t = TAcc;
+    using pos_t = TPos;
 
     struct Bead
     {
-        calc_t pos[3];
+        pos_t pos[3];
         calc_t mom[3];
-        calc_t force[3];
+        acc_t force[3];
         uint32_t bead_id;
         uint8_t type;
         uint8_t frozen;
@@ -170,7 +185,7 @@ protected:
         uint32_t count;
         uint32_t to_move; // to_move <= count
 
-        calc_t origin[3];
+        pos_t origin[3];
         uint32_t cell_index;
 
         Neighbour nhood[13];
@@ -178,14 +193,14 @@ protected:
         Bead local[MAX_BEADS_PER_CELL];
     };
 
-    calc_t dims_float[4];
+    pos_t dims_float[4];
     int32_t dims_int[4];
-    calc_t half_dims_float[4];
+    pos_t half_dims_float[4];
     calc_t dt;
     calc_t halfdt;
     calc_t halfdt2;
     
-    calc_t edge_adjustments[3][3];
+    pos_t edge_adjustments[3][3];
 
     uint32_t num_bead_types;
     std::vector<std::pair<calc_t,calc_t>> coefficients;
@@ -193,7 +208,7 @@ protected:
     std::vector<Cell> cells;
     std::vector<int32_t> bead_locations; // The current location of each slot
 
-    BondInfo<calc_t> bonds;
+    BondInfo<calc_t,pos_t> bonds;
 
     AbstractBeadVector original_beads;
 
@@ -202,7 +217,7 @@ protected:
     uintptr_t rng_state = 0;
     calc_t rng_scale;
 
-    unsigned pos_to_cell_index(const calc_t *pos)
+    unsigned pos_to_cell_index(const pos_t *pos)
     {
         int parts[3];
         for(int d=0; d<3; d++){
@@ -237,6 +252,7 @@ protected:
         }
     }
 
+    // This is for debug/sanity only, performance and calculation types are not important.
     void CheckPBCDrift(const CAbstractBead *bg)
     {
         double eg[3]={
@@ -387,25 +403,23 @@ protected:
         CheckPBCDrift(&b);
 
         Bead c;
-        c.pos[0]=b.GetXPos();
-        c.pos[1]=b.GetYPos();
-        c.pos[2]=b.GetZPos();
         for(int d=0; d<3; d++){
+            c.pos[d]=pos_t(b.GetPos()[d]);
             if(c.pos[d] == dims_float[d] ){ // Possible due to double->float rounding
                 c.pos[d] = 0;  
             }
             require( 0 <= c.pos[d] && c.pos[d] < dims_float[d] );
         }
-        b.SetunPBCXPos( b.GetunPBCXPos() - c.pos[0] );
-        b.SetunPBCYPos( b.GetunPBCYPos() - c.pos[1] );
-        b.SetunPBCZPos( b.GetunPBCZPos() - c.pos[2] );
 
-        c.mom[0]=b.GetXMom();
-        c.mom[1]=b.GetYMom();
-        c.mom[2]=b.GetZMom();
-        c.force[0]=b.GetXForce();
-        c.force[1]=b.GetYForce();
-        c.force[2]=b.GetZForce();
+        // Subtract in double-precision, regardless of internal types
+        b.SetunPBCXPos( b.GetunPBCXPos() - b.GetXPos() );
+        b.SetunPBCYPos( b.GetunPBCYPos() - b.GetYPos() );
+        b.SetunPBCZPos( b.GetunPBCZPos() - b.GetZPos() );
+
+        for(int d=0; d<3; d++){
+            c.mom[d]=(calc_t)b.GetMom()[d];
+            c.force[d]=(acc_t)b.GetForce()[d];
+        }
         c.bead_id=b.GetId() - 1; // Convert from 1-based to 0-based
         c.type=b.GetType();
         c.frozen=b.GetFrozen();
@@ -476,6 +490,16 @@ protected:
 
             const auto &obead = find(i);
             require( &bead == &obead);
+
+            for(int d=0; d<3; d++){
+                require( !isnan(bead.pos[d]) );
+                require( !isnan(bead.mom[d]) );
+                require( !isnan(bead.force[d]) );
+                require( cell.origin[d] <= bead.pos[d] && bead.pos[d] < cell.origin[d]+1 );
+                require( -1e6 < bead.force[d]);
+                require(bead.force[d] < 1e6);
+                require( -1e3 < bead.mom[d] && bead.mom[d] < 1e3 );
+            }
         }
     }
 
@@ -505,25 +529,26 @@ protected:
         return res;
     }
 
-    calc_t RandUnifScaled()
+    // Return random in range [-0.5,+0.5]
+    calc_t RandUnifSymmetric()
     {
         uint32_t u32 = rng_state>>32;
         rng_state=6364136223846793005ull * rng_state + 1;
         
         int32_t i31;
     	memcpy(&i31, &u32, 4); // Avoid undefined behaviour. Gets number in range [-2^31,2^31)
-	    return i31 * rng_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
+	    return calc_t(i31) * calc_t(0.000000000232831f);
     }
 
     void calc_forces(
         Bead &home,
         Bead &other,
-        calc_t other_x[4] // This includes any adjustment
+        pos_t other_x[4] // This includes any adjustment
     ){
         calc_t dx[4], dx2[4];
 
         for(int d=0; d<3; d++){
-            dx[d] = home.pos[d] - other_x[d];
+            dx[d] = (calc_t)(home.pos[d] - other_x[d]);
             DEBUG_ASSERT( std::abs(dx[d]) <= 2);  // Something has gone wrong if they are more than two apart
 
             dx2[d] = dx[d] * dx[d];
@@ -559,6 +584,7 @@ protected:
             calc_t dissForce	= -gammap*rdotv;
             declare(gammap > 0);
             calc_t rv = bead_id_hash_rng__random_symmetric_uniform(rng_state, home.bead_id, other.bead_id);
+            //calc_t rv = RandUnifSymmetric();
 
             /*
             static double rvSum=0;
@@ -579,12 +605,15 @@ protected:
             calc_t newForce[4];
             for(int d=0; d<3; d++){
                 newForce[d] = normTotalForce * dx[d];
+                DEBUG_ASSERT( abs(newForce[d]) < 1e6  );
+
                 home.force[d] += newForce[d];
                 other.force[d] -= newForce[d];
             }
 
             if(StateLogger::IsEnabled()){
                 int id1=home.bead_id, id2=other.bead_id;
+                StateLogger::LogBeadPairRefl("dpd_randNum", id1, id2, rv);
                 StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce);
                 StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce);
                 StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce);
@@ -611,7 +640,7 @@ protected:
             auto nlink=home_cell.nhood[nhood_index];
             Cell &other_cell=cells[nlink.index];
 
-            calc_t other_delta[4];
+            pos_t other_delta[4];
             for(int d=0; d<3; d++){
                 other_delta[d] = edge_adjustments[d][nlink.edge_tags[d]];
             }
@@ -619,7 +648,7 @@ protected:
             
             for(unsigned other_i=0; other_i<other_cell.count; other_i++){
                 Bead &other_bead = other_cell.local[other_i];
-                calc_t other_x[4];
+                pos_t other_x[4];
                 for(int d=0; d<3; d++){
                     other_x[d] = other_bead.pos[d] + other_delta[d];
                 }
@@ -675,16 +704,22 @@ protected:
 
             bool moved=false;
 
-            calc_t orig_force[4];
+            pos_t orig_pos[4];
+            calc_t orig_mom[4];
+            acc_t orig_force[4];
 
             for(int d=0; d<3; d++){
+                orig_pos[d] = bead.pos[d];
+                orig_mom[d] = bead.mom[d];
                 orig_force[d] = bead.force[d];
 
                 // Mom from previous step (loop skewed)
-                bead.mom[d] += halfdt * bead.force[d];
-                bead.pos[d] += dt * bead.mom[d] + halfdt2 * bead.force[d];
+                bead.mom[d] += halfdt * orig_force[d];
+                // Update pos as two accumulates, in case pos_t is higher precision than calc_t
+                bead.pos[d] += dt * bead.mom[d];
+                bead.pos[d] += halfdt2 * orig_force[d];
 		        // We know that lambda=0.5
-                bead.mom[d] += halfdt * bead.force[d];
+                bead.mom[d] += halfdt * orig_force[d];
         		bead.force[d] = 0;
 
                 calc_t new_origin_d = std::floor( bead.pos[d] );
@@ -697,7 +732,7 @@ protected:
             }
 
 
-            calc_t pre_wrap_pos[4];
+            pos_t pre_wrap_pos[4];
             int new_origin[4];
             for(int d=0; d<3; d++){
                 pre_wrap_pos[d] = bead.pos[d];

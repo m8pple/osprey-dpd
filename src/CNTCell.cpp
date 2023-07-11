@@ -4574,6 +4574,8 @@ void CCNTCell::PreCalculateDPDForces(long global_seed, unsigned simTime)
 	if(m_CustomRNGProc){
 		if(m_CustomRNGBeginTimeStep){
 			m_CustomRNGState = m_CustomRNGBeginTimeStep(std::abs(global_seed), simTime);
+			StateLogger::Log("BeadIdHash_roundHashHi", uint32_t(m_CustomRNGState>>32));
+        	StateLogger::Log("BeadIdHash_roundHashLo", uint32_t(m_CustomRNGState&0xFFFFFFFFul));
 		}else{
 			m_CustomRNGState=0;
 		}

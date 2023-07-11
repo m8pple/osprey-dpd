@@ -15,6 +15,7 @@ enum RNGPolicy
     RNGPolicy_Hash_BeadIdHash,           
 
     RNGPolicy_AsymmetricRng    = RNGPolicy_Rng_LCG64,                   // Requires use of newton's 3rd law
+    RNGPolicy_HashBeadId       = RNGPolicy_Hash_BeadIdHash,             // Can be used anywhere, requires hash_tag in bead
     RNGPolicy_HashBeadTag      = RNGPolicy_Hash_BeadTagXorShiftAdd,     // Can be used anywhere, requires hash_tag in bead
     RNGPolicy_HashPosition     = RNGPolicy_Hash_PositionXorMulSum          // Can be used anywhere, requires round_mul[3] and bit-exact position sharing
 };
@@ -55,27 +56,24 @@ struct RNGImpl<RNGPolicy_Rng_LCG64>
     static const bool USES_BEAD_ROUND_TAG = false;
 
     uint64_t state;
-    float rng_scale;
 
     static const char *Name() 
     { return "LCG64"; }
 
-    RNGImpl(double stddev, uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
+    RNGImpl(uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
     {
         state = SplitMix64( SplitMix64(global_seed + cluster_unq) + round_id);
-        rng_scale=CalcRNGScaleForU31(stddev);
     }
 
-
     template<class TBead>
-    float NextUnifScaled(const TBead &, const TBead &)
+    float NextUnifSym(const TBead &, const TBead &)
     {
         uint32_t u32 = state>>32;
         state=6364136223846793005ull * state + 1;
         
         int32_t i31;
     	memcpy(&i31, &u32, 4); // Avoid undefined behaviour. Gets number in range [-2^31,2^31)
-	    return i31 * rng_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
+	    return i31 * float(0.000000000232831);
     }
 
     uint32_t MakeBeadTag(uint32_t /*bead_id*/)
@@ -92,30 +90,27 @@ struct RNGImpl<RNGPolicy_Hash_BeadTagXorShiftAdd>
 
     static const bool USES_BEAD_ROUND_TAG = true;
 
-    float rng_scale;
     uint64_t state;
 
     static const char *Name() 
     { return "BeadTagXorShiftAdd"; }
 
-    RNGImpl(double stddev, uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
+    RNGImpl(uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
     {
         state = SplitMix64( SplitMix64(global_seed + cluster_unq) + round_id);
-        rng_scale = CalcRNGScaleForU31(stddev);
     }
 
-
     template<class TBead>
-    float NextUnifScaled(const TBead &a, const TBead &b)
+    float NextUnifSym(const TBead &a, const TBead &b)
     {
         uint32_t u32 = (a.round_tag ^ (b.round_tag<<16) ) + (b.round_tag ^ (a.round_tag<<16) );
         
         int32_t i31;
     	memcpy(&i31, &u32, 4); // Avoid undefined behaviour. Gets number in range [-2^31,2^31)
-	    return i31 * rng_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
+	    return i31 * float(0.000000000232831);
     }
 
-    uint32_t MakeBeadTag(uint32_t /*bead_id*/)
+    uint32_t MakeBeadTag(uint32_t bead_id)
     {
         uint32_t res=state>>32;
         state=6364136223846793005ull * state + 1;
@@ -135,7 +130,6 @@ struct RNGImpl<RNGPolicy_Hash_PositionXorMulSum>
     { return "BeadTagXorMulSum"; }
 
     uint32_t dim_scales[3];
-    float rng_scale;
 
     uint32_t to_bits(const float &x)
     {
@@ -149,9 +143,8 @@ struct RNGImpl<RNGPolicy_Hash_PositionXorMulSum>
         return __builtin_popcount(x);
     }
 
-    RNGImpl(double stddev, uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
+    RNGImpl(uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
     {
-        rng_scale = CalcRNGScaleForU31(stddev);
         uint64_t lcg=SplitMix64( SplitMix64(global_seed + cluster_unq) + round_id);
         for(int d=0; d<3; d++){
     retry:
@@ -165,7 +158,7 @@ struct RNGImpl<RNGPolicy_Hash_PositionXorMulSum>
     }
 
     template<class TBead>
-    float NextUnifScaled(const TBead &a, const TBead &b)
+    float NextUnifSym(const TBead &a, const TBead &b)
     {
         uint32_t u32 = 0;
         for(unsigned d=0; d<3; d++){
@@ -174,7 +167,7 @@ struct RNGImpl<RNGPolicy_Hash_PositionXorMulSum>
         
         int32_t i31;
     	memcpy(&i31, &u32, 4); // Avoid undefined behaviour. Gets number in range [-2^31,2^31)
-	    return i31 * rng_scale; // rng_scale = ( CCNTCell::m_invrootdt * 2^-32  )
+	    return i31 * float(0.000000000232831);
     }
 
     uint32_t MakeBeadTag(uint32_t /*bead_id*/)
@@ -193,21 +186,25 @@ struct RNGImpl<RNGPolicy_Hash_BeadIdHash>
     static const bool USES_BEAD_ROUND_TAG = false;
 
     uint64_t round_base;
-    float rng_scale;
 
     static const char *Name() 
     { return "BeadIdHash"; }
 
-    RNGImpl(double stddev, uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
+    RNGImpl(uint64_t global_seed, uint64_t round_id, uint64_t cluster_unq)
     {
-        rng_scale = CalcRNGScaleForU31(stddev);
         round_base = bead_id_hash_rng__round_hash(global_seed, round_id);
     }
 
     template<class TBead>
-    float NextUnifScaled(const TBead &a, const TBead &b)
+    float NextUnifSym(const TBead &a, const TBead &b)
     {
-        return rng_scale * bead_id_hash_rng__random_symmetric_uniform(round_base, a.bead_id, b.bead_id);
+        return bead_id_hash_rng__random_symmetric_uniform(round_base, a.bead_id, b.bead_id);
+    }
+
+    uint32_t MakeBeadTag(uint32_t /*bead_id*/)
+    {
+        DEBUG_ASSERT(0); // Not expected for this rng
+        return 0;
     }
 };
 

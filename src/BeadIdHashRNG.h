@@ -37,10 +37,17 @@ inline uint32_t bead_id_hash_rng__bead_hash(uint64_t round_hash, uint32_t ida, u
 
     return c ^ d;*/
 
-
     uint64_t ab=(uint64_t(std::max(ida,idb))<<32) | std::min(ida,idb);
     uint64_t xx=bead_id_hash_rng__SplitMix64(round_hash+ab);
     return uint32_t(xx) ^ uint32_t(xx>>32);
+
+    /*
+    uint32_t a = std::min(ida,idb) + uint32_t(round_hash);
+    uint32_t b = std::max(ida,idb) + uint32_t(round_hash>>32);
+    uint32_t x = a^(b>>16);
+    uint32_t y = b^(a>>16);
+    return x * 1664525 + y * 22695477;
+    */
 }
 
 // Return random float in [-0.5,+0.5)

@@ -15,7 +15,7 @@
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
 
-template<class TCalc=float>
+template<class TCalc=float, class TPos=TCalc>
 struct BondInfo
 {
     struct Bond
@@ -168,20 +168,20 @@ struct BondInfo
     }
 
     template<class TBeadSource>
-    void update_polymers_seq(TBeadSource &bead_source, TCalc dims_float[4])
+    void update_polymers_seq(TBeadSource &bead_source, TPos dims_float[4])
     {
-        TCalc local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
-        TCalc half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
+        TPos local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
+        TPos half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
         for(const auto &p : polymers){
             update_polymer(dims_float, half_dims_float, *p, &working_space[0], bead_source);
         }
     }
 
     template<class TBeadSource>
-    void update_polymers_tbb(TBeadSource &bead_source, TCalc dims_float[4])
+    void update_polymers_tbb(TBeadSource &bead_source, TPos dims_float[4])
     {
-        TCalc local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
-        TCalc half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
+        TPos local_dims_float[4] = {dims_float[0], dims_float[1], dims_float[2], 0};
+        TPos half_dims_float[4] = {dims_float[0]/2, dims_float[1]/2, dims_float[2]/2, 0};
         
         using range_t = tbb::blocked_range<unsigned>;
         tbb::parallel_for( range_t(0, polymers.size()), [&](const range_t &rr){
@@ -204,13 +204,13 @@ struct BondInfo
     }
 
     template<class TBeadSource>
-    void update_polymers(TBeadSource &bead_source, TCalc dims_float[4])
+    void update_polymers(TBeadSource &bead_source, TPos dims_float[4])
     {
         if(polymers.empty()){
             return;
         }
 
-        if(false && polymers_use_disjoint_beads){
+        if(polymers_use_disjoint_beads){
             update_polymers_tbb(bead_source, dims_float);
         }else{
             update_polymers_seq(bead_source, dims_float);
@@ -223,7 +223,7 @@ struct BondInfo
     */
     template<class TBeadSource>
     void update_polymer(
-        TCalc dims_float[4], TCalc half_dims_float[4],
+        TPos dims_float[4], TPos half_dims_float[4],
         const Polymer &polymer, TCalc *working, TBeadSource &bead_source
     )
     {
@@ -232,7 +232,7 @@ struct BondInfo
             auto &head = bead_source(bond.head_bead_id);
             auto &tail = bead_source(bond.tail_bead_id);
 
-            TCalc dx[4];
+            TPos dx[4];
             for(int d=0; d<3; d++){
                 dx[d] = head.pos[d] - tail.pos[d];
                if(dx[d] < -half_dims_float[d]){
@@ -243,7 +243,7 @@ struct BondInfo
                 working[ 4*i + d ] = dx[d];
             }
 
-            TCalc r=sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
+            TCalc r=(TCalc)sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
             /*if(std::abs(r) > 4){
                 fprintf(stderr, "Bond has snapped.\n");
                 exit(1);
@@ -262,11 +262,10 @@ struct BondInfo
             }
 
             if(StateLogger::IsEnabled()){
-                StateLogger::LogBeadPairRefl("bond_dx", bond.head_bead_id, bond.tail_bead_id, {dx[0],dx[1],dx[2]});
-                StateLogger::LogBeadPairRefl("bond_r", bond.head_bead_id, bond.tail_bead_id, r);
-                StateLogger::LogBeadPairRefl("bond_f", bond.head_bead_id, bond.tail_bead_id, { dx[0] * fScale, dx[1] * fScale, dx[2] * fScale});
+                StateLogger::LogBeadPair("bond_dx", bond.head_bead_id, bond.tail_bead_id, {dx[0],dx[1],dx[2]});
+                StateLogger::LogBeadPair("bond_r", bond.head_bead_id, bond.tail_bead_id, r);
+                StateLogger::LogBeadPair("bond_f", bond.head_bead_id, bond.tail_bead_id, { dx[0] * fScale, dx[1] * fScale, dx[2] * fScale});
             }
-            
         }
 
         for(unsigned i=0; i<polymer.num_bond_pairs; i++){

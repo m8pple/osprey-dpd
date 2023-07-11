@@ -101,14 +101,17 @@ public:
     inline double GetXPos()		const {return m_Pos[0];}
 	inline double GetYPos()		const {return m_Pos[1];}
 	inline double GetZPos()		const {return m_Pos[2];}
+	inline const double *GetPos() const { return m_Pos; }
 
 	inline double GetXMom()		const {return m_Mom[0];}
 	inline double GetYMom()		const {return m_Mom[1];}
 	inline double GetZMom()		const {return m_Mom[2];}
+	inline const double *GetMom() const { return m_Mom; }
 
 	inline double GetXForce()	const {return m_Force[0];}
 	inline double GetYForce()	const {return m_Force[1];}
 	inline double GetZForce()	const {return m_Force[2];}
+	inline const double *GetForce()	const {return m_Force;}
 
 	inline double GetXAngMom()	const {return m_AngMom[0];}
 	inline double GetYAngMom()	const {return m_AngMom[1];}

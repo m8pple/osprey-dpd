@@ -1,13 +1,36 @@
-#include "SimEngineSeq.h"
 
 
 #if ( defined(_M_ARM64) || defined(__aarch64__) )
 
+#include "SimEngineSeq.h"
+#include "BeadIdHashRNG.h"
+
 #include "arm_neon.h"
+
+
+inline uint32x4_t bead_id_hash_rng__bead_hash(uint64_t round_hash, uint32x4_t ida, uint32_t idb)
+{
+    uint32x4_t res;
+    for(unsigned i=0; i<4; i++){
+        res[i] = bead_id_hash_rng__bead_hash(round_hash, ida[i], idb);
+    }
+    return res;
+}
+
+// Return random float in [-0.5,+0.5)
+inline float32x4_t bead_id_hash_rng__random_symmetric_uniform(uintptr_t round_hash, uint32x4_t ida, uint32_t idb)
+{
+    uint32x4_t u=bead_id_hash_rng__bead_hash(round_hash, ida, idb);
+    int32x4_t s = vreinterpretq_s32_u32(u);
+    float32x4_t f = vcvtq_f32_s32(s);
+    return vmulq_f32(f, vdupq_n_f32(0.000000000232831f)); // s * 2^-32:  [-2^31...,2^31)] -> [-0.5,0.5)
+}
+
 
 struct  SimEngineSeqNEONPolicy
     : EnginePolicyConcept
 {
+    static const RNGPolicy RNG_POLICY = RNGPolicy_Hash_BeadIdHash;
 };
 
 class SimEngineSeqNEON
@@ -24,8 +47,9 @@ private:
     using base_t = SimEngineSeq<SimEngineSeqNEONPolicy>;
     using rng_t = typename base_t::rng_t;
 
+    uint64_t round_hash;
     uint64x2_t rng_state_neon;
-    float rng_stddev_neon;
+    float rng_scale_neon;
 
     support_result on_import(ISimBox *box) override 
     {
@@ -34,30 +58,9 @@ private:
         rng_state_neon[0]= rng;
         rng_state_neon[1]= SplitMix64(rng);
 
-        rng_stddev_neon=CalcRNGScaleForU31(base_t::rng_stddev);
+        rng_scale_neon=base_t::rng_scale_for_unif_sym;
         
         return {Supported};
-    }
-
-    float32x4_t RandUnifScaledNEON(uint64x2_t &state)
-    {
-        /*
-        x ^= x << 13;
-	    x ^= x >> 7;
-	    x ^= x << 17;
-        */
-
-        uint64x2_t orig=state;
-
-        state = state ^ (state << 13);
-        state = state ^ (state >> 7);
-        state = state ^ (state << 17);
-
-        auto u = state; // orig + _mm256_shuffle_epi32( state, (2<<6)|(3<<4)|(0<<2)|(1<<0));
-
-        auto ui32 = vreinterpretq_s32_u64(u);
-        auto uf32 = vcvtq_f32_s32(ui32);
-        return vmulq_f32( uf32 , vdupq_n_f32( rng_stddev_neon ));
     }
 
     bool any_nan(float32x4_t x)
@@ -74,7 +77,11 @@ private:
 
     virtual __attribute__((noinline)) void update_forces() override
     {
-        rng_t rng(rng_stddev, global_seed, round_id, 0);
+        rng_t rng(global_seed, round_id, 0);
+        round_hash = bead_id_hash_rng__round_hash(global_seed, round_id);
+
+        StateLogger::Log("BeadIdHash_roundHashHi", uint32_t(round_hash>>32));
+        StateLogger::Log("BeadIdHash_roundHashLo", uint32_t(round_hash&0xFFFFFFFFul));
 
         // TODO : branching based on any external may introduce data-dependent
         // control and bloat instruction size. Is minor saving worth it?
@@ -97,6 +104,7 @@ private:
         const float32x4_t home_mom[3],
         float32x4_t home_force[3],
         uint32x4_t home_type,
+        uint32x4_t home_id,
 
         Bead &other,
         float other_x[4]
@@ -111,8 +119,16 @@ private:
             dx[d] = home_pos[d] - vdupq_n_f32(other_x[d]);
             dx2[d] = dx[d] * dx[d];
         }
-	
-		float32x4_t dr2 = dx2[0] + dx2[1] + dx2[2];
+        float32x4_t dr2 = dx2[0] + dx2[1] + dx2[2];
+
+        if(StateLogger::IsEnabled()){
+            for(int i=0; i<home_count; i++){
+                int id1=home_id[i], id2=other.bead_id;
+                double dxf[3]={  dx[0][i],dx[1][i],dx[2][i]};
+                StateLogger::LogBeadPairRefl("dpd_dx", id1, id2, dxf);
+                StateLogger::LogBeadPairRefl("dpd_dr2", id1, id2, dr2[i]);
+            }
+        }
 
         static const float min_r = 0.000000001f;
         static const float min_r2 = min_r * min_r;
@@ -153,7 +169,8 @@ private:
         auto gammap	= dissipative_coeff * wr2;
 
         auto dissForce	= -gammap*rdotv;
-        auto randForce	= vsqrtq_f32(gammap) * RandUnifScaledNEON(rng_state);
+        auto u = bead_id_hash_rng__random_symmetric_uniform(round_hash, home_id, other.bead_id);
+        auto randForce	= vsqrtq_f32(gammap) * rng_scale_neon * u;
         auto normTotalForce = (conForce + dissForce + randForce) * inv_dr;
 
         normTotalForce = vreinterpretq_f32_u32( vandq_u32( vreinterpretq_u32_f32( normTotalForce) , active));
@@ -168,6 +185,25 @@ private:
             other.force[d] -= vaddvq_f32(newForce[d]);
 
             DEBUG_ASSERT(std::abs(other.force[d]) < 10000);
+        }
+
+        if(StateLogger::IsEnabled()){
+            for(int i=0; i<home_count; i++){
+                if(!active[i]){
+                    DEBUG_ASSERT( newForce[0][i]==0 );
+                    continue;
+                }
+                int id1=home_id[i], id2=other.bead_id;
+                StateLogger::LogBeadPairRefl("dpd_randNum", id1, id2, u[i]);
+                StateLogger::LogBeadPairRefl("dpd_conForce", id1, id2, conForce[i]);
+                StateLogger::LogBeadPairRefl("dpd_randForce", id1, id2, randForce[i]);
+                StateLogger::LogBeadPairRefl("dpd_dissForce", id1, id2, dissForce[i]);
+                double f[3]={newForce[0][i],newForce[1][i],newForce[2][i]};
+                StateLogger::LogBeadPairRefl("dpd_newForce", id1, id2, f);
+            
+                double tmp[3]={home_force[0][i],home_force[1][i],home_force[2][i]};
+                StateLogger::LogBeadPair("temp_homeAcc", id1, id2, tmp);
+            }
         }
     }
 
@@ -199,6 +235,7 @@ private:
         float home_pos_f[3][4] = {{0}};
         float home_mom_f[3][4] = {{0}};
         uint32_t home_type_u[4] = {0}; // Must be zero initialise to avoid invalid indexing for un-unused bead slots
+        uint32_t home_id_u[4] = {0};
 
         for(unsigned i=0; i<home_cell.count; i++){
             for(int d=0; d<3; d++){
@@ -206,12 +243,14 @@ private:
                 home_mom_f[d][i] = home_cell.local[i].mom[d];
             }
             home_type_u[i] = home_cell.local[i].type;
+            home_id_u[i] = home_cell.local[i].bead_id;
         }
 
         float32x4_t home_pos[3];
         float32x4_t home_mom[3];
         float32x4_t home_force[3];
         float32x4_t home_type = vld1q_u32(home_type_u);
+        float32x4_t home_id = vld1q_u32(home_id_u);
         for(int d=0; d<3; d++){
             home_pos[d] = vld1q_f32(home_pos_f[d]);
             home_mom[d] = vld1q_f32(home_mom_f[d]);
@@ -252,6 +291,7 @@ private:
                     home_mom,
                     home_force,
                     home_type,
+                    home_id,
                     other_bead, AnyExternal ? other_x : other_bead.pos
                 );
             }
@@ -262,6 +302,13 @@ private:
             vst1q_f32(home_force_f[d], home_force[d]);
             for(int i=0; i<home_cell.count; i++){
                 home_cell.local[i].force[d] += home_force_f[d][i];
+            }
+        }
+
+        if(StateLogger::IsEnabled()){
+            for(int i=0; i<home_cell.count; i++){
+            
+                StateLogger::LogBead("temp_Acc2", home_cell.local[i].bead_id, home_cell.local[i].force);
             }
         }
     }

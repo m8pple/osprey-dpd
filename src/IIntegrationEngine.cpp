@@ -7,6 +7,11 @@
 #include "BeadIdHashRNG.h"
 #include "StateLogger.h"
 
+#include <cfloat>
+#include <climits>
+#include <algorithm>
+#include <utility>
+
 IIntegrationEngineCapabilities::support_result IIntegrationEngineCapabilities::StandardSupportAssumptions(const ISimBox *box)
 {
     #if (SimDimension!=3)
@@ -90,6 +95,89 @@ public:
 
     bool IsParallel() const override
     { return m_testee->IsParallel(); }
+
+    struct stats_tracker
+    {
+        stats_tracker(const std::string &_name)
+            : name(_name)
+        {}
+
+        std::string name;
+        double n=0;
+        long double sum = 0, sum_sqr = 0, sum_cube = 0, sum_quart=0;
+        double max = -DBL_MAX, min=DBL_MAX;
+        double max_abs = -DBL_MAX;
+        unsigned max_bead_id = 0;
+
+        void add(unsigned bead_id, double x)
+        {
+            n += 1;
+            sum += x;
+            sum_sqr += x*x;
+            sum_cube += x*x*x;
+            sum_quart += x*x*x*x;
+            max = std::max(max, x);
+            min = std::min(min, x);
+            if(std::abs(x) > max_abs){
+                max_bead_id=bead_id;
+                max_abs=std::abs(x);
+            }
+        }
+
+        void add_err_mag(unsigned bead_id, const double *ref, const double *dut)
+        {
+            double dr2=0;
+            for(unsigned i=0; i<3; i++){
+                double e=ref[i] - dut[i];
+                dr2 += e*e;
+            }
+            add(bead_id, sqrt(dr2));
+        }
+
+        void add_rel_err_mag(unsigned bead_id, const double *ref, const double *dut)
+        {
+            double dr2=0;
+            double dref=0;
+            for(unsigned i=0; i<3; i++){
+                double e=ref[i] - dut[i];
+                dr2 += e*e;
+                dref += ref[i]*ref[i];
+            }
+            add(bead_id, sqrt(dr2 / dref));
+        }
+
+        void add_err_mag_wrapped(unsigned bead_id, const double *ref, const double *dut, const double *box)
+        {
+            double dr2=0;
+            for(unsigned i=0; i<3; i++){
+                double e=ref[i] - dut[i];
+                if(e < -box[i]/2){
+                    e += box[i];
+                }
+                if(e > box[i]/2){
+                    e -= box[i];
+                }
+                dr2 += e*e;
+            }
+            add(bead_id, sqrt(dr2));
+        }
+
+        void print_stats(std::ostream &dst) const
+        {
+            auto mean=sum/n;
+            dst<<name<<", "<<min<<","<<mean<<","<<max<<", ";
+            auto var=sum_sqr/n - mean*mean;
+            if(var <= 0){
+                dst<<"nan,nan,nan, -1";
+            }else{
+                auto std=sqrt(var);
+                auto skew=(sum_cube/n-3*mean*std*std-mean*mean*mean)/(std*std*std);
+                auto kurt=(sum_quart/n-4*mean*sum_cube/n+6*mean*mean*std*std+3*mean*mean*mean*mean)/(std*std*std*std);
+                dst<<std<<","<<skew<<","<<kurt<<", "<<max_bead_id;
+            }
+            dst<<"\n";
+        }
+    };
 
     run_result Run(ISimBox *box, bool modified, unsigned start_sim_time, unsigned num_steps) override 
     {
@@ -178,7 +266,32 @@ public:
                 cbox->CNTCellCheck();
             }
 
-            std::sort(log_lines.begin(), log_lines.end());
+            // Sigh. We need sort order that only depends on first 5 fields
+            auto sort_key=[](const std::pair<std::string,bool> &a, const std::pair<std::string,bool> &b)
+            {
+                  int pa=a.first.find(',',0), pb=b.first.find(',',0);
+                  for(int i=0; i<4; i++){
+                    pa=a.first.find(',',pa+1);
+                    pb=a.first.find(',',pb+1);
+                  }
+                  if(pa<pb){
+                    return true;
+                  }
+                  if(pa>pb){
+                    return false;
+                  }
+                  auto sa=a.first.substr(0,pa);
+                  auto sb=b.first.substr(0,pb);
+                  if(sa < sb){
+                    return true;
+                  }
+                  if(sa > sb){
+                    return false;
+                  }
+                  return a.second < b.second;
+            };
+
+            std::sort(log_lines.begin(), log_lines.end(), sort_key);
             for(const auto &l : log_lines){
                 if(l.second){
                     dst<<"ref,"<<l.first<<"\n";
@@ -189,44 +302,33 @@ public:
             log_lines.clear();
             dst.flush();
 
+            double dims[3] = {box->GetSimBoxXLength(), box->GetSimBoxYLength(), box->GetSimBoxZLength()};
+            stats_tracker stats_pos_err_mag{"pos_err_mag"};
+            stats_tracker stats_mom_rel_err_mag{"mom_rel_err_mag"};
+            stats_tracker stats_force_rel_err_mag{"force_rel_err_mag"};
             for(unsigned j=0; j<bv.size(); j++){
+                auto bead_id=bv[j]->GetId()-1;
                 auto br=bv[j], bg=testee_state[j].get();
 
                 check_pbc_drift(br);
 
-                double dx[3] = {
-                    br->GetXPos() - bg->GetXPos(),
-                    br->GetYPos() - bg->GetYPos(),
-                    br->GetZPos() - bg->GetZPos()
-                };
-                double r=sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
-                if(r > 1e-6){
-                    fprintf(stderr, "id=%u, dx = %g, %g, %g\n", bv[j]->GetId()-1,  dx[0], dx[1], dx[2]);
-                    exit(1);
-                }
-                double dv[3] = {
-                    br->GetXMom() - bg->GetXMom(),
-                    br->GetYMom() - bg->GetYMom(),
-                    br->GetZMom() - bg->GetZMom()
-                };
-                double v=sqrt(dv[0]*dv[0] + dv[1]*dv[1] + dv[2]*dv[2]);
-                if(v > 1e-6){
-                    fprintf(stderr, "id=%u, dv = %g, %g, %g\n", bv[j]->GetId()-1, dv[0], dv[1], dv[2]);
-                    exit(1);
-                }
-                double df[3] = {
-                    br->GetXForce() - bg->GetXForce(),
-                    br->GetYForce() - bg->GetYForce(),
-                    br->GetZForce() - bg->GetZForce()
-                };
-                double f=sqrt(df[0]*df[0] + df[1]*df[1] + df[2]*df[2]);
-                if(f > 1e-6){
-                    fprintf(stderr, "id=%u, df = %g, %g, %g\n", bv[j]->GetId()-1, df[0], df[1], df[2]);
-                    exit(1);
-                }
+                stats_pos_err_mag.add_err_mag_wrapped( bead_id, br->GetPos(), bg->GetPos(), dims );
+                stats_mom_rel_err_mag.add_rel_err_mag( bead_id, br->GetMom(), bg->GetMom() );
+                stats_force_rel_err_mag.add_rel_err_mag( bead_id, br->GetForce(), bg->GetForce() );
 
                 original[j]->Assign(bv[j]);
             }
+
+            auto &sdest=std::cerr;
+            
+            sdest<<m_testee->Name()<<","<<start_sim_time<<","<<todo<<",";
+            stats_pos_err_mag.print_stats(std::cerr);
+            
+            sdest<<m_testee->Name()<<","<<start_sim_time<<","<<todo<<",";
+            stats_mom_rel_err_mag.print_stats(std::cerr);
+            
+            sdest<<m_testee->Name()<<","<<start_sim_time<<","<<todo<<",";
+            stats_force_rel_err_mag.print_stats(std::cerr);
 
             i+=todo;
 

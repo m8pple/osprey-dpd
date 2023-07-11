@@ -14,6 +14,12 @@ namespace {
         static const RNGPolicy RNG_POLICY = RNGPolicy_HashBeadTag;
     };
 
+    struct EnginePolicyHashBeadId
+        : EnginePolicyConcept
+    {
+        static const RNGPolicy RNG_POLICY = RNGPolicy_HashBeadId;
+    };
+
     struct EnginePolicyRNGMorton
         : EnginePolicyRNG
     {
@@ -28,6 +34,7 @@ namespace {
 
     static bool reg_SimEngineSeqRNG = SimEngineBase<SimEngineSeq<EnginePolicyRNG>>::Register();
     static bool reg_SimEngineSeqRNGMorton = SimEngineBase<SimEngineSeq<EnginePolicyRNGMorton>>::Register();
-    static bool reg_SimEngineSeqHashBeadTag = SimEngineBase<SimEngineSeq<EnginePolicyHashBeadTag>>::Register();
+    //static bool reg_SimEngineSeqHashBeadTag = SimEngineBase<SimEngineSeq<EnginePolicyHashBeadTag>>::Register();
+    static bool reg_SimEngineSeqHashBeadId = SimEngineBase<SimEngineSeq<EnginePolicyHashBeadId>>::Register();
     static bool reg_SimEngineSeqHashBeadTagMorton = SimEngineBase<SimEngineSeq<EnginePolicyHashBeadTagMorton>>::Register();
 };

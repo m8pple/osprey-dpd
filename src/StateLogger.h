@@ -39,6 +39,13 @@ public:
         }
     }
 
+    static void Log(const char *facet, double value)
+    {
+        if(StateLogger_CompileTimeEnable){
+            LogImpl(facet, 0, 0, 1, &value);
+        }
+    }
+
     // Log a scalar property for b1
     static void LogBead(const char *facet, unsigned b1,  double value)
     {
@@ -48,12 +55,14 @@ public:
         }
     }
 
-        // Log a vector property for b1
-    static void LogBead(const char *facet, unsigned b1, const double *value)
+    // Log a vector property for b1
+    template<class T>
+    static void LogBead(const char *facet, unsigned b1, const T *value)
     {
         if(StateLogger_CompileTimeEnable){
             int bb=b1;
-            Log(facet, 1, &bb, 3, value);
+            double v[3]={value[0],value[1],value[2]};
+            Log(facet, 1, &bb, 3, v);
         }
     }
 
@@ -67,11 +76,13 @@ public:
     }
 
     // Log a shared vector property just for (b1,b2)
-    static void LogBeadPair(const char *facet, unsigned b1, unsigned b2, const double value[3])
+    template<class T>
+    static void LogBeadPair(const char *facet, unsigned b1, unsigned b2, const T *value)
     {
         if(StateLogger_CompileTimeEnable){
             int bb[2]={(int)b1,(int)b2};
-            Log(facet, 2, bb, 3, value);
+            double pos[3]={value[0], value[1], value[2]};
+            Log(facet, 2, bb, 3, pos);
         }
     }
 
@@ -96,11 +107,13 @@ public:
     }
 
     // Log a vector property for (b1,b2), and the negated property for (b2,b1)
-    static void LogBeadPairRefl(const char *facet, unsigned b1, unsigned b2, const double value[3])
+    template<class T>
+    static void LogBeadPairRefl(const char *facet, unsigned b1, unsigned b2, const T *value)
     {
         if(StateLogger_CompileTimeEnable){
             int bb[2]={(int)b1,(int)b2};
-            Log(facet, 2, bb, 3, value);
+            double pos[3]={value[0], value[1], value[2]};
+            Log(facet, 2, bb, 3, pos);
             std::swap(bb[0], bb[1]);
             double neg[3]={-value[0], -value[1], -value[2]};
             Log(facet, 2, bb, 3, neg);
@@ -125,10 +138,12 @@ public:
     }
 
     // Log a shared vector property for (b1,b2,b3)
-    static void LogBeadTriple(const char *facet, unsigned b1, unsigned b2, unsigned b3, const double value[3])
+    template<class T>
+    static void LogBeadTriple(const char *facet, unsigned b1, unsigned b2, unsigned b3, const T *value)
     {
         if(StateLogger_CompileTimeEnable){
             int bb[3]={(int)b1,(int)b2,(int)b3};
+            double v[3]={value[0],value[1], value[2]};
             Log(facet, 3, bb, 3, value);
         }
     }

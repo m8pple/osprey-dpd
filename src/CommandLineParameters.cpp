@@ -56,7 +56,23 @@ Parameters:
 
 --set-engine EngineName : Selects a specific execution engine
 
---list-engines : Lists all available engines, then quits with error without starting simulation.
+--list-engines :          Lists production-ready engines.
+    Engines are printed to stdout as a white-space delimited sequence of rows:
+       <EngineName> (Prod|Dev) (Seq|Par) <Merit>
+    where:
+        <EngineName> is the identifier of the engine (used for --set-engine)
+        (Prod|Dev) Indicates if this is for production or development only.
+                   Dev engines are only visible if --list-engines-with-dev is used
+        (Seq|Par)  Whether this is a pure sequential or multi-threaded engine
+        <Merit>    Integer estimated merit. Negative means "slow, do not use",
+                   increasingly positive suggests higher performance. Merit
+                   is a static estimate, and may be incorrect for a given platform
+                   or simulation.
+    After listing engines the simulator will immediately quite with error code 100.
+
+--list-engines-with-dev : (Only useful for testing) Lists all available engines,
+    including development engines. Format is the same as --list-engines, except
+    development engines are included.
 
 --wrap-engine-with-ref-diff : (Only useful for engine development) Wraps the current engine with
     a diff engine that compares bead state against the refernce engine output after each step.
@@ -164,8 +180,11 @@ void CommandLineParameters::Initialise(int &argc, char **&argv, std::function<vo
 
             consume_args(2);
         }else if(cmd=="--list-engines"){
-            IIntegrationEngineFactory::ListEngines(std::cout);
-            exit(1);
+            IIntegrationEngineFactory::ListEngines(std::cout, false);
+            exit(100);
+        }else if(cmd=="--list-engines-with-dev"){
+            IIntegrationEngineFactory::ListEngines(std::cout, true);
+            exit(100);
         }else if(cmd=="--set-engine"){
             if(argc < 3){
                 return on_error("Missing argument to --set-engine");

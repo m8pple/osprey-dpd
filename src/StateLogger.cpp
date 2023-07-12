@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <functional>
+#include <mutex>
 
 bool StateLogger::m_RunTimeEnabled = false;
 

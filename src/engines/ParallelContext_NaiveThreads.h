@@ -6,6 +6,7 @@
 #include "xxBase.h"
 
 #include <thread>
+#include <atomic>
 #include "DebugAssert.h"
 
 class ParallelContext_NaiveThreads

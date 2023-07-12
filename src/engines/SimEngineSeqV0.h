@@ -10,6 +10,10 @@
 #include <cstdlib>
 #include <set>
 #include <cstring>
+#include <cfloat>
+#include <cmath>
+#include <math.h>
+#include <climits>
 
 #include "AbstractBead.h"
 #include "ISimBox.h"

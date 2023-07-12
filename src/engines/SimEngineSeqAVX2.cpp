@@ -14,6 +14,8 @@ class SimEngineSeqAVX2
     : public SimEngineSeq<SimEngineSeqAVX2Policy>
 {
 public:
+    using base_t = SimEngineSeq<SimEngineSeqAVX2Policy>;
+
     using IIntegrationEngine::support_result;
     using IIntegrationEngine::run_result;
 
@@ -38,7 +40,7 @@ private:
             rng_state=6364136223846793005ull * rng_state + 1
           );
 
-        rng_scale = ldexpf(rng_stddev,-32);
+        rng_scale = ldexpf(base_t::rng_scale_for_unif_sym,-32);
 
         return {Supported};
     }
@@ -468,7 +470,7 @@ private:
 
     __attribute__((noinline)) void update_forces()
     {
-        rng_t rng(rng_stddev, global_seed, round_id, 0);
+        rng_t rng(global_seed, round_id, 0);
 
         // TODO : branching based on any external may introduce data-dependent
         // control and bloat instruction size. Is minor saving worth it?

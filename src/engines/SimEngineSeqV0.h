@@ -408,7 +408,7 @@ protected:
 
         Bead c;
         for(int d=0; d<3; d++){
-            c.pos[d]=pos_t(b.GetPos()[d]);
+            c.pos[d]=pos_t(b.GetPos(d));
             if(c.pos[d] == dims_float[d] ){ // Possible due to double->float rounding
                 c.pos[d] = 0;  
             }
@@ -421,8 +421,8 @@ protected:
         b.SetunPBCZPos( b.GetunPBCZPos() - b.GetZPos() );
 
         for(int d=0; d<3; d++){
-            c.mom[d]=(calc_t)b.GetMom()[d];
-            c.force[d]=(acc_t)b.GetForce()[d];
+            c.mom[d]=(calc_t)b.GetMom(d);
+            c.force[d]=(acc_t)b.GetForce(d);
         }
         c.bead_id=b.GetId() - 1; // Convert from 1-based to 0-based
         c.type=b.GetType();

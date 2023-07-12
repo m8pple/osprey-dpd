@@ -2783,17 +2783,30 @@ double CCNTCell::GetKt()
 
 void CCNTCell::CheckPBCDrift(const CAbstractBead *bg)
 {
-	double eg[3]={
-		std::abs(fmod(bg->GetunPBCXPos(), m_SimBoxXLength) - bg->GetXPos()),
-		std::abs(fmod(bg->GetunPBCYPos(), m_SimBoxYLength) - bg->GetYPos()),
-		std::abs(fmod(bg->GetunPBCZPos(), m_SimBoxZLength) - bg->GetZPos())
-	};
-	eg[0] = std::min( eg[0], m_SimBoxXLength - eg[0]);
-	eg[1] = std::min( eg[1], m_SimBoxYLength - eg[1]);
-	eg[2] = std::min( eg[2], m_SimBoxZLength - eg[2]);
+	double lens[3]={m_SimBoxXLength, m_SimBoxYLength, m_SimBoxZLength};
 
-	if(eg[0] > 1e-6 || eg[1] > 1e-6 || eg[2] > 1e-6){
-		fprintf(stderr, "PBC drift.\n");
+	double unPBC[3], PBC[3], err[3];
+	for(int d=0; d<3; d++){
+		unPBC[d] = remainder(bg->GetunPBCPos(d),lens[d]);
+		if(unPBC[d] <0){
+			unPBC[d] += lens[d];
+		}
+		PBC[d] = bg->GetPos(d);
+
+		err[d]=std::abs(PBC[d] - unPBC[d]);
+		err[d]=std::min(err[d], std::abs(err[d]-lens[d]));
+	}
+
+	if(err[0] > 1e-6 || err[1] > 1e-6 || err[2] > 1e-6){
+		fprintf(stderr, "PBC drift : bead id (1-based) %u,\n unPBC=[%12.8f,%12.8f,%12.8f],\n   PBC=[%12.8f,%12.8f,%12.8f],\n resid=[%12.8f,%12.8f,%12.8f],\n    eg=[%12.8f,%12.8f,%12.8f].\n",
+			(unsigned)bg->GetId(),
+			bg->GetunPBCXPos(), bg->GetunPBCYPos(), bg->GetunPBCZPos(),
+			bg->GetXPos(), bg->GetYPos(), bg->GetZPos(),
+			unPBC[0], unPBC[1], unPBC[2],
+			err[0], err[1], err[2]
+		);
+		fprintf(stderr, "  err[2]=%g, a(err[2]-lens[2])=%g, lens[2]=%g\n", err[2], std::abs(err[2]-lens[2]), lens[2]);
+		fprintf(stderr, "  xl=%g, yl=%g, zl=%g\n", m_SimBoxXLength, m_SimBoxYLength, m_SimBoxZLength);
 		exit(1);
 	}
 };

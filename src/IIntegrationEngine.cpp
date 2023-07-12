@@ -312,9 +312,22 @@ public:
 
                 check_pbc_drift(br);
 
-                stats_pos_err_mag.add_err_mag_wrapped( bead_id, br->GetPos(), bg->GetPos(), dims );
-                stats_mom_rel_err_mag.add_rel_err_mag( bead_id, br->GetMom(), bg->GetMom() );
-                stats_force_rel_err_mag.add_rel_err_mag( bead_id, br->GetForce(), bg->GetForce() );
+                double posr[3], posg[3];
+                double momr[3], momg[3];
+                double forcer[3], forceg[3];
+                for(int d=0; d<3; d++){
+                    posr[d]=br->GetPos(d);
+                    posg[d]=bg->GetPos(d);
+                    momr[d]=br->GetMom(d);
+                    momg[d]=bg->GetMom(d);
+                    forcer[d]=br->GetForce(d);
+                    forceg[d]=bg->GetForce(d);
+                }
+                
+
+                stats_pos_err_mag.add_err_mag_wrapped( bead_id, posr, posg, dims );
+                stats_mom_rel_err_mag.add_rel_err_mag( bead_id, momr, momg);
+                stats_force_rel_err_mag.add_rel_err_mag( bead_id, forcer, forceg );
 
                 original[j]->Assign(bv[j]);
             }

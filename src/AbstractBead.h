@@ -101,28 +101,32 @@ public:
     inline double GetXPos()		const {return m_Pos[0];}
 	inline double GetYPos()		const {return m_Pos[1];}
 	inline double GetZPos()		const {return m_Pos[2];}
-	inline const double *GetPos() const { return m_Pos; }
+	inline double GetPos(int d) const { return m_Pos[d]; }
 
 	inline double GetXMom()		const {return m_Mom[0];}
 	inline double GetYMom()		const {return m_Mom[1];}
 	inline double GetZMom()		const {return m_Mom[2];}
-	inline const double *GetMom() const { return m_Mom; }
+	inline double GetMom(int d) const {return m_Mom[d]; }
 
-	inline double GetXForce()	const {return m_Force[0];}
-	inline double GetYForce()	const {return m_Force[1];}
-	inline double GetZForce()	const {return m_Force[2];}
-	inline const double *GetForce()	const {return m_Force;}
+	inline double GetXForce()		const {return m_Force[0];}
+	inline double GetYForce()		const {return m_Force[1];}
+	inline double GetZForce()		const {return m_Force[2];}
+	inline double GetForce(int d) 	const {return m_Force[d];}
 
-	inline double GetXAngMom()	const {return m_AngMom[0];}
-	inline double GetYAngMom()	const {return m_AngMom[1];}
-	inline double GetZAngMom()	const {return m_AngMom[2];}
+	inline double GetXAngMom()		const {return m_AngMom[0];}
+	inline double GetYAngMom()		const {return m_AngMom[1];}
+	inline double GetZAngMom()		const {return m_AngMom[2];}
+	inline double GetAngMom(int d)	const {return m_AngMom[d];}
 
-	inline double GetunPBCXPos()	const {return m_unPBCPos[0];}
-	inline double GetunPBCYPos()	const {return m_unPBCPos[1];}
-	inline double GetunPBCZPos()	const {return m_unPBCPos[2];}
-	inline double GetInitialXPos()	const {return m_InitialPos[0];}
-	inline double GetInitialYPos()	const {return m_InitialPos[1];}
-	inline double GetInitialZPos()	const {return m_InitialPos[2];}
+	inline double GetunPBCXPos()		const {return m_unPBCPos[0];}
+	inline double GetunPBCYPos()		const {return m_unPBCPos[1];}
+	inline double GetunPBCZPos()		const {return m_unPBCPos[2];}
+	inline double GetunPBCPos(int d)	const {return m_unPBCPos[d];}
+
+	inline double GetInitialXPos()		const {return m_InitialPos[0];}
+	inline double GetInitialYPos()		const {return m_InitialPos[1];}
+	inline double GetInitialZPos()		const {return m_InitialPos[2];}
+	inline double GetInitialPos(int d)	const {return m_InitialPos[d];}
 
     // Functions to returned bead coordinates shifted to whole simulation Space
 

@@ -80,8 +80,8 @@ private:
         m_halfdt=CCNTCell::m_halfdt;
         m_halfdt2=CCNTCell::m_halfdt2;
         m_SimBoxXLength=CCNTCell::m_SimBoxXLength;
-        m_SimBoxYLength=CCNTCell::m_SimBoxXLength;
-        m_SimBoxZLength=CCNTCell::m_SimBoxXLength;
+        m_SimBoxYLength=CCNTCell::m_SimBoxYLength;
+        m_SimBoxZLength=CCNTCell::m_SimBoxZLength;
         m_CNTXCellNo=CCNTCell::m_CNTXCellNo;
         m_CNTYCellNo=CCNTCell::m_CNTYCellNo;
         m_CNTZCellNo=CCNTCell::m_CNTZCellNo;

@@ -5,6 +5,7 @@
 #include <numeric>
 
 #include <random>
+#include <atomic>
 
 unsigned test_num=0;
 

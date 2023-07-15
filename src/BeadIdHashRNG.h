@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <cstring>
 
 inline uint64_t bead_id_hash_rng__SplitMix64(uint64_t z)
 {
